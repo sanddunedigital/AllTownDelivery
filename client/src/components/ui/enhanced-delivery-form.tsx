@@ -1,0 +1,469 @@
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { AuthForm } from '@/components/ui/auth-form';
+import { apiRequest } from '@/lib/queryClient';
+import { insertDeliveryRequestGuestSchema, insertDeliveryRequestAuthenticatedSchema } from '@shared/schema';
+import { Loader2, Gift, User, LogIn, Star } from 'lucide-react';
+import { z } from 'zod';
+
+export function EnhancedDeliveryForm() {
+  const { user, profile, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const [showAuthForm, setShowAuthForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [loyaltyInfo, setLoyaltyInfo] = useState<any>(null);
+  
+  const schema = user ? insertDeliveryRequestAuthenticatedSchema : insertDeliveryRequestGuestSchema;
+  
+  const form = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      customerName: '',
+      phone: '',
+      email: '',
+      pickupAddress: '',
+      deliveryAddress: '',
+      preferredDate: '',
+      preferredTime: '',
+      deliveryType: '',
+      paymentMethod: '',
+      specialInstructions: '',
+      marketingConsent: '',
+      saveProfile: false,
+      useStoredPayment: false,
+    },
+  });
+
+  // Load user profile data into form when available
+  useEffect(() => {
+    if (profile) {
+      form.setValue('customerName', profile.fullName || '');
+      form.setValue('phone', profile.phone || '');
+      form.setValue('email', profile.email);
+      form.setValue('pickupAddress', profile.defaultPickupAddress || '');
+      form.setValue('deliveryAddress', profile.defaultDeliveryAddress || '');
+      form.setValue('paymentMethod', profile.preferredPaymentMethod || '');
+    }
+  }, [profile, form]);
+
+  // Fetch loyalty info for authenticated users
+  useEffect(() => {
+    if (user) {
+      fetchLoyaltyInfo();
+    }
+  }, [user]);
+
+  const fetchLoyaltyInfo = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`/api/users/${user.id}/loyalty`);
+      if (response.ok) {
+        const loyalty = await response.json();
+        setLoyaltyInfo(loyalty);
+      }
+    } catch (error) {
+      console.error('Error fetching loyalty info:', error);
+    }
+  };
+
+  const onSubmit = async (data: any) => {
+    setSubmitting(true);
+    
+    try {
+      const requestData = {
+        ...data,
+        userId: user?.id || undefined,
+      };
+
+      const result = await apiRequest('POST', '/api/delivery-requests', requestData);
+
+      toast({
+        title: "Success!",
+        description: "Your delivery request has been submitted successfully. We'll contact you soon!",
+      });
+
+      form.reset();
+      
+      // Refresh loyalty info if user is authenticated
+      if (user) {
+        fetchLoyaltyInfo();
+      }
+
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit delivery request. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (showAuthForm) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <Button 
+            variant="ghost" 
+            onClick={() => setShowAuthForm(false)}
+            className="mb-4"
+          >
+            ← Back to delivery form
+          </Button>
+        </div>
+        <AuthForm onSuccess={() => setShowAuthForm(false)} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Auth Status Banner */}
+      {!user && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="bg-orange-500 p-2 rounded-full">
+                  <Star className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-orange-900">Join Sara's Loyalty Program</h3>
+                  <p className="text-sm text-orange-700">Sign up to earn rewards and get every 10th delivery free!</p>
+                </div>
+              </div>
+              <Button onClick={() => setShowAuthForm(true)} size="sm">
+                <LogIn className="h-4 w-4 mr-2" />
+                Sign Up / Sign In
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loyalty Status for Authenticated Users */}
+      {user && loyaltyInfo && (
+        <Card className="bg-gradient-to-r from-orange-500 to-red-600 text-white">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Gift className="h-5 w-5" />
+                <div>
+                  <h3 className="font-semibold">
+                    Welcome back, {profile?.fullName || user.email}!
+                  </h3>
+                  <p className="text-sm text-orange-100">
+                    {loyaltyInfo.eligibleForFreeDelivery 
+                      ? `You have ${loyaltyInfo.freeDeliveryCredits} free delivery credits!`
+                      : `${loyaltyInfo.deliveriesUntilNextFree} more deliveries until your next free one`
+                    }
+                  </p>
+                </div>
+              </div>
+              <Badge className="bg-white text-orange-600">
+                {loyaltyInfo.totalDeliveries} deliveries
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Delivery Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Request a Delivery
+          </CardTitle>
+          <CardDescription>
+            Fill out the details below and we'll get your items delivered quickly!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Customer Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Customer Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="customerName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter your full name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(555) 123-4567" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="your.email@example.com" type="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Delivery Details */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Delivery Details</h3>
+                
+                <FormField
+                  control={form.control}
+                  name="pickupAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pickup Address *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Where should we pick up your items?" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="deliveryAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Delivery Address *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Where should we deliver your items?" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="preferredDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preferred Date *</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="preferredTime"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preferred Time *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select preferred time" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="morning">Morning (8AM - 12PM)</SelectItem>
+                            <SelectItem value="afternoon">Afternoon (12PM - 5PM)</SelectItem>
+                            <SelectItem value="evening">Evening (5PM - 8PM)</SelectItem>
+                            <SelectItem value="anytime">Anytime</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Service Options */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Service Options</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="deliveryType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Delivery Type *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select delivery type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="standard">Standard Delivery</SelectItem>
+                            <SelectItem value="express">Express Delivery (+$5)</SelectItem>
+                            <SelectItem value="same-day">Same Day Delivery (+$10)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Payment Method *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select payment method" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="cash">Cash</SelectItem>
+                            <SelectItem value="card">Credit/Debit Card</SelectItem>
+                            <SelectItem value="venmo">Venmo</SelectItem>
+                            <SelectItem value="paypal">PayPal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Additional Information</h3>
+                
+                <FormField
+                  control={form.control}
+                  name="specialInstructions"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Special Instructions</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Any special instructions for pickup or delivery..."
+                          className="min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* User Options */}
+              {user && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Save Preferences</h3>
+                  
+                  <FormField
+                    control={form.control}
+                    name="saveProfile"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Save delivery information to my profile
+                          </FormLabel>
+                          <p className="text-sm text-muted-foreground">
+                            Save addresses and payment method for faster future orders
+                          </p>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* Marketing Consent */}
+              <FormField
+                control={form.control}
+                name="marketingConsent"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value === 'yes'}
+                        onCheckedChange={(checked) => field.onChange(checked ? 'yes' : 'no')}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        I would like to receive promotional emails and updates
+                      </FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Stay updated on special offers and new services
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Submit Delivery Request
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

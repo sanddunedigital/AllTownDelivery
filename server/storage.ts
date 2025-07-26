@@ -1,25 +1,43 @@
-import { type User, type InsertUser, type DeliveryRequest, type InsertDeliveryRequest, users, deliveryRequests } from "@shared/schema";
+import { 
+  type User, type InsertUser, type DeliveryRequest, type InsertDeliveryRequest,
+  type UserProfile, type InsertUserProfile, type UpdateUserProfile,
+  users, deliveryRequests, userProfiles 
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
 export interface IStorage {
+  // Legacy user methods (for backward compatibility)
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  // User profile methods (for Supabase Auth integration)
+  getUserProfile(id: string): Promise<UserProfile | undefined>;
+  createUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
+  updateUserProfile(id: string, updates: UpdateUserProfile): Promise<UserProfile>;
+  updateLoyaltyPoints(userId: string, points: number): Promise<void>;
+  checkLoyaltyEligibility(userId: string): Promise<boolean>;
+  
+  // Delivery request methods
   createDeliveryRequest(request: InsertDeliveryRequest): Promise<DeliveryRequest>;
-  getDeliveryRequests(): Promise<DeliveryRequest[]>;
+  getDeliveryRequests(userId?: string): Promise<DeliveryRequest[]>;
+  updateDeliveryStatus(id: string, status: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private userProfiles: Map<string, UserProfile>;
   private deliveryRequests: Map<string, DeliveryRequest>;
 
   constructor() {
     this.users = new Map();
+    this.userProfiles = new Map();
     this.deliveryRequests = new Map();
   }
 
+  // Legacy user methods
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
@@ -37,13 +55,75 @@ export class MemStorage implements IStorage {
     return user;
   }
 
+  // User profile methods
+  async getUserProfile(id: string): Promise<UserProfile | undefined> {
+    return this.userProfiles.get(id);
+  }
+
+  async createUserProfile(insertProfile: InsertUserProfile): Promise<UserProfile> {
+    const profile: UserProfile = {
+      ...insertProfile,
+      fullName: insertProfile.fullName || null,
+      phone: insertProfile.phone || null,
+      defaultPickupAddress: insertProfile.defaultPickupAddress || null,
+      defaultDeliveryAddress: insertProfile.defaultDeliveryAddress || null,
+      preferredPaymentMethod: insertProfile.preferredPaymentMethod || null,
+      loyaltyPoints: 0,
+      totalDeliveries: 0,
+      freeDeliveryCredits: 0,
+      marketingConsent: insertProfile.marketingConsent || false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.userProfiles.set(profile.id, profile);
+    return profile;
+  }
+
+  async updateUserProfile(id: string, updates: UpdateUserProfile): Promise<UserProfile> {
+    const existing = this.userProfiles.get(id);
+    if (!existing) {
+      throw new Error("User profile not found");
+    }
+    const updated: UserProfile = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date()
+    };
+    this.userProfiles.set(id, updated);
+    return updated;
+  }
+
+  async updateLoyaltyPoints(userId: string, points: number): Promise<void> {
+    const profile = this.userProfiles.get(userId);
+    if (profile) {
+      profile.loyaltyPoints = (profile.loyaltyPoints || 0) + points;
+      profile.totalDeliveries = (profile.totalDeliveries || 0) + 1;
+      
+      // Award free delivery every 10 deliveries
+      if (profile.totalDeliveries % 10 === 0) {
+        profile.freeDeliveryCredits = (profile.freeDeliveryCredits || 0) + 1;
+      }
+      
+      profile.updatedAt = new Date();
+      this.userProfiles.set(userId, profile);
+    }
+  }
+
+  async checkLoyaltyEligibility(userId: string): Promise<boolean> {
+    const profile = this.userProfiles.get(userId);
+    return (profile?.freeDeliveryCredits || 0) > 0;
+  }
+
+  // Delivery request methods
   async createDeliveryRequest(insertRequest: InsertDeliveryRequest): Promise<DeliveryRequest> {
     const id = randomUUID();
     const request: DeliveryRequest = { 
       ...insertRequest,
-      email: insertRequest.email || null,
+      userId: insertRequest.userId || null,
       specialInstructions: insertRequest.specialInstructions || null,
       marketingConsent: insertRequest.marketingConsent || null,
+      status: "pending",
+      usedFreeDelivery: false,
       id,
       createdAt: new Date()
     };
@@ -51,8 +131,17 @@ export class MemStorage implements IStorage {
     return request;
   }
 
-  async getDeliveryRequests(): Promise<DeliveryRequest[]> {
-    return Array.from(this.deliveryRequests.values());
+  async getDeliveryRequests(userId?: string): Promise<DeliveryRequest[]> {
+    const requests = Array.from(this.deliveryRequests.values());
+    return userId ? requests.filter(r => r.userId === userId) : requests;
+  }
+
+  async updateDeliveryStatus(id: string, status: string): Promise<void> {
+    const request = this.deliveryRequests.get(id);
+    if (request) {
+      const updated = { ...request, status };
+      this.deliveryRequests.set(id, updated);
+    }
   }
 }
 
@@ -66,6 +155,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Legacy user methods
   async getUser(id: string): Promise<User | undefined> {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
@@ -90,25 +180,97 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  // User profile methods
+  async getUserProfile(id: string): Promise<UserProfile | undefined> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.select().from(userProfiles).where(eq(userProfiles.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createUserProfile(insertProfile: InsertUserProfile): Promise<UserProfile> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.insert(userProfiles).values(insertProfile).returning();
+    return result[0];
+  }
+
+  async updateUserProfile(id: string, updates: UpdateUserProfile): Promise<UserProfile> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db
+      .update(userProfiles)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(userProfiles.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error("User profile not found");
+    }
+    return result[0];
+  }
+
+  async updateLoyaltyPoints(userId: string, points: number): Promise<void> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    
+    const profile = await this.getUserProfile(userId);
+    if (!profile) return;
+
+    const newTotalDeliveries = (profile.totalDeliveries || 0) + 1;
+    const newLoyaltyPoints = (profile.loyaltyPoints || 0) + points;
+    const newFreeCredits = newTotalDeliveries % 10 === 0 
+      ? (profile.freeDeliveryCredits || 0) + 1 
+      : (profile.freeDeliveryCredits || 0);
+
+    await db
+      .update(userProfiles)
+      .set({
+        loyaltyPoints: newLoyaltyPoints,
+        totalDeliveries: newTotalDeliveries,
+        freeDeliveryCredits: newFreeCredits,
+        updatedAt: new Date()
+      })
+      .where(eq(userProfiles.id, userId));
+  }
+
+  async checkLoyaltyEligibility(userId: string): Promise<boolean> {
+    const profile = await this.getUserProfile(userId);
+    return (profile?.freeDeliveryCredits || 0) > 0;
+  }
+
+  // Delivery request methods
   async createDeliveryRequest(insertRequest: InsertDeliveryRequest): Promise<DeliveryRequest> {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
-    const requestData = {
-      ...insertRequest,
-      email: insertRequest.email || null,
-      specialInstructions: insertRequest.specialInstructions || null,
-      marketingConsent: insertRequest.marketingConsent || null,
-    };
-    const result = await db.insert(deliveryRequests).values(requestData).returning();
+    const result = await db.insert(deliveryRequests).values(insertRequest).returning();
     return result[0];
   }
 
-  async getDeliveryRequests(): Promise<DeliveryRequest[]> {
+  async getDeliveryRequests(userId?: string): Promise<DeliveryRequest[]> {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
+    
+    if (userId) {
+      return await db.select().from(deliveryRequests).where(eq(deliveryRequests.userId, userId));
+    }
     return await db.select().from(deliveryRequests);
+  }
+
+  async updateDeliveryStatus(id: string, status: string): Promise<void> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    await db
+      .update(deliveryRequests)
+      .set({ status })
+      .where(eq(deliveryRequests.id, id));
   }
 }
 
@@ -117,6 +279,7 @@ class SmartStorage implements IStorage {
   private memStorage = new MemStorage();
   private dbStorage = new DatabaseStorage();
   
+  // Legacy user methods
   async getUser(id: string): Promise<User | undefined> {
     try {
       return await this.dbStorage.getUser(id);
@@ -144,6 +307,53 @@ class SmartStorage implements IStorage {
     }
   }
 
+  // User profile methods
+  async getUserProfile(id: string): Promise<UserProfile | undefined> {
+    try {
+      return await this.dbStorage.getUserProfile(id);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getUserProfile(id);
+    }
+  }
+
+  async createUserProfile(profile: InsertUserProfile): Promise<UserProfile> {
+    try {
+      return await this.dbStorage.createUserProfile(profile);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.createUserProfile(profile);
+    }
+  }
+
+  async updateUserProfile(id: string, updates: UpdateUserProfile): Promise<UserProfile> {
+    try {
+      return await this.dbStorage.updateUserProfile(id, updates);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.updateUserProfile(id, updates);
+    }
+  }
+
+  async updateLoyaltyPoints(userId: string, points: number): Promise<void> {
+    try {
+      await this.dbStorage.updateLoyaltyPoints(userId, points);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      await this.memStorage.updateLoyaltyPoints(userId, points);
+    }
+  }
+
+  async checkLoyaltyEligibility(userId: string): Promise<boolean> {
+    try {
+      return await this.dbStorage.checkLoyaltyEligibility(userId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.checkLoyaltyEligibility(userId);
+    }
+  }
+
+  // Delivery request methods
   async createDeliveryRequest(request: InsertDeliveryRequest): Promise<DeliveryRequest> {
     try {
       return await this.dbStorage.createDeliveryRequest(request);
@@ -153,12 +363,21 @@ class SmartStorage implements IStorage {
     }
   }
 
-  async getDeliveryRequests(): Promise<DeliveryRequest[]> {
+  async getDeliveryRequests(userId?: string): Promise<DeliveryRequest[]> {
     try {
-      return await this.dbStorage.getDeliveryRequests();
+      return await this.dbStorage.getDeliveryRequests(userId);
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
-      return await this.memStorage.getDeliveryRequests();
+      return await this.memStorage.getDeliveryRequests(userId);
+    }
+  }
+
+  async updateDeliveryStatus(id: string, status: string): Promise<void> {
+    try {
+      await this.dbStorage.updateDeliveryStatus(id, status);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      await this.memStorage.updateDeliveryStatus(id, status);
     }
   }
 }
