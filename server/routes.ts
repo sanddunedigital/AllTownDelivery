@@ -13,14 +13,26 @@ import { z } from "zod";
 export async function registerRoutes(app: Express): Promise<Server> {
   // User Profile Routes
   
-  // Get user profile
+  // Get user profile (create if needed)
   app.get("/api/users/:id/profile", async (req, res) => {
     try {
       const { id } = req.params;
-      const profile = await storage.getUserProfile(id);
+      let profile = await storage.getUserProfile(id);
+      
+      // Create profile if it doesn't exist
       if (!profile) {
-        return res.status(404).json({ message: "User profile not found" });
+        profile = await storage.createUserProfile({
+          id,
+          email: '', // Will be updated when user provides email
+          fullName: null,
+          phone: null,
+          defaultPickupAddress: null,
+          defaultDeliveryAddress: null,
+          preferredPaymentMethod: null,
+          marketingConsent: false
+        });
       }
+      
       res.json(profile);
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -61,20 +73,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check loyalty eligibility
+  // Check loyalty eligibility (create profile if needed)
   app.get("/api/users/:id/loyalty", async (req, res) => {
     try {
       const { id } = req.params;
-      const profile = await storage.getUserProfile(id);
+      let profile = await storage.getUserProfile(id);
+      
+      // Create profile if it doesn't exist
       if (!profile) {
-        return res.status(404).json({ message: "User profile not found" });
+        profile = await storage.createUserProfile({
+          id,
+          email: '', // Will be updated when user provides email
+          fullName: null,
+          phone: null,
+          defaultPickupAddress: null,
+          defaultDeliveryAddress: null,
+          preferredPaymentMethod: null,
+          marketingConsent: false
+        });
       }
       
       const eligibleForFree = await storage.checkLoyaltyEligibility(id);
       res.json({
-        loyaltyPoints: profile.loyaltyPoints,
-        totalDeliveries: profile.totalDeliveries,
-        freeDeliveryCredits: profile.freeDeliveryCredits,
+        loyaltyPoints: profile.loyaltyPoints || 0,
+        totalDeliveries: profile.totalDeliveries || 0,
+        freeDeliveryCredits: profile.freeDeliveryCredits || 0,
         eligibleForFreeDelivery: eligibleForFree,
         deliveriesUntilNextFree: 10 - ((profile.totalDeliveries || 0) % 10)
       });
