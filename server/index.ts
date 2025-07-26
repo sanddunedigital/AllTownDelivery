@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { runMigrations } from "./migrate";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +38,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Try to run database migrations, but don't fail if database is unavailable
+  try {
+    await runMigrations();
+    log("Database connected and tables created successfully");
+  } catch (error) {
+    console.warn("Database connection failed, using memory storage:", error instanceof Error ? error.message : String(error));
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

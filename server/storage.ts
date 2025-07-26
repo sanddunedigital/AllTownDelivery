@@ -57,22 +57,43 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private async testConnection(): Promise<boolean> {
+    try {
+      await db.select().from(users).limit(1);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   async getUser(id: string): Promise<User | undefined> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
     const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
     return result[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
     const result = await db.insert(users).values(insertUser).returning();
     return result[0];
   }
 
   async createDeliveryRequest(insertRequest: InsertDeliveryRequest): Promise<DeliveryRequest> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
     const requestData = {
       ...insertRequest,
       email: insertRequest.email || null,
@@ -84,9 +105,62 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDeliveryRequests(): Promise<DeliveryRequest[]> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
     return await db.select().from(deliveryRequests);
   }
 }
 
-// Use database storage in production, memory storage for development
-export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemStorage();
+// Smart storage selection - try database first, fallback to memory
+class SmartStorage implements IStorage {
+  private memStorage = new MemStorage();
+  private dbStorage = new DatabaseStorage();
+  
+  async getUser(id: string): Promise<User | undefined> {
+    try {
+      return await this.dbStorage.getUser(id);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getUser(id);
+    }
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    try {
+      return await this.dbStorage.getUserByUsername(username);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getUserByUsername(username);
+    }
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    try {
+      return await this.dbStorage.createUser(user);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.createUser(user);
+    }
+  }
+
+  async createDeliveryRequest(request: InsertDeliveryRequest): Promise<DeliveryRequest> {
+    try {
+      return await this.dbStorage.createDeliveryRequest(request);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.createDeliveryRequest(request);
+    }
+  }
+
+  async getDeliveryRequests(): Promise<DeliveryRequest[]> {
+    try {
+      return await this.dbStorage.getDeliveryRequests();
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getDeliveryRequests();
+    }
+  }
+}
+
+export const storage = new SmartStorage();

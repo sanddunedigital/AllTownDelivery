@@ -15,6 +15,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid request data", errors: error.errors });
       } else {
+        console.error("Error creating delivery request:", error);
         res.status(500).json({ message: "Internal server error" });
       }
     }

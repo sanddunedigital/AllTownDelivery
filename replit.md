@@ -26,10 +26,11 @@ Preferred communication style: Simple, everyday language.
 - **Build Process**: esbuild for production bundling
 
 ### Database Layer
-- **ORM**: Drizzle ORM configured for PostgreSQL
+- **ORM**: Drizzle ORM configured for PostgreSQL with Supabase
 - **Schema Management**: Shared schema definitions between client and server
-- **Migration System**: Drizzle Kit for database migrations
-- **Current Implementation**: Memory storage with database-ready structure
+- **Migration System**: Automatic table creation with SQL migrations
+- **Smart Storage**: Automatic fallback from database to memory storage when connection fails
+- **Current Implementation**: Supabase PostgreSQL with graceful memory storage fallback
 
 ## Key Components
 
