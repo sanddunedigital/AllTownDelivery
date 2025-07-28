@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthForm } from '@/components/ui/auth-form';
+import { ChangePasswordForm } from '@/components/ui/change-password-form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trophy, Star, Gift, MapPin, CreditCard, Phone, Mail, User } from 'lucide-react';
 
@@ -260,6 +261,9 @@ function UserProfile() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Password Change Section */}
+      <ChangePasswordForm />
     </div>
   );
 }
