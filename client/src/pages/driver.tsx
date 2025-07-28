@@ -16,6 +16,7 @@ export default function DriverPortal() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [claimNotes, setClaimNotes] = useState<{ [key: string]: string }>({});
+  const [activeTab, setActiveTab] = useState('available');
 
   // Fetch available deliveries
   const { data: availableDeliveries = [], isLoading: loadingAvailable } = useQuery<DeliveryRequest[]>({
@@ -28,6 +29,10 @@ export default function DriverPortal() {
     queryKey: ['/api/driver', user?.id, 'deliveries'],
     enabled: !!user
   });
+
+  // Separate active and completed deliveries
+  const activeDeliveries = myDeliveries.filter(d => d.status !== 'completed');
+  const completedDeliveries = myDeliveries.filter(d => d.status === 'completed');
 
   // Claim delivery mutation
   const claimDeliveryMutation = useMutation({
@@ -42,6 +47,7 @@ export default function DriverPortal() {
         description: "You have successfully claimed this delivery.",
       });
       setClaimNotes({});
+      setActiveTab('my-deliveries'); // Auto-switch to My Deliveries tab
     },
     onError: (error: any) => {
       toast({
@@ -121,13 +127,16 @@ export default function DriverPortal() {
         <p className="text-gray-600">Manage your delivery assignments and track your progress</p>
       </div>
 
-      <Tabs defaultValue="available" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="available">
-            Available Deliveries ({availableDeliveries.length})
+            Available ({availableDeliveries.length})
           </TabsTrigger>
           <TabsTrigger value="my-deliveries">
-            My Deliveries ({myDeliveries.length})
+            Active ({activeDeliveries.length})
+          </TabsTrigger>
+          <TabsTrigger value="completed">
+            Completed ({completedDeliveries.length})
           </TabsTrigger>
         </TabsList>
 
@@ -241,12 +250,12 @@ export default function DriverPortal() {
         <TabsContent value="my-deliveries" className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
             <Truck className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">My Deliveries</h2>
+            <h2 className="text-xl font-semibold">Active Deliveries</h2>
           </div>
 
           {loadingMy ? (
             <div className="text-center py-8">Loading your deliveries...</div>
-          ) : myDeliveries.length === 0 ? (
+          ) : activeDeliveries.length === 0 ? (
             <Card>
               <CardContent className="text-center py-8">
                 <Truck className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -256,7 +265,7 @@ export default function DriverPortal() {
             </Card>
           ) : (
             <div className="grid gap-4">
-              {myDeliveries.map((delivery: DeliveryRequest) => (
+              {activeDeliveries.map((delivery: DeliveryRequest) => (
                 <Card key={delivery.id} className="border-l-4 border-l-blue-500">
                   <CardHeader>
                     <div className="flex justify-between items-start">
@@ -342,6 +351,95 @@ export default function DriverPortal() {
                           Mark Complete
                         </Button>
                       )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="completed" className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Package className="h-5 w-5" />
+            <h2 className="text-xl font-semibold">Completed Deliveries</h2>
+            <Badge variant="outline">{completedDeliveries.length} today</Badge>
+          </div>
+
+          {loadingMy ? (
+            <div className="text-center py-8">Loading completed deliveries...</div>
+          ) : completedDeliveries.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-semibold mb-2">No Completed Deliveries</h3>
+                <p className="text-gray-600">Complete some deliveries to track your daily progress here.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {completedDeliveries.map((delivery: DeliveryRequest) => (
+                <Card key={delivery.id} className="border-l-4 border-l-purple-500 opacity-75">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">{delivery.customerName}</CardTitle>
+                        <CardDescription className="flex items-center gap-1 mt-1">
+                          <Phone className="h-4 w-4" />
+                          {delivery.phone}
+                        </CardDescription>
+                      </div>
+                      <Badge className={getStatusColor(delivery.status)}>
+                        {delivery.status}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <MapPin className="h-4 w-4 mt-1 text-blue-500" />
+                          <div>
+                            <p className="font-medium text-sm">Pickup</p>
+                            <p className="text-sm text-gray-600">{formatAddress(delivery.pickupAddress)}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <MapPin className="h-4 w-4 mt-1 text-green-500" />
+                          <div>
+                            <p className="font-medium text-sm">Delivery</p>
+                            <p className="text-sm text-gray-600">{formatAddress(delivery.deliveryAddress)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">{delivery.preferredDate} at {delivery.preferredTime}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">{delivery.deliveryType}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">{delivery.paymentMethod}</span>
+                      </div>
+                    </div>
+
+                    {delivery.driverNotes && (
+                      <div className="bg-purple-50 p-3 rounded-md">
+                        <p className="font-medium text-sm mb-1">Delivery Notes</p>
+                        <p className="text-sm text-gray-600">{delivery.driverNotes}</p>
+                      </div>
+                    )}
+
+                    <div className="text-sm text-green-600 font-medium">
+                      ✓ Completed successfully
                     </div>
                   </CardContent>
                 </Card>
