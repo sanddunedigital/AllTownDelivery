@@ -23,7 +23,7 @@ import { EnhancedDeliveryForm } from "@/components/ui/enhanced-delivery-form";
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, signOut, loading } = useAuth();
+  const { user, profile, signOut, loading } = useAuth();
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -93,6 +93,14 @@ export default function Home() {
                       Profile
                     </Button>
                   </Link>
+                  {profile?.role === 'driver' && (
+                    <Link href="/driver">
+                      <Button variant="outline" size="sm">
+                        <Truck className="w-4 h-4 mr-2" />
+                        Driver Portal
+                      </Button>
+                    </Link>
+                  )}
                   <Button variant="outline" size="sm" onClick={handleSignOut}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
@@ -158,6 +166,14 @@ export default function Home() {
                       Profile
                     </Button>
                   </Link>
+                  {profile?.role === 'driver' && (
+                    <Link href="/driver">
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Truck className="w-4 h-4 mr-2" />
+                        Driver Portal
+                      </Button>
+                    </Link>
+                  )}
                   <Button variant="outline" size="sm" onClick={handleSignOut} className="w-full">
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out

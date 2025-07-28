@@ -6,7 +6,9 @@ import {
   insertUserProfileSchema, 
   updateUserProfileSchema,
   insertDeliveryRequestGuestSchema,
-  insertDeliveryRequestAuthenticatedSchema
+  insertDeliveryRequestAuthenticatedSchema,
+  claimDeliverySchema,
+  updateDeliveryStatusSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -181,6 +183,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating delivery status:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Driver Routes
+  
+  // Get available deliveries for drivers
+  app.get("/api/driver/deliveries/available", async (req, res) => {
+    try {
+      const deliveries = await storage.getAvailableDeliveries();
+      res.json(deliveries);
+    } catch (error) {
+      console.error("Error fetching available deliveries:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get driver's claimed/active deliveries
+  app.get("/api/driver/:driverId/deliveries", async (req, res) => {
+    try {
+      const { driverId } = req.params;
+      const deliveries = await storage.getDriverDeliveries(driverId);
+      res.json(deliveries);
+    } catch (error) {
+      console.error("Error fetching driver deliveries:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Claim a delivery
+  app.post("/api/driver/:driverId/claim", async (req, res) => {
+    try {
+      const { driverId } = req.params;
+      const { deliveryId, driverNotes } = claimDeliverySchema.parse(req.body);
+      
+      const delivery = await storage.claimDelivery(driverId, deliveryId, driverNotes);
+      res.json(delivery);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        console.error("Error claiming delivery:", error);
+        res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
+      }
+    }
+  });
+
+  // Update delivery status for driver
+  app.patch("/api/driver/:driverId/deliveries/:deliveryId", async (req, res) => {
+    try {
+      const { driverId, deliveryId } = req.params;
+      const updates = updateDeliveryStatusSchema.parse(req.body);
+      
+      const delivery = await storage.updateDeliveryForDriver(driverId, deliveryId, updates);
+      res.json(delivery);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid update data", errors: error.errors });
+      } else {
+        console.error("Error updating delivery:", error);
+        res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
+      }
     }
   });
 

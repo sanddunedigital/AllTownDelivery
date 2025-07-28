@@ -16,6 +16,7 @@ export const userProfiles = pgTable("user_profiles", {
   loyaltyPoints: integer("loyalty_points").default(0),
   totalDeliveries: integer("total_deliveries").default(0),
   freeDeliveryCredits: integer("free_delivery_credits").default(0),
+  role: text("role").default("customer").notNull(), // customer, driver, admin
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -34,8 +35,11 @@ export const deliveryRequests = pgTable("delivery_requests", {
   paymentMethod: text("payment_method").notNull(),
   specialInstructions: text("special_instructions"),
   marketingConsent: text("marketing_consent"),
-  status: text("status").default("pending").notNull(), // pending, confirmed, in_progress, completed, cancelled
+  status: text("status").default("pending").notNull(), // pending, available, claimed, in_progress, completed, cancelled
   usedFreeDelivery: boolean("used_free_delivery").default(false),
+  claimedByDriver: uuid("claimed_by_driver"), // References user_profiles.id where role = 'driver'
+  claimedAt: timestamp("claimed_at"),
+  driverNotes: text("driver_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -78,6 +82,17 @@ export const insertDeliveryRequestAuthenticatedSchema = insertDeliveryRequestSch
   useStoredPayment: z.boolean().optional(), // For using stored payment method
 });
 
+// Driver-related schemas
+export const claimDeliverySchema = z.object({
+  deliveryId: z.string(),
+  driverNotes: z.string().optional(),
+});
+
+export const updateDeliveryStatusSchema = z.object({
+  status: z.enum(['available', 'claimed', 'in_progress', 'completed', 'cancelled']),
+  driverNotes: z.string().optional(),
+});
+
 // Legacy user schema (for compatibility)
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -93,6 +108,9 @@ export type InsertDeliveryRequest = z.infer<typeof insertDeliveryRequestSchema>;
 export type InsertDeliveryRequestGuest = z.infer<typeof insertDeliveryRequestGuestSchema>;
 export type InsertDeliveryRequestAuthenticated = z.infer<typeof insertDeliveryRequestAuthenticatedSchema>;
 export type DeliveryRequest = typeof deliveryRequests.$inferSelect;
+
+export type ClaimDelivery = z.infer<typeof claimDeliverySchema>;
+export type UpdateDeliveryStatus = z.infer<typeof updateDeliveryStatusSchema>;
 
 // Legacy types
 export type InsertUser = z.infer<typeof insertUserSchema>;

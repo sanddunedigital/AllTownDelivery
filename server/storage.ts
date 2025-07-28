@@ -1,6 +1,7 @@
 import { 
   type User, type InsertUser, type DeliveryRequest, type InsertDeliveryRequest,
   type UserProfile, type InsertUserProfile, type UpdateUserProfile,
+  type ClaimDelivery, type UpdateDeliveryStatus,
   users, deliveryRequests, userProfiles 
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -24,6 +25,12 @@ export interface IStorage {
   createDeliveryRequest(request: InsertDeliveryRequest): Promise<DeliveryRequest>;
   getDeliveryRequests(userId?: string): Promise<DeliveryRequest[]>;
   updateDeliveryStatus(id: string, status: string): Promise<void>;
+  
+  // Driver methods
+  getAvailableDeliveries(): Promise<DeliveryRequest[]>;
+  getDriverDeliveries(driverId: string): Promise<DeliveryRequest[]>;
+  claimDelivery(driverId: string, deliveryId: string, notes?: string): Promise<DeliveryRequest>;
+  updateDeliveryForDriver(driverId: string, deliveryId: string, updates: Partial<UpdateDeliveryStatus>): Promise<DeliveryRequest>;
 }
 
 export class MemStorage implements IStorage {
@@ -72,6 +79,7 @@ export class MemStorage implements IStorage {
       totalDeliveries: 0,
       freeDeliveryCredits: 0,
       marketingConsent: insertProfile.marketingConsent || false,
+      role: insertProfile.role || "customer",
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -122,8 +130,11 @@ export class MemStorage implements IStorage {
       userId: insertRequest.userId || null,
       specialInstructions: insertRequest.specialInstructions || null,
       marketingConsent: insertRequest.marketingConsent || null,
-      status: "pending",
+      status: "available",
       usedFreeDelivery: false,
+      claimedByDriver: null,
+      claimedAt: null,
+      driverNotes: null,
       id,
       createdAt: new Date()
     };
@@ -142,6 +153,53 @@ export class MemStorage implements IStorage {
       const updated = { ...request, status };
       this.deliveryRequests.set(id, updated);
     }
+  }
+
+  // Driver methods
+  async getAvailableDeliveries(): Promise<DeliveryRequest[]> {
+    return Array.from(this.deliveryRequests.values()).filter(r => r.status === 'available');
+  }
+
+  async getDriverDeliveries(driverId: string): Promise<DeliveryRequest[]> {
+    return Array.from(this.deliveryRequests.values()).filter(r => r.claimedByDriver === driverId);
+  }
+
+  async claimDelivery(driverId: string, deliveryId: string, notes?: string): Promise<DeliveryRequest> {
+    const request = this.deliveryRequests.get(deliveryId);
+    if (!request) {
+      throw new Error("Delivery request not found");
+    }
+    if (request.status !== 'available') {
+      throw new Error("Delivery is not available for claiming");
+    }
+    
+    const updated: DeliveryRequest = {
+      ...request,
+      status: 'claimed',
+      claimedByDriver: driverId,
+      claimedAt: new Date(),
+      driverNotes: notes || null
+    };
+    this.deliveryRequests.set(deliveryId, updated);
+    return updated;
+  }
+
+  async updateDeliveryForDriver(driverId: string, deliveryId: string, updates: Partial<UpdateDeliveryStatus>): Promise<DeliveryRequest> {
+    const request = this.deliveryRequests.get(deliveryId);
+    if (!request) {
+      throw new Error("Delivery request not found");
+    }
+    if (request.claimedByDriver !== driverId) {
+      throw new Error("Delivery is not claimed by this driver");
+    }
+    
+    const updated: DeliveryRequest = {
+      ...request,
+      ...updates,
+      driverNotes: updates.driverNotes || request.driverNotes
+    };
+    this.deliveryRequests.set(deliveryId, updated);
+    return updated;
   }
 }
 
@@ -272,6 +330,60 @@ export class DatabaseStorage implements IStorage {
       .set({ status })
       .where(eq(deliveryRequests.id, id));
   }
+
+  // Driver methods
+  async getAvailableDeliveries(): Promise<DeliveryRequest[]> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    return await db.select().from(deliveryRequests).where(eq(deliveryRequests.status, 'available'));
+  }
+
+  async getDriverDeliveries(driverId: string): Promise<DeliveryRequest[]> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    return await db.select().from(deliveryRequests).where(eq(deliveryRequests.claimedByDriver, driverId));
+  }
+
+  async claimDelivery(driverId: string, deliveryId: string, notes?: string): Promise<DeliveryRequest> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    
+    const result = await db
+      .update(deliveryRequests)
+      .set({
+        status: 'claimed',
+        claimedByDriver: driverId,
+        claimedAt: new Date(),
+        driverNotes: notes || null
+      })
+      .where(eq(deliveryRequests.id, deliveryId))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error("Delivery request not found or already claimed");
+    }
+    return result[0];
+  }
+
+  async updateDeliveryForDriver(driverId: string, deliveryId: string, updates: Partial<UpdateDeliveryStatus>): Promise<DeliveryRequest> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    
+    const result = await db
+      .update(deliveryRequests)
+      .set(updates)
+      .where(eq(deliveryRequests.id, deliveryId))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error("Delivery request not found");
+    }
+    return result[0];
+  }
 }
 
 // Smart storage selection - try database first, fallback to memory
@@ -378,6 +490,43 @@ class SmartStorage implements IStorage {
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
       await this.memStorage.updateDeliveryStatus(id, status);
+    }
+  }
+
+  // Driver methods
+  async getAvailableDeliveries(): Promise<DeliveryRequest[]> {
+    try {
+      return await this.dbStorage.getAvailableDeliveries();
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getAvailableDeliveries();
+    }
+  }
+
+  async getDriverDeliveries(driverId: string): Promise<DeliveryRequest[]> {
+    try {
+      return await this.dbStorage.getDriverDeliveries(driverId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getDriverDeliveries(driverId);
+    }
+  }
+
+  async claimDelivery(driverId: string, deliveryId: string, notes?: string): Promise<DeliveryRequest> {
+    try {
+      return await this.dbStorage.claimDelivery(driverId, deliveryId, notes);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.claimDelivery(driverId, deliveryId, notes);
+    }
+  }
+
+  async updateDeliveryForDriver(driverId: string, deliveryId: string, updates: Partial<UpdateDeliveryStatus>): Promise<DeliveryRequest> {
+    try {
+      return await this.dbStorage.updateDeliveryForDriver(driverId, deliveryId, updates);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.updateDeliveryForDriver(driverId, deliveryId, updates);
     }
   }
 }
