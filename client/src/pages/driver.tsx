@@ -16,6 +16,7 @@ export default function DriverPortal() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [claimNotes, setClaimNotes] = useState<{ [key: string]: string }>({});
+  const [deliveryNotes, setDeliveryNotes] = useState<{ [key: string]: string }>({});
   const [activeTab, setActiveTab] = useState('available');
 
   // Fetch available deliveries
@@ -85,7 +86,13 @@ export default function DriverPortal() {
   };
 
   const handleStatusUpdate = (deliveryId: string, status: string) => {
-    updateStatusMutation.mutate({ deliveryId, status });
+    const notes = deliveryNotes[deliveryId];
+    updateStatusMutation.mutate({ deliveryId, status, notes });
+  };
+
+  const handleUpdateNotes = (deliveryId: string, currentStatus: string) => {
+    const notes = deliveryNotes[deliveryId];
+    updateStatusMutation.mutate({ deliveryId, status: currentStatus, notes });
   };
 
   const formatAddress = (address: string) => {
@@ -218,28 +225,13 @@ export default function DriverPortal() {
                       </div>
                     )}
 
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor={`notes-${delivery.id}`} className="text-sm font-medium">
-                          Add Notes (Optional)
-                        </Label>
-                        <Textarea
-                          id={`notes-${delivery.id}`}
-                          placeholder="Add any notes about this delivery..."
-                          value={claimNotes[delivery.id] || ''}
-                          onChange={(e) => setClaimNotes(prev => ({ ...prev, [delivery.id]: e.target.value }))}
-                          className="mt-1"
-                          rows={2}
-                        />
-                      </div>
-                      <Button 
-                        onClick={() => handleClaimDelivery(delivery.id)}
-                        disabled={claimDeliveryMutation.isPending}
-                        className="w-full"
-                      >
-                        {claimDeliveryMutation.isPending ? 'Claiming...' : 'Claim This Delivery'}
-                      </Button>
-                    </div>
+                    <Button 
+                      onClick={() => handleClaimDelivery(delivery.id)}
+                      disabled={claimDeliveryMutation.isPending}
+                      className="w-full"
+                    >
+                      {claimDeliveryMutation.isPending ? 'Claiming...' : 'Claim This Delivery'}
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -325,12 +317,32 @@ export default function DriverPortal() {
                       </div>
                     )}
 
-                    {delivery.driverNotes && (
-                      <div className="bg-blue-50 p-3 rounded-md">
-                        <p className="font-medium text-sm mb-1">Your Notes</p>
-                        <p className="text-sm text-gray-600">{delivery.driverNotes}</p>
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor={`delivery-notes-${delivery.id}`} className="text-sm font-medium">
+                          Delivery Notes
+                        </Label>
+                        <Textarea
+                          id={`delivery-notes-${delivery.id}`}
+                          placeholder="Add notes about this delivery..."
+                          value={deliveryNotes[delivery.id] ?? delivery.driverNotes ?? ''}
+                          onChange={(e) => setDeliveryNotes(prev => ({ ...prev, [delivery.id]: e.target.value }))}
+                          className="mt-1"
+                          rows={2}
+                        />
+                        {deliveryNotes[delivery.id] !== undefined && deliveryNotes[delivery.id] !== (delivery.driverNotes ?? '') && (
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateNotes(delivery.id, delivery.status)}
+                            disabled={updateStatusMutation.isPending}
+                            className="mt-2"
+                          >
+                            Save Notes
+                          </Button>
+                        )}
                       </div>
-                    )}
+                    </div>
 
                     <div className="flex gap-2">
                       {delivery.status === 'claimed' && (
