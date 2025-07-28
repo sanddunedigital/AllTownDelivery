@@ -1,27 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Extract Supabase URL and key from DATABASE_URL
-// Format: postgresql://postgres.[project-ref]:[password]@aws-0-us-east-2.pooler.supabase.com:6543/postgres
-function extractSupabaseCredentials(databaseUrl: string) {
+// Extract Supabase URL from DATABASE_URL if needed
+const extractedUrl = (() => {
   try {
-    const url = new URL(databaseUrl);
-    const projectRef = url.username.split('.')[1];
-    const supabaseUrl = `https://${projectRef}.supabase.co`;
-    
-    // For now, we'll need the anon key to be provided separately
-    // This is a placeholder - user will need to provide the actual anon key
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key-here';
-    
-    return { supabaseUrl, anonKey };
-  } catch (error) {
-    console.error('Failed to extract Supabase credentials:', error);
+    const dbUrl = import.meta.env.DATABASE_URL || '';
+    if (dbUrl.includes('supabase.com')) {
+      const url = new URL(dbUrl);
+      const projectRef = url.hostname.split('.')[0].replace('aws-0-us-east-2.pooler.', '');
+      return `https://${projectRef}.supabase.co`;
+    }
+    return null;
+  } catch {
     return null;
   }
-}
+})();
 
-// For development, we'll use environment variables directly
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+// Use environment variables with fallback to extracted URL
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || extractedUrl;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+}
 
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
