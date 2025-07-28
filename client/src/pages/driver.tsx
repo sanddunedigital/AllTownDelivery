@@ -99,6 +99,26 @@ export default function DriverPortal() {
     return address.length > 40 ? `${address.slice(0, 40)}...` : address;
   };
 
+  const renderClickablePhone = (phone: string) => (
+    <a 
+      href={`tel:${phone}`}
+      className="text-blue-600 hover:text-blue-800 hover:underline"
+    >
+      {phone}
+    </a>
+  );
+
+  const renderClickableAddress = (address: string) => (
+    <a 
+      href={`https://maps.google.com/?q=${encodeURIComponent(address)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+    >
+      {formatAddress(address)}
+    </a>
+  );
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'available':
@@ -173,7 +193,7 @@ export default function DriverPortal() {
                         <CardTitle className="text-lg">{delivery.customerName}</CardTitle>
                         <CardDescription className="flex items-center gap-1 mt-1">
                           <Phone className="h-4 w-4" />
-                          {delivery.phone}
+                          {renderClickablePhone(delivery.phone)}
                         </CardDescription>
                       </div>
                       <Badge className={getStatusColor(delivery.status)}>
@@ -188,7 +208,7 @@ export default function DriverPortal() {
                           <MapPin className="h-4 w-4 mt-1 text-blue-500" />
                           <div>
                             <p className="font-medium text-sm">Pickup</p>
-                            <p className="text-sm text-gray-600">{formatAddress(delivery.pickupAddress)}</p>
+                            {renderClickableAddress(delivery.pickupAddress)}
                           </div>
                         </div>
                       </div>
@@ -197,7 +217,7 @@ export default function DriverPortal() {
                           <MapPin className="h-4 w-4 mt-1 text-green-500" />
                           <div>
                             <p className="font-medium text-sm">Delivery</p>
-                            <p className="text-sm text-gray-600">{formatAddress(delivery.deliveryAddress)}</p>
+                            {renderClickableAddress(delivery.deliveryAddress)}
                           </div>
                         </div>
                       </div>
@@ -265,7 +285,7 @@ export default function DriverPortal() {
                         <CardTitle className="text-lg">{delivery.customerName}</CardTitle>
                         <CardDescription className="flex items-center gap-1 mt-1">
                           <Phone className="h-4 w-4" />
-                          {delivery.phone}
+                          {renderClickablePhone(delivery.phone)}
                         </CardDescription>
                       </div>
                       <Badge className={getStatusColor(delivery.status)}>
@@ -280,7 +300,7 @@ export default function DriverPortal() {
                           <MapPin className="h-4 w-4 mt-1 text-blue-500" />
                           <div>
                             <p className="font-medium text-sm">Pickup</p>
-                            <p className="text-sm text-gray-600">{delivery.pickupAddress}</p>
+                            {renderClickableAddress(delivery.pickupAddress)}
                           </div>
                         </div>
                       </div>
@@ -289,7 +309,7 @@ export default function DriverPortal() {
                           <MapPin className="h-4 w-4 mt-1 text-green-500" />
                           <div>
                             <p className="font-medium text-sm">Delivery</p>
-                            <p className="text-sm text-gray-600">{delivery.deliveryAddress}</p>
+                            {renderClickableAddress(delivery.deliveryAddress)}
                           </div>
                         </div>
                       </div>
@@ -398,7 +418,7 @@ export default function DriverPortal() {
                         <CardTitle className="text-lg">{delivery.customerName}</CardTitle>
                         <CardDescription className="flex items-center gap-1 mt-1">
                           <Phone className="h-4 w-4" />
-                          {delivery.phone}
+                          {renderClickablePhone(delivery.phone)}
                         </CardDescription>
                       </div>
                       <Badge className={getStatusColor(delivery.status)}>
@@ -413,7 +433,7 @@ export default function DriverPortal() {
                           <MapPin className="h-4 w-4 mt-1 text-blue-500" />
                           <div>
                             <p className="font-medium text-sm">Pickup</p>
-                            <p className="text-sm text-gray-600">{formatAddress(delivery.pickupAddress)}</p>
+                            {renderClickableAddress(delivery.pickupAddress)}
                           </div>
                         </div>
                       </div>
@@ -422,7 +442,7 @@ export default function DriverPortal() {
                           <MapPin className="h-4 w-4 mt-1 text-green-500" />
                           <div>
                             <p className="font-medium text-sm">Delivery</p>
-                            <p className="text-sm text-gray-600">{formatAddress(delivery.deliveryAddress)}</p>
+                            {renderClickableAddress(delivery.deliveryAddress)}
                           </div>
                         </div>
                       </div>
