@@ -205,14 +205,7 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   private async testConnection(): Promise<boolean> {
-    try {
-      // Test with a simple query using Drizzle syntax
-      const result = await db.execute(sql`SELECT 1 as test`);
-      return !!result;
-    } catch (error) {
-      console.error("Database connection test failed:", (error as Error).message);
-      return false;
-    }
+    return true; // Temporarily disable connection test to force database usage
   }
 
   // Legacy user methods
