@@ -6,7 +6,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Legacy user methods (for backward compatibility)
@@ -206,11 +206,11 @@ export class MemStorage implements IStorage {
 export class DatabaseStorage implements IStorage {
   private async testConnection(): Promise<boolean> {
     try {
-      // Simple connection test - just check if we can query
-      await db.execute('SELECT 1 as test');
-      return true;
+      // Test with a simple query using Drizzle syntax
+      const result = await db.execute(sql`SELECT 1 as test`);
+      return !!result;
     } catch (error) {
-      console.error("Database connection test failed:", error);
+      console.error("Database connection test failed:", (error as Error).message);
       return false;
     }
   }
