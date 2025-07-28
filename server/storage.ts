@@ -331,7 +331,15 @@ export class DatabaseStorage implements IStorage {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
-    return await db.select().from(deliveryRequests).where(eq(deliveryRequests.status, 'available'));
+    console.log("Executing getAvailableDeliveries query...");
+    try {
+      const result = await db.select().from(deliveryRequests).where(eq(deliveryRequests.status, 'available'));
+      console.log("Query executed successfully, found:", result.length, "deliveries");
+      return result;
+    } catch (error) {
+      console.error("Database query failed:", error);
+      throw error;
+    }
   }
 
   async getDriverDeliveries(driverId: string): Promise<DeliveryRequest[]> {
@@ -491,8 +499,11 @@ class SmartStorage implements IStorage {
   // Driver methods
   async getAvailableDeliveries(): Promise<DeliveryRequest[]> {
     try {
-      return await this.dbStorage.getAvailableDeliveries();
+      const result = await this.dbStorage.getAvailableDeliveries();
+      console.log("Database query successful - found deliveries:", result.length);
+      return result;
     } catch (error) {
+      console.error("Database error in getAvailableDeliveries:", error);
       console.warn("Database unavailable, using memory storage");
       return await this.memStorage.getAvailableDeliveries();
     }
