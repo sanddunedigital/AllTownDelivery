@@ -6,17 +6,28 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, User } from 'lucide-react';
 
 export default function AuthPage() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    if (user) {
-      // Get the return URL from URL params, default to home page
+    if (user && profile) {
+      // Get the return URL from URL params
       const urlParams = new URLSearchParams(window.location.search);
-      const returnTo = urlParams.get('returnTo') || '/';
-      navigate(returnTo);
+      const returnTo = urlParams.get('returnTo');
+      
+      if (returnTo) {
+        // If there's a specific return URL, use that
+        navigate(returnTo);
+      } else {
+        // Default redirect based on user role
+        if (profile.role === 'driver') {
+          navigate('/driver');
+        } else {
+          navigate('/');
+        }
+      }
     }
-  }, [user, navigate]);
+  }, [user, profile, navigate]);
 
   if (loading) {
     return (

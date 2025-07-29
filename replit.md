@@ -31,7 +31,8 @@ Preferred communication style: Simple, everyday language.
 - **Migration System**: Automatic table creation with SQL migrations
 - **Smart Storage**: Automatic fallback from database to memory storage when connection fails
 - **Current Implementation**: Fully operational Supabase PostgreSQL connection with user profiles and loyalty tracking
-- **Status**: Database connection verified, user authentication working, loyalty program active (July 26, 2025)
+- **Status**: Database connection verified, user authentication working, loyalty program active (July 29, 2025)
+- **Authentication Flow**: Role-based redirects - drivers go to /driver portal, customers to home page
 
 ## Key Components
 
@@ -103,6 +104,13 @@ Preferred communication style: Simple, everyday language.
 - Storage interface allows seamless transition from memory to database
 - Environment variable configuration for database URL
 
+### Recent Changes (July 29, 2025)
+
+- **Authentication Improvements**: Created dedicated /auth page with role-based redirects
+- **Clean Header Design**: Implemented professional dropdown menu for logged-in users
+- **Password Reset Fix**: Added automatic redirect handling for password reset emails
+- **User Experience**: Drivers now automatically go to driver portal on sign-in
+
 ### Key Architectural Decisions
 
 1. **Monorepo Structure**: Keeps client, server, and shared code in one repository for easier development and deployment
@@ -111,3 +119,4 @@ Preferred communication style: Simple, everyday language.
 4. **Type Safety**: End-to-end TypeScript with Zod validation ensures runtime type safety
 5. **Component Library**: shadcn/ui provides consistent, accessible UI components
 6. **Build Optimization**: Separate optimization strategies for client (Vite) and server (esbuild)
+7. **Role-Based Flow**: Smart authentication redirects based on user role for optimal experience
