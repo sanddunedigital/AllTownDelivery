@@ -113,6 +113,7 @@ Preferred communication style: Simple, everyday language.
 - **Navigation Headers**: Added clickable logo and home buttons to driver portal and profile pages
 - **Delivery Form Fix**: Fixed API parameter order issue preventing delivery request submissions
 - **Fresh Test Data**: Cleared old test data and added realistic local delivery requests for testing
+- **Customer Delivery Tracking**: Added real-time delivery status section on home page showing active deliveries with pickup/delivery addresses, timing, and color-coded status badges that auto-refresh every 30 seconds
 
 ### Key Architectural Decisions
 
