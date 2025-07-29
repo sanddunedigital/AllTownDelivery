@@ -151,15 +151,24 @@ export default function ResetPasswordPage() {
               <div className="mx-auto w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-4">
                 <XCircle className="h-6 w-6 text-white" />
               </div>
-              <CardTitle>Invalid Reset Link</CardTitle>
+              <CardTitle>Reset Link Expired</CardTitle>
               <CardDescription>
-                This password reset link is invalid or has expired.
+                This password reset link has expired or is invalid. Please request a new one.
               </CardDescription>
             </CardHeader>
-            <CardContent className="text-center">
-              <Button onClick={() => navigate('/')} className="w-full">
-                Go to Home Page
-              </Button>
+            <CardContent className="text-center space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Password reset links expire after 1 hour for security. 
+                Go to the sign-in page and click "Forgot your password?" to get a new link.
+              </p>
+              <div className="space-y-2">
+                <Button onClick={() => navigate('/profile')} className="w-full">
+                  Go to Sign In Page
+                </Button>
+                <Button onClick={() => navigate('/')} variant="outline" className="w-full">
+                  Go to Home Page
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
