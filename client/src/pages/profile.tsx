@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChangePasswordForm } from '@/components/ui/change-password-form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trophy, Star, Gift, MapPin, CreditCard, Phone, Mail, User, Home } from 'lucide-react';
+import { Loader2, Trophy, Star, Gift, MapPin, Phone, Mail, User, Home } from 'lucide-react';
 
 interface LoyaltyInfo {
   loyaltyPoints: number;
@@ -28,9 +28,7 @@ function UserProfile() {
   const [formData, setFormData] = useState({
     fullName: profile?.fullName || '',
     phone: profile?.phone || '',
-    defaultPickupAddress: profile?.defaultPickupAddress || '',
     defaultDeliveryAddress: profile?.defaultDeliveryAddress || '',
-    preferredPaymentMethod: profile?.preferredPaymentMethod || '',
   });
 
   useEffect(() => {
@@ -38,9 +36,7 @@ function UserProfile() {
       setFormData({
         fullName: profile.fullName || '',
         phone: profile.phone || '',
-        defaultPickupAddress: profile.defaultPickupAddress || '',
         defaultDeliveryAddress: profile.defaultDeliveryAddress || '',
-        preferredPaymentMethod: profile.preferredPaymentMethod || '',
       });
     }
   }, [profile]);
@@ -206,34 +202,6 @@ function UserProfile() {
                   className={`pl-10 ${!editing ? "bg-muted" : ""}`}
                 />
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="payment">Preferred Payment</Label>
-              <div className="relative">
-                <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="payment"
-                  value={formData.preferredPaymentMethod}
-                  onChange={(e) => setFormData({ ...formData, preferredPaymentMethod: e.target.value })}
-                  disabled={!editing}
-                  className={`pl-10 ${!editing ? "bg-muted" : ""}`}
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="pickup">Default Pickup Address</Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="pickup"
-                value={formData.defaultPickupAddress}
-                onChange={(e) => setFormData({ ...formData, defaultPickupAddress: e.target.value })}
-                disabled={!editing}
-                className={`pl-10 ${!editing ? "bg-muted" : ""}`}
-              />
             </div>
           </div>
           
