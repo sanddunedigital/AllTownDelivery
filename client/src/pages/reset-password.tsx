@@ -25,10 +25,14 @@ export default function ResetPasswordPage() {
       try {
         // Check if we have the necessary URL fragments for password reset
         const hash = window.location.hash;
+        console.log('Hash found:', hash);
         const params = new URLSearchParams(hash.substring(1));
         const accessToken = params.get('access_token');
         const refreshToken = params.get('refresh_token');
         const type = params.get('type');
+        const expiresAt = params.get('expires_at');
+        
+        console.log('Parsed tokens:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type, expiresAt });
         
         if (accessToken && refreshToken && type === 'recovery') {
           // Set the session using the tokens from the URL
