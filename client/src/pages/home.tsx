@@ -14,10 +14,12 @@ import {
   Menu,
   X,
   User,
-  LogOut
+  LogOut,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { EnhancedDeliveryForm } from "@/components/ui/enhanced-delivery-form";
 
@@ -95,26 +97,43 @@ export default function Home() {
               {loading ? (
                 <div className="w-8 h-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></div>
               ) : user ? (
-                <div className="flex items-center space-x-2">
-                  <Link href="/profile">
-                    <Button variant="outline" size="sm">
-                      <User className="w-4 h-4 mr-2" />
-                      Profile
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                      <User className="w-4 h-4" />
+                      <span className="hidden sm:inline">{profile?.name || 'User'}</span>
+                      <ChevronDown className="w-3 h-3" />
                     </Button>
-                  </Link>
-                  {profile?.role === 'driver' && (
-                    <Link href="/driver">
-                      <Button variant="outline" size="sm">
-                        <Truck className="w-4 h-4 mr-2" />
-                        Driver Portal
-                      </Button>
-                    </Link>
-                  )}
-                  <Button variant="outline" size="sm" onClick={handleSignOut}>
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </Button>
-                </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="px-2 py-1.5">
+                      <div className="text-sm font-medium">{profile?.name || 'User'}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {profile?.role === 'driver' ? 'Driver' : 'Customer'}
+                      </div>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile" className="flex items-center w-full">
+                        <User className="w-4 h-4 mr-2" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    {profile?.role === 'driver' && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/driver" className="flex items-center w-full">
+                          <Truck className="w-4 h-4 mr-2" />
+                          Driver Portal
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
                 <Link href="/auth">
                   <Button variant="outline" size="sm">
@@ -168,22 +187,28 @@ export default function Home() {
               </Button>
               
               {user ? (
-                <div className="flex flex-col space-y-2 pt-2">
+                <div className="space-y-2 pt-4 border-t border-gray-100">
+                  <div className="px-3 py-2">
+                    <div className="text-sm font-medium text-gray-900">{profile?.name || 'User'}</div>
+                    <div className="text-xs text-gray-500">
+                      {profile?.role === 'driver' ? 'Driver' : 'Customer'}
+                    </div>
+                  </div>
                   <Link href="/profile">
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
                       <User className="w-4 h-4 mr-2" />
                       Profile
                     </Button>
                   </Link>
                   {profile?.role === 'driver' && (
                     <Link href="/driver">
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button variant="ghost" size="sm" className="w-full justify-start">
                         <Truck className="w-4 h-4 mr-2" />
                         Driver Portal
                       </Button>
                     </Link>
                   )}
-                  <Button variant="outline" size="sm" onClick={handleSignOut} className="w-full">
+                  <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full justify-start text-red-600">
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
                   </Button>
