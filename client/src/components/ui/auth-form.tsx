@@ -16,6 +16,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -44,6 +45,17 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
           setShowForgotPassword(false);
         }
       } else if (isSignUp) {
+        // Validate password confirmation
+        if (password !== confirmPassword) {
+          toast({
+            title: "Error",
+            description: "Passwords do not match.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
         result = await signUp(email, password, fullName);
         if (result.error) {
           toast({
@@ -156,6 +168,28 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                   minLength={6}
                 />
               </div>
+            </div>
+          )}
+          
+          {!showForgotPassword && isSignUp && (
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                  minLength={6}
+                />
+              </div>
+              {isSignUp && password && confirmPassword && password !== confirmPassword && (
+                <p className="text-sm text-red-600">Passwords do not match</p>
+              )}
             </div>
           )}
           
