@@ -15,18 +15,29 @@ import {
   X,
   User,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { EnhancedDeliveryForm } from "@/components/ui/enhanced-delivery-form";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, profile, signOut, loading } = useAuth();
   const [, navigate] = useLocation();
+
+  // Fetch user's active deliveries
+  const { data: userDeliveries } = useQuery({
+    queryKey: ['/api/delivery-requests', `userId=${user?.id}`],
+    enabled: !!user?.id,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
 
   // Check for password reset tokens and redirect to reset page
   useEffect(() => {
@@ -219,6 +230,91 @@ export default function Home() {
           </div>
         )}
       </nav>
+
+      {/* Active Delivery Status - Only show for logged-in users with deliveries */}
+      {user && userDeliveries && userDeliveries.length > 0 && (
+        <section className="pt-16 pb-4 bg-blue-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-lg shadow-sm border border-blue-200 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Package className="h-6 w-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Your Active Deliveries</h2>
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {userDeliveries
+                  .filter((delivery: any) => delivery.status !== 'completed' && delivery.status !== 'cancelled')
+                  .map((delivery: any) => (
+                    <Card key={delivery.id} className="border-l-4 border-l-blue-500">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">Delivery #{delivery.id.slice(-8)}</CardTitle>
+                          <Badge 
+                            variant={
+                              delivery.status === 'available' ? 'secondary' :
+                              delivery.status === 'claimed' ? 'default' :
+                              delivery.status === 'in_progress' ? 'destructive' : 'outline'
+                            }
+                          >
+                            {delivery.status === 'available' && 'Pending Assignment'}
+                            {delivery.status === 'claimed' && 'Driver Assigned'}
+                            {delivery.status === 'in_progress' && 'In Transit'}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex items-start gap-2">
+                          <MapPin className="h-4 w-4 mt-1 text-blue-500 flex-shrink-0" />
+                          <div className="text-sm">
+                            <p className="font-medium">Pickup: {delivery.pickupAddress}</p>
+                            <p className="text-gray-600">Deliver to: {delivery.deliveryAddress}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm text-gray-600">
+                            {delivery.preferredDate} at {delivery.preferredTime}
+                          </span>
+                        </div>
+
+                        {delivery.status === 'available' && (
+                          <div className="flex items-center gap-2 text-sm text-orange-600">
+                            <AlertCircle className="h-4 w-4" />
+                            <span>Looking for available driver...</span>
+                          </div>
+                        )}
+
+                        {delivery.status === 'claimed' && (
+                          <div className="flex items-center gap-2 text-sm text-blue-600">
+                            <CheckCircle className="h-4 w-4" />
+                            <span>Driver assigned, preparing for pickup</span>
+                          </div>
+                        )}
+
+                        {delivery.status === 'in_progress' && (
+                          <div className="flex items-center gap-2 text-sm text-green-600">
+                            <Truck className="h-4 w-4" />
+                            <span>On the way to your destination</span>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                }
+              </div>
+              
+              {userDeliveries.filter((d: any) => d.status !== 'completed' && d.status !== 'cancelled').length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No active deliveries at the moment.</p>
+                  <p className="text-sm">Ready to request a delivery?</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Hero Section */}
       <section className="relative pt-16 pb-20 bg-gradient-to-br from-orange-50 to-red-50">
