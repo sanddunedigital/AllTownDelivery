@@ -365,9 +365,13 @@ export function EnhancedDeliveryForm() {
                     name="preferredDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Preferred Date *</FormLabel>
+                        <FormLabel>Pick up Date *</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input 
+                            type="date" 
+                            min={new Date().toISOString().split('T')[0]}
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -379,11 +383,11 @@ export function EnhancedDeliveryForm() {
                     name="preferredTime"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Preferred Time *</FormLabel>
+                        <FormLabel>Pick up Time *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select preferred time" />
+                              <SelectValue placeholder="Select pickup time" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
