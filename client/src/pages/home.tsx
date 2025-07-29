@@ -34,10 +34,15 @@ export default function Home() {
 
   // Fetch user's active deliveries
   const { data: userDeliveries } = useQuery({
-    queryKey: ['/api/delivery-requests', `userId=${user?.id}`],
+    queryKey: [`/api/delivery-requests?userId=${user?.id}`],
     enabled: !!user?.id,
     refetchInterval: 30000, // Refresh every 30 seconds
   });
+
+  // Type the delivery data properly
+  const deliveries = (userDeliveries as any[]) || [];
+  
+
 
   // Check for password reset tokens and redirect to reset page
   useEffect(() => {
@@ -232,7 +237,7 @@ export default function Home() {
       </nav>
 
       {/* Active Delivery Status - Only show for logged-in users with deliveries */}
-      {user && userDeliveries && userDeliveries.length > 0 && (
+      {user && deliveries.length > 0 && (
         <section className="pt-16 pb-4 bg-blue-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white rounded-lg shadow-sm border border-blue-200 p-6">
@@ -242,7 +247,7 @@ export default function Home() {
               </div>
               
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {userDeliveries
+                {deliveries
                   .filter((delivery: any) => delivery.status !== 'completed' && delivery.status !== 'cancelled')
                   .map((delivery: any) => (
                     <Card key={delivery.id} className="border-l-4 border-l-blue-500">
@@ -304,7 +309,7 @@ export default function Home() {
                 }
               </div>
               
-              {userDeliveries.filter((d: any) => d.status !== 'completed' && d.status !== 'cancelled').length === 0 && (
+              {deliveries.filter((d: any) => d.status !== 'completed' && d.status !== 'cancelled').length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                   <p>No active deliveries at the moment.</p>
