@@ -87,7 +87,7 @@ export function EnhancedDeliveryForm() {
         userId: user?.id || undefined,
       };
 
-      const result = await apiRequest('POST', '/api/delivery-requests', requestData);
+      const result = await apiRequest('/api/delivery-requests', 'POST', requestData);
 
       toast({
         title: "Success!",
