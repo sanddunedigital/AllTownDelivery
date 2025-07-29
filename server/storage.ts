@@ -301,7 +301,15 @@ export class DatabaseStorage implements IStorage {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
-    const result = await db.insert(deliveryRequests).values(insertRequest).returning();
+    const requestWithDefaults = {
+      ...insertRequest,
+      status: "available", // New requests are immediately available for drivers
+      usedFreeDelivery: false,
+      claimedByDriver: null,
+      claimedAt: null,
+      driverNotes: null
+    };
+    const result = await db.insert(deliveryRequests).values(requestWithDefaults).returning();
     return result[0];
   }
 
