@@ -110,6 +110,9 @@ Preferred communication style: Simple, everyday language.
 - **Clean Header Design**: Implemented professional dropdown menu for logged-in users
 - **Password Reset Fix**: Added automatic redirect handling for password reset emails
 - **User Experience**: Drivers now automatically go to driver portal on sign-in
+- **Navigation Headers**: Added clickable logo and home buttons to driver portal and profile pages
+- **Delivery Form Fix**: Fixed API parameter order issue preventing delivery request submissions
+- **Fresh Test Data**: Cleared old test data and added realistic local delivery requests for testing
 
 ### Key Architectural Decisions
 
