@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { insertDeliveryRequestGuestSchema, insertDeliveryRequestAuthenticatedSchema } from '@shared/schema';
-import { Loader2, Gift, User, LogIn, Star } from 'lucide-react';
+import { Loader2, Gift, User, LogIn, Star, MapPin, Phone, Globe } from 'lucide-react';
 import { z } from 'zod';
 
 export function EnhancedDeliveryForm() {
@@ -23,6 +24,13 @@ export function EnhancedDeliveryForm() {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [loyaltyInfo, setLoyaltyInfo] = useState<any>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
+  
+  // Fetch businesses
+  const { data: businesses, isLoading: businessesLoading } = useQuery({
+    queryKey: ['/api/businesses'],
+    refetchInterval: 60000, // Refresh every minute
+  });
   
   const schema = user ? insertDeliveryRequestAuthenticatedSchema : insertDeliveryRequestGuestSchema;
   
@@ -32,6 +40,7 @@ export function EnhancedDeliveryForm() {
       customerName: '',
       phone: '',
       email: '',
+      businessId: '',
       pickupAddress: '',
       deliveryAddress: '',
       preferredDate: '',
@@ -56,6 +65,17 @@ export function EnhancedDeliveryForm() {
       form.setValue('paymentMethod', profile.preferredPaymentMethod || '');
     }
   }, [profile, form]);
+
+  // Handle business selection
+  const handleBusinessSelect = (businessId: string) => {
+    const business = (businesses as any[])?.find(b => b.id === businessId);
+    setSelectedBusiness(business);
+    if (business) {
+      // Auto-fill pickup address when business is selected
+      form.setValue('pickupAddress', business.address);
+      form.setValue('businessId', businessId);
+    }
+  };
 
   // Fetch loyalty info for authenticated users
   useEffect(() => {
@@ -242,16 +262,85 @@ export function EnhancedDeliveryForm() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Delivery Details</h3>
                 
+                {/* Business Selection */}
+                <FormField
+                  control={form.control}
+                  name="businessId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pickup Location *</FormLabel>
+                      <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        handleBusinessSelect(value);
+                      }} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a participating business" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {businessesLoading ? (
+                            <SelectItem value="loading" disabled>
+                              <div className="flex items-center">
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Loading businesses...
+                              </div>
+                            </SelectItem>
+                          ) : (businesses as any[])?.map((business) => (
+                            <SelectItem key={business.id} value={business.id}>
+                              <div className="flex flex-col">
+                                <div className="font-medium">{business.name}</div>
+                                <div className="text-sm text-gray-500">{business.category}</div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Selected Business Info */}
+                {selectedBusiness && (
+                  <Card className="border-blue-200 bg-blue-50">
+                    <CardContent className="pt-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm font-medium">{selectedBusiness.address}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm">{selectedBusiness.phone}</span>
+                        </div>
+                        {selectedBusiness.website && (
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-4 w-4 text-blue-600" />
+                            <a href={selectedBusiness.website} target="_blank" rel="noopener noreferrer" 
+                               className="text-sm text-blue-600 hover:underline">
+                              {selectedBusiness.website}
+                            </a>
+                          </div>
+                        )}
+                        <div className="bg-white p-3 rounded border-l-4 border-l-orange-500">
+                          <p className="text-sm font-medium text-gray-700">Ordering Instructions:</p>
+                          <p className="text-sm text-gray-600 mt-1">{selectedBusiness.orderingInstructions}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Hidden pickup address field - auto-filled from business selection */}
                 <FormField
                   control={form.control}
                   name="pickupAddress"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pickup Address *</FormLabel>
+                    <FormItem className="hidden">
                       <FormControl>
-                        <Input placeholder="Where should we pick up your items?" {...field} />
+                        <Input {...field} />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />

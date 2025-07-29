@@ -2,7 +2,8 @@ import {
   type User, type InsertUser, type DeliveryRequest, type InsertDeliveryRequest,
   type UserProfile, type InsertUserProfile, type UpdateUserProfile,
   type ClaimDelivery, type UpdateDeliveryStatus,
-  users, deliveryRequests, userProfiles 
+  type Business, type InsertBusiness,
+  users, deliveryRequests, userProfiles, businesses 
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -31,17 +32,23 @@ export interface IStorage {
   getDriverDeliveries(driverId: string): Promise<DeliveryRequest[]>;
   claimDelivery(driverId: string, deliveryId: string, notes?: string): Promise<DeliveryRequest>;
   updateDeliveryForDriver(driverId: string, deliveryId: string, updates: Partial<UpdateDeliveryStatus>): Promise<DeliveryRequest>;
+  
+  // Business methods
+  getBusinesses(): Promise<Business[]>;
+  createBusiness(business: InsertBusiness): Promise<Business>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private userProfiles: Map<string, UserProfile>;
   private deliveryRequests: Map<string, DeliveryRequest>;
+  private businesses: Map<string, Business>;
 
   constructor() {
     this.users = new Map();
     this.userProfiles = new Map();
     this.deliveryRequests = new Map();
+    this.businesses = new Map();
   }
 
   // Legacy user methods
@@ -128,6 +135,7 @@ export class MemStorage implements IStorage {
     const request: DeliveryRequest = { 
       ...insertRequest,
       userId: insertRequest.userId || null,
+      businessId: insertRequest.businessId || null,
       specialInstructions: insertRequest.specialInstructions || null,
       marketingConsent: insertRequest.marketingConsent || null,
       status: "available",
@@ -200,6 +208,25 @@ export class MemStorage implements IStorage {
     };
     this.deliveryRequests.set(deliveryId, updated);
     return updated;
+  }
+
+  // Business methods
+  async getBusinesses(): Promise<Business[]> {
+    return Array.from(this.businesses.values()).filter(b => b.isActive);
+  }
+
+  async createBusiness(insertBusiness: InsertBusiness): Promise<Business> {
+    const id = randomUUID();
+    const business: Business = {
+      ...insertBusiness,
+      id,
+      website: insertBusiness.website || null,
+      category: insertBusiness.category || null,
+      isActive: insertBusiness.isActive ?? true,
+      createdAt: new Date()
+    };
+    this.businesses.set(id, business);
+    return business;
   }
 }
 
@@ -395,6 +422,22 @@ export class DatabaseStorage implements IStorage {
     }
     return result[0];
   }
+
+  // Business methods
+  async getBusinesses(): Promise<Business[]> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    return await db.select().from(businesses).where(eq(businesses.isActive, true));
+  }
+
+  async createBusiness(insertBusiness: InsertBusiness): Promise<Business> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.insert(businesses).values(insertBusiness).returning();
+    return result[0];
+  }
 }
 
 // Smart storage selection - try database first, fallback to memory
@@ -541,6 +584,25 @@ class SmartStorage implements IStorage {
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
       return await this.memStorage.updateDeliveryForDriver(driverId, deliveryId, updates);
+    }
+  }
+
+  // Business methods
+  async getBusinesses(): Promise<Business[]> {
+    try {
+      return await this.dbStorage.getBusinesses();
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getBusinesses();
+    }
+  }
+
+  async createBusiness(business: InsertBusiness): Promise<Business> {
+    try {
+      return await this.dbStorage.createBusiness(business);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.createBusiness(business);
     }
   }
 }

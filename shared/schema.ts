@@ -21,13 +21,27 @@ export const userProfiles = pgTable("user_profiles", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Business partners table
+export const businesses = pgTable("businesses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  address: text("address").notNull(),
+  website: text("website"),
+  orderingInstructions: text("ordering_instructions").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  category: text("category"), // e.g., "restaurant", "grocery", "retail"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const deliveryRequests = pgTable("delivery_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id"), // Optional - for guest checkouts
+  businessId: varchar("business_id"), // References businesses.id for pickup location
   customerName: text("customer_name").notNull(),
   phone: text("phone").notNull(),
   email: text("email").notNull(),
-  pickupAddress: text("pickup_address").notNull(),
+  pickupAddress: text("pickup_address").notNull(), // Keep for custom/non-business pickups
   deliveryAddress: text("delivery_address").notNull(),
   preferredDate: text("preferred_date").notNull(),
   preferredTime: text("preferred_time").notNull(),
@@ -48,6 +62,12 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+});
+
+// Business schemas
+export const insertBusinessSchema = createInsertSchema(businesses).omit({
+  id: true,
+  createdAt: true,
 });
 
 // User profile schemas
@@ -71,6 +91,8 @@ export const insertDeliveryRequestSchema = createInsertSchema(deliveryRequests).
   createdAt: true,
   status: true,
   usedFreeDelivery: true,
+}).extend({
+  businessId: z.string().optional(), // Make businessId optional for backward compatibility
 });
 
 export const insertDeliveryRequestGuestSchema = insertDeliveryRequestSchema.omit({
@@ -100,6 +122,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
 });
 
 // Type exports
+export type InsertBusiness = z.infer<typeof insertBusinessSchema>;
+export type Business = typeof businesses.$inferSelect;
+
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
 export type UserProfile = typeof userProfiles.$inferSelect;

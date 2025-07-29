@@ -8,7 +8,8 @@ import {
   insertDeliveryRequestGuestSchema,
   insertDeliveryRequestAuthenticatedSchema,
   claimDeliverySchema,
-  updateDeliveryStatusSchema
+  updateDeliveryStatusSchema,
+  insertBusinessSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -106,6 +107,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking loyalty status:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Business Routes
+
+  // Get all active businesses
+  app.get("/api/businesses", async (req, res) => {
+    try {
+      const businesses = await storage.getBusinesses();
+      res.json(businesses);
+    } catch (error) {
+      console.error("Error fetching businesses:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new business (admin endpoint)
+  app.post("/api/businesses", async (req, res) => {
+    try {
+      const validatedData = insertBusinessSchema.parse(req.body);
+      const business = await storage.createBusiness(validatedData);
+      res.json(business);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid business data", errors: error.errors });
+      } else {
+        console.error("Error creating business:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
     }
   });
 
