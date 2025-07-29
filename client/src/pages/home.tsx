@@ -116,7 +116,7 @@ export default function Home() {
                   </Button>
                 </div>
               ) : (
-                <Link href="/profile">
+                <Link href="/auth">
                   <Button variant="outline" size="sm">
                     <User className="w-4 h-4 mr-2" />
                     Sign In
@@ -189,7 +189,7 @@ export default function Home() {
                   </Button>
                 </div>
               ) : (
-                <Link href="/profile">
+                <Link href="/auth">
                   <Button variant="outline" size="sm" className="w-full mt-2">
                     <User className="w-4 h-4 mr-2" />
                     Sign In

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthForm } from '@/components/ui/auth-form';
 import { ChangePasswordForm } from '@/components/ui/change-password-form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trophy, Star, Gift, MapPin, CreditCard, Phone, Mail, User } from 'lucide-react';
@@ -290,14 +290,18 @@ export default function ProfilePage() {
               </div>
               <CardTitle>Sign In Required</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-center text-muted-foreground mb-6">
+            <CardContent className="text-center">
+              <p className="text-muted-foreground mb-6">
                 Please sign in to view and manage your profile.
               </p>
+              <Link href="/auth?returnTo=/profile">
+                <Button className="w-full">
+                  <User className="h-4 w-4 mr-2" />
+                  Sign In
+                </Button>
+              </Link>
             </CardContent>
           </Card>
-          
-          <AuthForm />
         </div>
       </div>
     );

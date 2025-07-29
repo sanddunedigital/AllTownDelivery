@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { AuthForm } from '@/components/ui/auth-form';
 import { apiRequest } from '@/lib/queryClient';
 import { insertDeliveryRequestGuestSchema, insertDeliveryRequestAuthenticatedSchema } from '@shared/schema';
 import { Loader2, Gift, User, LogIn, Star } from 'lucide-react';
@@ -21,7 +21,6 @@ import { z } from 'zod';
 export function EnhancedDeliveryForm() {
   const { user, profile, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [showAuthForm, setShowAuthForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loyaltyInfo, setLoyaltyInfo] = useState<any>(null);
   
@@ -121,22 +120,7 @@ export function EnhancedDeliveryForm() {
     );
   }
 
-  if (showAuthForm) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center">
-          <Button 
-            variant="ghost" 
-            onClick={() => setShowAuthForm(false)}
-            className="mb-4"
-          >
-            ← Back to delivery form
-          </Button>
-        </div>
-        <AuthForm onSuccess={() => setShowAuthForm(false)} />
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-6">
@@ -154,10 +138,12 @@ export function EnhancedDeliveryForm() {
                   <p className="text-sm text-orange-700">Sign up to earn rewards and get every 10th delivery free!</p>
                 </div>
               </div>
-              <Button onClick={() => setShowAuthForm(true)} size="sm">
-                <LogIn className="h-4 w-4 mr-2" />
-                Sign Up / Sign In
-              </Button>
+              <Link href="/auth?returnTo=/">
+                <Button size="sm">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Sign Up / Sign In
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

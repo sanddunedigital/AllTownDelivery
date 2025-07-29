@@ -9,11 +9,13 @@ import Home from "@/pages/home";
 import Profile from "@/pages/profile";
 import DriverPortal from "@/pages/driver";
 import ResetPassword from "@/pages/reset-password";
+import Auth from "@/pages/auth";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/auth" component={Auth} />
       <Route path="/profile" component={Profile} />
       <Route path="/driver" component={DriverPortal} />
       <Route path="/reset-password" component={ResetPassword} />
