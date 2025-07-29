@@ -91,8 +91,19 @@ export const insertDeliveryRequestSchema = createInsertSchema(deliveryRequests).
   createdAt: true,
   status: true,
   usedFreeDelivery: true,
+  marketingConsent: true, // Remove marketing consent field
 }).extend({
-  businessId: z.string().optional(), // Make businessId optional for backward compatibility
+  businessId: z.string().min(1, "Please select a business"), // Make businessId required with validation
+  customerName: z.string().min(1, "Customer name is required"),
+  phone: z.string().min(1, "Phone number is required"),
+  email: z.string().email("Valid email is required"),
+  pickupAddress: z.string().min(1, "Pickup address is required"),
+  deliveryAddress: z.string().min(1, "Delivery address is required"),
+  preferredDate: z.string().min(1, "Pick up date is required"),
+  preferredTime: z.string().min(1, "Pick up time is required"),
+  deliveryType: z.string().min(1, "Delivery type is required"),
+  paymentMethod: z.string().min(1, "Payment method is required"),
+  specialInstructions: z.string().optional(), // Keep optional
 });
 
 export const insertDeliveryRequestGuestSchema = insertDeliveryRequestSchema.omit({

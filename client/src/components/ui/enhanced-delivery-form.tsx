@@ -48,7 +48,6 @@ export function EnhancedDeliveryForm() {
       deliveryType: '',
       paymentMethod: '',
       specialInstructions: '',
-      marketingConsent: '',
       saveProfile: false,
       useStoredPayment: false,
     },
@@ -510,30 +509,6 @@ export function EnhancedDeliveryForm() {
                   />
                 </div>
               )}
-
-              {/* Marketing Consent */}
-              <FormField
-                control={form.control}
-                name="marketingConsent"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value === 'yes'}
-                        onCheckedChange={(checked) => field.onChange(checked ? 'yes' : 'no')}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        I would like to receive promotional emails and updates
-                      </FormLabel>
-                      <p className="text-sm text-muted-foreground">
-                        Stay updated on special offers and new services
-                      </p>
-                    </div>
-                  </FormItem>
-                )}
-              />
 
               <Button type="submit" size="lg" className="w-full" disabled={submitting}>
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
