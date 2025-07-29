@@ -114,6 +114,11 @@ Preferred communication style: Simple, everyday language.
 - **Delivery Form Fix**: Fixed API parameter order issue preventing delivery request submissions
 - **Fresh Test Data**: Cleared old test data and added realistic local delivery requests for testing
 - **Customer Delivery Tracking**: Added real-time delivery status section on home page showing active deliveries with pickup/delivery addresses, timing, and color-coded status badges that auto-refresh every 30 seconds
+- **Business Partnership Integration**: Added business showcase section with category filtering (Restaurant, Grocery, Retail, Convenience)
+- **Form Optimization**: Updated delivery form terminology from "Preferred" to "Pick up" Date/Time with past date validation
+- **Profile Streamlining**: Removed preferred payment method and default pickup address fields from profile form
+- **Enhanced Validation**: Implemented comprehensive form validation requiring all delivery request fields except special instructions and profile save options
+- **Marketing Cleanup**: Removed promotional email consent checkbox from delivery form for streamlined user experience
 
 ### Key Architectural Decisions
 
