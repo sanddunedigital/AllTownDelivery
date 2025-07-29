@@ -17,7 +17,10 @@ import {
   LogOut,
   ChevronDown,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Filter,
+  Globe,
+  Store
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +32,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const { user, profile, signOut, loading } = useAuth();
   const [, navigate] = useLocation();
 
@@ -39,8 +43,33 @@ export default function Home() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  // Fetch businesses
+  const { data: businesses, isLoading: businessesLoading } = useQuery({
+    queryKey: ['/api/businesses'],
+    refetchInterval: 60000, // Refresh every minute
+  });
+
   // Type the delivery data properly
   const deliveries = (userDeliveries as any[]) || [];
+  const businessList = (businesses as any[]) || [];
+
+  // Filter businesses by category
+  const filteredBusinesses = selectedCategory === 'all' 
+    ? businessList.filter(b => b.name !== 'Custom Location')
+    : businessList.filter(b => b.category === selectedCategory && b.name !== 'Custom Location');
+
+  // Get unique categories for filter
+  const categories = ['all', ...Array.from(new Set(businessList.filter(b => b.name !== 'Custom Location').map(b => b.category)))];
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'restaurant': return Utensils;
+      case 'grocery': return ShoppingBag;
+      case 'retail': return Store;
+      case 'convenience': return Package;
+      default: return Store;
+    }
+  };
   
 
 
@@ -89,6 +118,12 @@ export default function Home() {
                 className="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Services
+              </button>
+              <button 
+                onClick={() => scrollToSection('businesses')}
+                className="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Businesses
               </button>
               <button 
                 onClick={() => scrollToSection('testimonials')}
@@ -179,6 +214,12 @@ export default function Home() {
                 className="block w-full text-left px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md text-base font-medium"
               >
                 Services
+              </button>
+              <button 
+                onClick={() => scrollToSection('businesses')}
+                className="block w-full text-left px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md text-base font-medium"
+              >
+                Businesses
               </button>
               <button 
                 onClick={() => scrollToSection('testimonials')}
@@ -435,6 +476,129 @@ export default function Home() {
                   <p className="text-gray-600">Serving Oskaloosa area</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Partner Businesses Section */}
+      <section id="businesses" className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Partner Businesses</h2>
+            <p className="text-xl text-gray-600">
+              We deliver from these trusted local businesses in Oskaloosa
+            </p>
+          </div>
+
+          {/* Category Filter */}
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
+            {categories.map((category) => {
+              const Icon = category === 'all' ? Store : getCategoryIcon(category);
+              return (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category)}
+                  className="flex items-center gap-2"
+                >
+                  <Icon className="h-4 w-4" />
+                  {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
+                </Button>
+              );
+            })}
+          </div>
+
+          {/* Business Cards */}
+          {businessesLoading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="h-3 bg-gray-200 rounded"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredBusinesses.map((business) => {
+                const CategoryIcon = getCategoryIcon(business.category);
+                return (
+                  <Card key={business.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">{business.name}</CardTitle>
+                          <div className="flex items-center gap-2 mt-1">
+                            <CategoryIcon className="h-4 w-4 text-orange-500" />
+                            <Badge variant="secondary" className="text-xs">
+                              {business.category}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="h-4 w-4" />
+                        <span>{business.address}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Phone className="h-4 w-4" />
+                        <span>{business.phone}</span>
+                      </div>
+                      {business.website && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Globe className="h-4 w-4" />
+                          <a 
+                            href={business.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline truncate"
+                          >
+                            Visit Website
+                          </a>
+                        </div>
+                      )}
+                      <div className="bg-gray-50 p-3 rounded-lg border-l-4 border-l-orange-500">
+                        <p className="text-xs font-medium text-gray-700 mb-1">Ordering Instructions:</p>
+                        <p className="text-xs text-gray-600">{business.orderingInstructions}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {filteredBusinesses.length === 0 && !businessesLoading && (
+            <div className="text-center py-8">
+              <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No businesses found in this category.</p>
+            </div>
+          )}
+
+          <div className="mt-12 text-center">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-2xl mx-auto">
+              <h3 className="font-semibold text-blue-900 mb-2">Ready to Place an Order?</h3>
+              <p className="text-blue-700 mb-4">
+                Choose a business above, follow their ordering instructions, then request delivery below.
+              </p>
+              <Button 
+                onClick={() => scrollToSection('request-delivery')}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Request Delivery
+              </Button>
             </div>
           </div>
         </div>
