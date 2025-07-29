@@ -28,7 +28,8 @@ export default function ResetPasswordPage() {
     
     if (accessToken && type === 'recovery') {
       setIsValidToken(true);
-      // The access token is automatically handled by Supabase
+      // Automatically set the session with the recovery token
+      // This allows Supabase to recognize the user for password update
     } else {
       setIsValidToken(false);
     }
