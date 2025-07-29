@@ -7,6 +7,7 @@ import { Lock, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
+import { supabase } from '@/lib/supabase';
 
 export default function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState('');
@@ -20,20 +21,53 @@ export default function ResetPasswordPage() {
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    // Check if we have the necessary URL fragments for password reset
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.substring(1));
-    const accessToken = params.get('access_token');
-    const type = params.get('type');
-    
-    if (accessToken && type === 'recovery') {
-      setIsValidToken(true);
-      // Automatically set the session with the recovery token
-      // This allows Supabase to recognize the user for password update
-    } else {
-      setIsValidToken(false);
-    }
-  }, []);
+    const initializeRecovery = async () => {
+      try {
+        // Check if we have the necessary URL fragments for password reset
+        const hash = window.location.hash;
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        const type = params.get('type');
+        
+        if (accessToken && refreshToken && type === 'recovery') {
+          // Set the session using the tokens from the URL
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            console.error('Session recovery error:', error);
+            setIsValidToken(false);
+            toast({
+              title: "Error",
+              description: "Invalid or expired reset link. Please request a new password reset.",
+              variant: "destructive",
+            });
+          } else {
+            setIsValidToken(true);
+            toast({
+              title: "Reset Link Verified",
+              description: "You can now set your new password.",
+            });
+          }
+        } else {
+          setIsValidToken(false);
+        }
+      } catch (error) {
+        console.error('Recovery initialization error:', error);
+        setIsValidToken(false);
+        toast({
+          title: "Error",
+          description: "Failed to process reset link. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    initializeRecovery();
+  }, [toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,12 +93,15 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const result = await updatePassword(newPassword);
+      // Use Supabase directly to update password during recovery
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
       
-      if (result.error) {
+      if (error) {
         toast({
           title: "Error",
-          description: result.error.message,
+          description: error.message,
           variant: "destructive",
         });
       } else {
@@ -73,6 +110,9 @@ export default function ResetPasswordPage() {
           title: "Success",
           description: "Password updated successfully! You can now sign in with your new password.",
         });
+        
+        // Sign out to clear the recovery session
+        await supabase.auth.signOut();
         
         // Redirect to home page after 3 seconds
         setTimeout(() => {
