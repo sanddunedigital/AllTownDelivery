@@ -101,16 +101,13 @@ export default function Home() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="flex items-center space-x-2">
                       <User className="w-4 h-4" />
-                      <span className="hidden sm:inline">{profile?.name || 'User'}</span>
+                      <span className="hidden sm:inline">{profile?.fullName || user?.email || 'User'}</span>
                       <ChevronDown className="w-3 h-3" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <div className="px-2 py-1.5">
-                      <div className="text-sm font-medium">{profile?.name || 'User'}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {profile?.role === 'driver' ? 'Driver' : 'Customer'}
-                      </div>
+                      <div className="text-sm font-medium">{profile?.fullName || user?.email || 'User'}</div>
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
@@ -189,10 +186,7 @@ export default function Home() {
               {user ? (
                 <div className="space-y-2 pt-4 border-t border-gray-100">
                   <div className="px-3 py-2">
-                    <div className="text-sm font-medium text-gray-900">{profile?.name || 'User'}</div>
-                    <div className="text-xs text-gray-500">
-                      {profile?.role === 'driver' ? 'Driver' : 'Customer'}
-                    </div>
+                    <div className="text-sm font-medium text-gray-900">{profile?.fullName || user?.email || 'User'}</div>
                   </div>
                   <Link href="/profile">
                     <Button variant="ghost" size="sm" className="w-full justify-start">
