@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChangePasswordForm } from '@/components/ui/change-password-form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trophy, Star, Gift, MapPin, CreditCard, Phone, Mail, User } from 'lucide-react';
+import { Loader2, Trophy, Star, Gift, MapPin, CreditCard, Phone, Mail, User, Home } from 'lucide-react';
 
 interface LoyaltyInfo {
   loyaltyPoints: number;
@@ -308,14 +308,41 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-600 mt-2">Manage your delivery preferences and loyalty rewards</p>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+      {/* Navigation Header */}
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+              <img 
+                src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
+                alt="Sara's Quickie Delivery Logo" 
+                className="h-8 w-auto"
+              />
+              <span className="ml-3 text-lg font-bold text-primary">Sara's Quickie Delivery</span>
+            </Link>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Profile</span>
+              <Link href="/">
+                <Button variant="outline" size="sm">
+                  <Home className="w-4 h-4 mr-2" />
+                  Home
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
-        
-        <UserProfile />
+      </nav>
+
+      <div className="py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
+            <p className="text-gray-600 mt-2">Manage your delivery preferences and loyalty rewards</p>
+          </div>
+          
+          <UserProfile />
+        </div>
       </div>
     </div>
   );

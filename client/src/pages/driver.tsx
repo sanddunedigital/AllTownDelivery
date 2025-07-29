@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -10,7 +11,7 @@ import { Label } from '../components/ui/label';
 import { toast } from '../hooks/use-toast';
 import { apiRequest } from '../lib/queryClient';
 import type { DeliveryRequest } from '@shared/schema';
-import { Truck, Clock, MapPin, Phone, DollarSign, Package } from 'lucide-react';
+import { Truck, Clock, MapPin, Phone, DollarSign, Package, Home } from 'lucide-react';
 
 export default function DriverPortal() {
   const { user } = useAuth();
@@ -148,11 +149,37 @@ export default function DriverPortal() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Driver Portal</h1>
-        <p className="text-gray-600">Manage your delivery assignments and track your progress</p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Header */}
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+              <img 
+                src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
+                alt="Sara's Quickie Delivery Logo" 
+                className="h-8 w-auto"
+              />
+              <span className="ml-3 text-lg font-bold text-primary">Sara's Quickie Delivery</span>
+            </Link>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Driver Portal</span>
+              <Link href="/">
+                <Button variant="outline" size="sm">
+                  <Home className="w-4 h-4 mr-2" />
+                  Home
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Driver Portal</h1>
+          <p className="text-gray-600">Manage your delivery assignments and track your progress</p>
+        </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
@@ -480,6 +507,7 @@ export default function DriverPortal() {
           )}
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
