@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { 
   Truck, 
   Clock, 
@@ -24,6 +24,15 @@ import { EnhancedDeliveryForm } from "@/components/ui/enhanced-delivery-form";
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, profile, signOut, loading } = useAuth();
+  const [, navigate] = useLocation();
+
+  // Check for password reset tokens and redirect to reset page
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('access_token') && hash.includes('type=recovery')) {
+      navigate(`/reset-password${hash}`);
+    }
+  }, [navigate]);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
