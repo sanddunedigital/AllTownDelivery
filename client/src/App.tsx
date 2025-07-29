@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Profile from "@/pages/profile";
 import DriverPortal from "@/pages/driver";
+import ResetPassword from "@/pages/reset-password";
 
 function Router() {
   return (
@@ -15,6 +16,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/profile" component={Profile} />
       <Route path="/driver" component={DriverPortal} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route component={NotFound} />
     </Switch>
   );
