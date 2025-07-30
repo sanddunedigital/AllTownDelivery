@@ -137,9 +137,9 @@ export class MemStorage implements IStorage {
       userId: insertRequest.userId || null,
       businessId: insertRequest.businessId || null,
       specialInstructions: insertRequest.specialInstructions || null,
-      marketingConsent: insertRequest.marketingConsent || null,
+
       status: "available",
-      usedFreeDelivery: false,
+      usedFreeDelivery: insertRequest.usedFreeDelivery ?? false,
       claimedByDriver: null,
       claimedAt: null,
       driverNotes: null,
@@ -331,7 +331,7 @@ export class DatabaseStorage implements IStorage {
     const requestWithDefaults = {
       ...insertRequest,
       status: "available", // New requests are immediately available for drivers
-      usedFreeDelivery: false,
+      usedFreeDelivery: insertRequest.usedFreeDelivery ?? false,
       claimedByDriver: null,
       claimedAt: null,
       driverNotes: null

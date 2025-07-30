@@ -147,13 +147,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId, saveProfile, useStoredPayment, ...requestData } = req.body;
       
       let validatedData;
+      let usedFreeDelivery = false;
+      
       if (userId) {
         // Authenticated user request
         validatedData = insertDeliveryRequestAuthenticatedSchema.parse(req.body);
         
+        // Check if user has free delivery credits and auto-apply them
+        const profile = await storage.getUserProfile(userId);
+        if (profile?.freeDeliveryCredits && profile.freeDeliveryCredits > 0) {
+          usedFreeDelivery = true;
+          // Reduce free delivery credits by 1
+          await storage.updateUserProfile(userId, {
+            freeDeliveryCredits: profile.freeDeliveryCredits - 1
+          });
+        }
+        
         // If user wants to save profile data
         if (saveProfile) {
-          const profile = await storage.getUserProfile(userId);
           if (profile) {
             await storage.updateUserProfile(userId, {
               phone: requestData.phone,
@@ -168,7 +179,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData = insertDeliveryRequestGuestSchema.parse(requestData);
       }
 
-      const deliveryRequest = await storage.createDeliveryRequest(validatedData);
+      // Add the usedFreeDelivery flag to the request
+      const deliveryRequestData = {
+        ...validatedData,
+        usedFreeDelivery
+      };
+
+      const deliveryRequest = await storage.createDeliveryRequest(deliveryRequestData);
       
       res.json(deliveryRequest);
     } catch (error) {

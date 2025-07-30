@@ -104,6 +104,7 @@ export const insertDeliveryRequestSchema = createInsertSchema(deliveryRequests).
   deliveryType: z.string().min(1, "Delivery type is required"),
   paymentMethod: z.string().min(1, "Payment method is required"),
   specialInstructions: z.string().optional(), // Keep optional
+  usedFreeDelivery: z.boolean().optional(), // Allow passing usedFreeDelivery flag
 });
 
 export const insertDeliveryRequestGuestSchema = insertDeliveryRequestSchema.omit({

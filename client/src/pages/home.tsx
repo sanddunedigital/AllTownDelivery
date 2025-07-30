@@ -291,10 +291,17 @@ export default function Home() {
                 {deliveries
                   .filter((delivery: any) => delivery.status !== 'completed' && delivery.status !== 'cancelled')
                   .map((delivery: any) => (
-                    <Card key={delivery.id} className="border-l-4 border-l-blue-500">
+                    <Card key={delivery.id} className={`border-l-4 ${delivery.usedFreeDelivery ? 'border-l-green-500 bg-green-50' : 'border-l-blue-500'}`}>
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg">Delivery #{delivery.id.slice(-8)}</CardTitle>
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg">Delivery #{delivery.id.slice(-8)}</CardTitle>
+                            {delivery.usedFreeDelivery && (
+                              <Badge className="bg-green-500 hover:bg-green-600 text-white">
+                                FREE DELIVERY
+                              </Badge>
+                            )}
+                          </div>
                           <Badge 
                             variant={
                               delivery.status === 'available' ? 'secondary' :

@@ -213,11 +213,18 @@ export default function DriverPortal() {
           ) : (
             <div className="grid gap-4">
               {availableDeliveries.map((delivery: DeliveryRequest) => (
-                <Card key={delivery.id} className="border-l-4 border-l-green-500">
+                <Card key={delivery.id} className={`border-l-4 ${delivery.usedFreeDelivery ? 'border-l-yellow-500 bg-yellow-50' : 'border-l-green-500'}`}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="text-lg">{delivery.customerName}</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg">{delivery.customerName}</CardTitle>
+                          {delivery.usedFreeDelivery && (
+                            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                              FREE DELIVERY
+                            </Badge>
+                          )}
+                        </div>
                         <CardDescription className="flex items-center gap-1 mt-1">
                           <Phone className="h-4 w-4" />
                           {renderClickablePhone(delivery.phone)}
@@ -305,11 +312,18 @@ export default function DriverPortal() {
           ) : (
             <div className="grid gap-4">
               {activeDeliveries.map((delivery: DeliveryRequest) => (
-                <Card key={delivery.id} className="border-l-4 border-l-blue-500">
+                <Card key={delivery.id} className={`border-l-4 ${delivery.usedFreeDelivery ? 'border-l-yellow-500 bg-yellow-50' : 'border-l-blue-500'}`}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="text-lg">{delivery.customerName}</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg">{delivery.customerName}</CardTitle>
+                          {delivery.usedFreeDelivery && (
+                            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                              FREE DELIVERY
+                            </Badge>
+                          )}
+                        </div>
                         <CardDescription className="flex items-center gap-1 mt-1">
                           <Phone className="h-4 w-4" />
                           {renderClickablePhone(delivery.phone)}
@@ -438,11 +452,18 @@ export default function DriverPortal() {
           ) : (
             <div className="grid gap-4">
               {completedDeliveries.map((delivery: DeliveryRequest) => (
-                <Card key={delivery.id} className="border-l-4 border-l-purple-500 opacity-75">
+                <Card key={delivery.id} className={`border-l-4 ${delivery.usedFreeDelivery ? 'border-l-yellow-500 bg-yellow-50' : 'border-l-purple-500'} opacity-75`}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="text-lg">{delivery.customerName}</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg">{delivery.customerName}</CardTitle>
+                          {delivery.usedFreeDelivery && (
+                            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                              FREE DELIVERY
+                            </Badge>
+                          )}
+                        </div>
                         <CardDescription className="flex items-center gap-1 mt-1">
                           <Phone className="h-4 w-4" />
                           {renderClickablePhone(delivery.phone)}
