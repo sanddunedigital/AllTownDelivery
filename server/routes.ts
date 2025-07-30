@@ -170,11 +170,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const deliveryRequest = await storage.createDeliveryRequest(validatedData);
       
-      // Update loyalty points for authenticated users
-      if (userId && deliveryRequest.status === "pending") {
-        await storage.updateLoyaltyPoints(userId, 1); // 1 point per delivery
-      }
-      
       res.json(deliveryRequest);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -208,7 +203,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Status is required" });
       }
       
+      // Get delivery before updating to check user ID
+      const requests = await storage.getDeliveryRequests();
+      const delivery = requests.find(r => r.id === id);
+      
       await storage.updateDeliveryStatus(id, status);
+      
+      // Award loyalty points when delivery is completed
+      if (status === 'completed' && delivery?.userId) {
+        await storage.updateLoyaltyPoints(delivery.userId, 1); // 1 point per completed delivery
+      }
+      
       res.json({ message: "Status updated successfully" });
     } catch (error) {
       console.error("Error updating delivery status:", error);
@@ -266,6 +271,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates = updateDeliveryStatusSchema.parse(req.body);
       
       const delivery = await storage.updateDeliveryForDriver(driverId, deliveryId, updates);
+      
+      // Award loyalty points when delivery is completed
+      if (updates.status === 'completed' && delivery.userId) {
+        await storage.updateLoyaltyPoints(delivery.userId, 1); // 1 point per completed delivery
+      }
+      
       res.json(delivery);
     } catch (error) {
       if (error instanceof z.ZodError) {
