@@ -19,7 +19,7 @@ export interface IStorage {
   getUserProfile(id: string): Promise<UserProfile | undefined>;
   createUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
   updateUserProfile(id: string, updates: UpdateUserProfile): Promise<UserProfile>;
-  updateLoyaltyPoints(userId: string, points: number): Promise<void>;
+  updateLoyaltyPoints(userId: string, points: number, wasFreeDelivery?: boolean): Promise<void>;
   checkLoyaltyEligibility(userId: string): Promise<boolean>;
   
   // Delivery request methods
@@ -112,9 +112,9 @@ export class MemStorage implements IStorage {
     const profile = this.userProfiles.get(userId);
     if (profile) {
       if (wasFreeDelivery) {
-        // If this was a free delivery, reset loyalty points and free credits to 0
-        profile.loyaltyPoints = 0;
-        profile.freeDeliveryCredits = 0;
+        // If this was a free delivery, don't change loyalty points, decrement free credits
+        // Keep current loyalty points - free deliveries don't reset progress
+        profile.freeDeliveryCredits = Math.max(0, (profile.freeDeliveryCredits || 0) - 1); // Use one free credit
         profile.totalDeliveries = (profile.totalDeliveries || 0) + 1;
       } else {
         // Regular paid delivery
@@ -315,9 +315,9 @@ export class DatabaseStorage implements IStorage {
     let newTotalDeliveries: number;
 
     if (wasFreeDelivery) {
-      // If this was a free delivery, reset loyalty points and free credits to 0
-      newLoyaltyPoints = 0;
-      newFreeCredits = 0;
+      // If this was a free delivery, don't change loyalty points, decrement free credits
+      newLoyaltyPoints = profile.loyaltyPoints || 0; // Keep current loyalty points
+      newFreeCredits = Math.max(0, (profile.freeDeliveryCredits || 0) - 1); // Use one free credit
       newTotalDeliveries = (profile.totalDeliveries || 0) + 1;
     } else {
       // Regular paid delivery
@@ -528,12 +528,12 @@ class SmartStorage implements IStorage {
     }
   }
 
-  async updateLoyaltyPoints(userId: string, points: number): Promise<void> {
+  async updateLoyaltyPoints(userId: string, points: number, wasFreeDelivery: boolean = false): Promise<void> {
     try {
-      await this.dbStorage.updateLoyaltyPoints(userId, points);
+      await this.dbStorage.updateLoyaltyPoints(userId, points, wasFreeDelivery);
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
-      await this.memStorage.updateLoyaltyPoints(userId, points);
+      await this.memStorage.updateLoyaltyPoints(userId, points, wasFreeDelivery);
     }
   }
 
