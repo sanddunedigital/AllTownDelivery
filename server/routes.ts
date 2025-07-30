@@ -228,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Award loyalty points when delivery is completed
       if (status === 'completed' && delivery?.userId) {
-        await storage.updateLoyaltyPoints(delivery.userId, 1); // 1 point per completed delivery
+        await storage.updateLoyaltyPoints(delivery.userId, 1, delivery.usedFreeDelivery || false); // 1 point per completed delivery
       }
       
       res.json({ message: "Status updated successfully" });
@@ -291,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Award loyalty points when delivery is completed
       if (updates.status === 'completed' && delivery.userId) {
-        await storage.updateLoyaltyPoints(delivery.userId, 1); // 1 point per completed delivery
+        await storage.updateLoyaltyPoints(delivery.userId, 1, delivery.usedFreeDelivery || false); // 1 point per completed delivery
       }
       
       res.json(delivery);

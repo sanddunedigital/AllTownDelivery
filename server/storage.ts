@@ -108,15 +108,24 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async updateLoyaltyPoints(userId: string, points: number): Promise<void> {
+  async updateLoyaltyPoints(userId: string, points: number, wasFreeDelivery: boolean = false): Promise<void> {
     const profile = this.userProfiles.get(userId);
     if (profile) {
-      profile.loyaltyPoints = (profile.loyaltyPoints || 0) + points;
-      profile.totalDeliveries = (profile.totalDeliveries || 0) + 1;
-      
-      // Award free delivery every 10 deliveries
-      if (profile.totalDeliveries % 10 === 0) {
-        profile.freeDeliveryCredits = (profile.freeDeliveryCredits || 0) + 1;
+      if (wasFreeDelivery) {
+        // If this was a free delivery, reset loyalty points and free credits to 0
+        profile.loyaltyPoints = 0;
+        profile.freeDeliveryCredits = 0;
+        profile.totalDeliveries = (profile.totalDeliveries || 0) + 1;
+      } else {
+        // Regular paid delivery
+        profile.loyaltyPoints = (profile.loyaltyPoints || 0) + points;
+        profile.totalDeliveries = (profile.totalDeliveries || 0) + 1;
+        
+        // If loyalty points reach 10, award 1 free credit and reset points to 0
+        if (profile.loyaltyPoints >= 10) {
+          profile.freeDeliveryCredits = (profile.freeDeliveryCredits || 0) + 1;
+          profile.loyaltyPoints = 0; // Reset points after earning free credit
+        }
       }
       
       profile.updatedAt = new Date();
@@ -137,7 +146,7 @@ export class MemStorage implements IStorage {
       userId: insertRequest.userId || null,
       businessId: insertRequest.businessId || null,
       specialInstructions: insertRequest.specialInstructions || null,
-
+      marketingConsent: null,
       status: "available",
       usedFreeDelivery: insertRequest.usedFreeDelivery ?? false,
       claimedByDriver: null,
@@ -293,7 +302,7 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateLoyaltyPoints(userId: string, points: number): Promise<void> {
+  async updateLoyaltyPoints(userId: string, points: number, wasFreeDelivery: boolean = false): Promise<void> {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
@@ -301,11 +310,28 @@ export class DatabaseStorage implements IStorage {
     const profile = await this.getUserProfile(userId);
     if (!profile) return;
 
-    const newTotalDeliveries = (profile.totalDeliveries || 0) + 1;
-    const newLoyaltyPoints = (profile.loyaltyPoints || 0) + points;
-    const newFreeCredits = newTotalDeliveries % 10 === 0 
-      ? (profile.freeDeliveryCredits || 0) + 1 
-      : (profile.freeDeliveryCredits || 0);
+    let newLoyaltyPoints: number;
+    let newFreeCredits: number;
+    let newTotalDeliveries: number;
+
+    if (wasFreeDelivery) {
+      // If this was a free delivery, reset loyalty points and free credits to 0
+      newLoyaltyPoints = 0;
+      newFreeCredits = 0;
+      newTotalDeliveries = (profile.totalDeliveries || 0) + 1;
+    } else {
+      // Regular paid delivery
+      newLoyaltyPoints = (profile.loyaltyPoints || 0) + points;
+      newTotalDeliveries = (profile.totalDeliveries || 0) + 1;
+      
+      // If loyalty points reach 10, award 1 free credit and reset points to 0
+      if (newLoyaltyPoints >= 10) {
+        newFreeCredits = (profile.freeDeliveryCredits || 0) + 1;
+        newLoyaltyPoints = 0; // Reset points after earning free credit
+      } else {
+        newFreeCredits = profile.freeDeliveryCredits || 0;
+      }
+    }
 
     await db
       .update(userProfiles)
@@ -332,6 +358,7 @@ export class DatabaseStorage implements IStorage {
       ...insertRequest,
       status: "available", // New requests are immediately available for drivers
       usedFreeDelivery: insertRequest.usedFreeDelivery ?? false,
+      marketingConsent: null,
       claimedByDriver: null,
       claimedAt: null,
       driverNotes: null

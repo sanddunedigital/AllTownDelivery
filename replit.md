@@ -104,21 +104,14 @@ Preferred communication style: Simple, everyday language.
 - Storage interface allows seamless transition from memory to database
 - Environment variable configuration for database URL
 
-### Recent Changes (July 29, 2025)
+### Recent Changes (July 30, 2025)
 
-- **Authentication Improvements**: Created dedicated /auth page with role-based redirects
-- **Clean Header Design**: Implemented professional dropdown menu for logged-in users
-- **Password Reset Fix**: Added automatic redirect handling for password reset emails
-- **User Experience**: Drivers now automatically go to driver portal on sign-in
-- **Navigation Headers**: Added clickable logo and home buttons to driver portal and profile pages
-- **Delivery Form Fix**: Fixed API parameter order issue preventing delivery request submissions
-- **Fresh Test Data**: Cleared old test data and added realistic local delivery requests for testing
-- **Customer Delivery Tracking**: Added real-time delivery status section on home page showing active deliveries with pickup/delivery addresses, timing, and color-coded status badges that auto-refresh every 30 seconds
-- **Business Partnership Integration**: Added business showcase section with category filtering (Restaurant, Grocery, Retail, Convenience)
-- **Form Optimization**: Updated delivery form terminology from "Preferred" to "Pick up" Date/Time with past date validation
-- **Profile Streamlining**: Removed preferred payment method and default pickup address fields from profile form
-- **Enhanced Validation**: Implemented comprehensive form validation requiring all delivery request fields except special instructions and profile save options
-- **Marketing Cleanup**: Removed promotional email consent checkbox from delivery form for streamlined user experience
+- **Loyalty System Overhaul**: Redesigned loyalty tracking to prevent free deliveries from counting toward next 10
+- **Credit-Based System**: After 10 paid deliveries, users earn 1 free delivery credit that auto-applies to next order
+- **Visual Indicators**: Added colored borders and "FREE DELIVERY" badges for clear identification of free deliveries
+- **Smart Point Tracking**: Loyalty points increment with paid deliveries only; reset to 0 when earning free credit or using free delivery
+- **Enhanced UI**: Free deliveries show green borders for customers, yellow borders for drivers across all delivery cards
+- **Database Schema**: Updated to properly handle usedFreeDelivery field with TypeScript validation
 
 ### Key Architectural Decisions
 
