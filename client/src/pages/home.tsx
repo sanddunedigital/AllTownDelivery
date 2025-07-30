@@ -277,8 +277,8 @@ export default function Home() {
         )}
       </nav>
 
-      {/* Active Delivery Status - Only show for logged-in users with deliveries */}
-      {user && deliveries.length > 0 && (
+      {/* Active Delivery Status - Only show for logged-in users with active deliveries */}
+      {user && deliveries.filter((d: any) => d.status !== 'completed' && d.status !== 'cancelled').length > 0 && (
         <section className="pt-16 pb-4 bg-blue-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white rounded-lg shadow-sm border border-blue-200 p-6">
@@ -356,14 +356,6 @@ export default function Home() {
                   ))
                 }
               </div>
-              
-              {deliveries.filter((d: any) => d.status !== 'completed' && d.status !== 'cancelled').length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No active deliveries at the moment.</p>
-                  <p className="text-sm">Ready to request a delivery?</p>
-                </div>
-              )}
             </div>
           </div>
         </section>

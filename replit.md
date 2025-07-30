@@ -106,6 +106,8 @@ Preferred communication style: Simple, everyday language.
 
 ### Recent Changes (July 30, 2025)
 
+- **Form Improvements**: Default pickup date now set to today; removed delivery type field from form and database
+- **UI Optimization**: Active deliveries section on home page only appears when customer has active deliveries  
 - **Loyalty System Overhaul**: Redesigned loyalty tracking to prevent free deliveries from counting toward next 10
 - **Credit-Based System**: After 10 paid deliveries, users earn 1 free delivery credit that auto-applies to next order
 - **Visual Indicators**: Added colored borders and "FREE DELIVERY" badges for clear identification of free deliveries
