@@ -112,6 +112,10 @@ Preferred communication style: Simple, everyday language.
 - **Smart Point Tracking**: Loyalty points increment with paid deliveries only; reset to 0 when earning free credit or using free delivery
 - **Enhanced UI**: Free deliveries show green borders for customers, yellow borders for drivers across all delivery cards
 - **Database Schema**: Updated to properly handle usedFreeDelivery field with TypeScript validation
+- **Form Improvements**: Default pickup date now sets to current day for user convenience
+- **Simplified Service Model**: Removed delivery type field from forms and database - doesn't fit business model
+- **Profile Persistence**: Delivery form now retains user profile information after successful submission
+- **Accurate Loyalty Display**: Fixed loyalty calculations to show correct "deliveries until next free credit" based on loyalty points
 
 ### Key Architectural Decisions
 

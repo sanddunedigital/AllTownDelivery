@@ -45,7 +45,6 @@ export const deliveryRequests = pgTable("delivery_requests", {
   deliveryAddress: text("delivery_address").notNull(),
   preferredDate: text("preferred_date").notNull(),
   preferredTime: text("preferred_time").notNull(),
-  deliveryType: text("delivery_type").notNull(),
   paymentMethod: text("payment_method").notNull(),
   specialInstructions: text("special_instructions"),
   marketingConsent: text("marketing_consent"),
@@ -101,7 +100,6 @@ export const insertDeliveryRequestSchema = createInsertSchema(deliveryRequests).
   deliveryAddress: z.string().min(1, "Delivery address is required"),
   preferredDate: z.string().min(1, "Pick up date is required"),
   preferredTime: z.string().min(1, "Pick up time is required"),
-  deliveryType: z.string().min(1, "Delivery type is required"),
   paymentMethod: z.string().min(1, "Payment method is required"),
   specialInstructions: z.string().optional(), // Keep optional
   usedFreeDelivery: z.boolean().optional(), // Allow passing usedFreeDelivery flag

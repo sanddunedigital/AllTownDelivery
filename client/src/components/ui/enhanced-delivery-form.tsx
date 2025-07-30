@@ -43,9 +43,8 @@ export function EnhancedDeliveryForm() {
       businessId: '',
       pickupAddress: '',
       deliveryAddress: '',
-      preferredDate: '',
+      preferredDate: new Date().toISOString().split('T')[0], // Default to today's date
       preferredTime: '',
-      deliveryType: '',
       paymentMethod: '',
       specialInstructions: '',
       saveProfile: false,
@@ -119,9 +118,8 @@ export function EnhancedDeliveryForm() {
         form.setValue('businessId', '');
         form.setValue('pickupAddress', profile.defaultPickupAddress || '');
         form.setValue('deliveryAddress', profile.defaultDeliveryAddress || '');
-        form.setValue('preferredDate', '');
+        form.setValue('preferredDate', new Date().toISOString().split('T')[0]); // Reset to today's date
         form.setValue('preferredTime', '');
-        form.setValue('deliveryType', '');
         form.setValue('specialInstructions', '');
         form.setValue('saveProfile', false);
         form.setValue('useStoredPayment', false);
@@ -423,54 +421,29 @@ export function EnhancedDeliveryForm() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Service Options</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="deliveryType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Delivery Type *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select delivery type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="standard">Standard Delivery</SelectItem>
-                            <SelectItem value="express">Express Delivery (+$5)</SelectItem>
-                            <SelectItem value="same-day">Same Day Delivery (+$10)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="paymentMethod"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Payment Method *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select payment method" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="cash">Cash</SelectItem>
-                            <SelectItem value="card">Credit/Debit Card</SelectItem>
-                            <SelectItem value="venmo">Venmo</SelectItem>
-                            <SelectItem value="paypal">PayPal</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="paymentMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Method *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select payment method" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="card">Credit/Debit Card</SelectItem>
+                          <SelectItem value="venmo">Venmo</SelectItem>
+                          <SelectItem value="paypal">PayPal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {/* Additional Information */}

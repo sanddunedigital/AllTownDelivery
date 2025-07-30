@@ -257,14 +257,10 @@ export default function DriverPortal() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-gray-500" />
                         <span className="text-sm">{delivery.preferredDate} at {delivery.preferredTime}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{delivery.deliveryType}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-gray-500" />
@@ -356,14 +352,10 @@ export default function DriverPortal() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-gray-500" />
                         <span className="text-sm">{delivery.preferredDate} at {delivery.preferredTime}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{delivery.deliveryType}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-gray-500" />
@@ -496,14 +488,10 @@ export default function DriverPortal() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-gray-500" />
                         <span className="text-sm">{delivery.preferredDate} at {delivery.preferredTime}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{delivery.deliveryType}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-gray-500" />
