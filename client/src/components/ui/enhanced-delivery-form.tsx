@@ -196,9 +196,9 @@ export function EnhancedDeliveryForm() {
                     Welcome back, {profile?.fullName || user.email}!
                   </h3>
                   <p className="text-sm text-orange-100">
-                    {loyaltyInfo.eligibleForFreeDelivery 
-                      ? `You have ${loyaltyInfo.freeDeliveryCredits} free delivery credits!`
-                      : `${loyaltyInfo.deliveriesUntilNextFree} more deliveries until your next free one`
+                    {loyaltyInfo.freeDeliveryCredits > 0
+                      ? `You have ${loyaltyInfo.freeDeliveryCredits} free delivery credit${loyaltyInfo.freeDeliveryCredits > 1 ? 's' : ''}!`
+                      : `${loyaltyInfo.deliveriesUntilNextFree} more paid deliveries until your next free credit`
                     }
                   </p>
                 </div>

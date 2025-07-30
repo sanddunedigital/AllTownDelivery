@@ -97,12 +97,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const eligibleForFree = await storage.checkLoyaltyEligibility(id);
+      const loyaltyPoints = profile.loyaltyPoints || 0;
+      const freeDeliveryCredits = profile.freeDeliveryCredits || 0;
+      
+      // Calculate deliveries until next free based on loyalty points (not total deliveries)
+      const deliveriesUntilNextFree = freeDeliveryCredits > 0 ? 0 : (10 - loyaltyPoints);
+      
       res.json({
-        loyaltyPoints: profile.loyaltyPoints || 0,
+        loyaltyPoints,
         totalDeliveries: profile.totalDeliveries || 0,
-        freeDeliveryCredits: profile.freeDeliveryCredits || 0,
+        freeDeliveryCredits,
         eligibleForFreeDelivery: eligibleForFree,
-        deliveriesUntilNextFree: 10 - ((profile.totalDeliveries || 0) % 10)
+        deliveriesUntilNextFree
       });
     } catch (error) {
       console.error("Error checking loyalty status:", error);
