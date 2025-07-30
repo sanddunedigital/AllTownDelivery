@@ -113,7 +113,23 @@ export function EnhancedDeliveryForm() {
         description: "Your delivery request has been submitted successfully. We'll contact you soon!",
       });
 
-      form.reset();
+      // Reset only delivery-specific fields, preserve user profile data
+      if (user && profile) {
+        // Keep profile data, reset only delivery fields
+        form.setValue('businessId', '');
+        form.setValue('pickupAddress', profile.defaultPickupAddress || '');
+        form.setValue('deliveryAddress', profile.defaultDeliveryAddress || '');
+        form.setValue('preferredDate', '');
+        form.setValue('preferredTime', '');
+        form.setValue('deliveryType', '');
+        form.setValue('specialInstructions', '');
+        form.setValue('saveProfile', false);
+        form.setValue('useStoredPayment', false);
+        setSelectedBusiness(null); // Clear business selection
+      } else {
+        // Guest user - full reset
+        form.reset();
+      }
       
       // Refresh loyalty info if user is authenticated
       if (user) {
