@@ -182,15 +182,13 @@ export default function DriverPortal() {
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid w-full ${activeDeliveries.length > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="available">
             Available ({availableDeliveries.length})
           </TabsTrigger>
-          {activeDeliveries.length > 0 && (
-            <TabsTrigger value="my-deliveries">
-              Active ({activeDeliveries.length})
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="my-deliveries">
+            Active ({activeDeliveries.length})
+          </TabsTrigger>
           <TabsTrigger value="completed">
             Completed ({completedDeliveries.length})
           </TabsTrigger>
@@ -291,8 +289,7 @@ export default function DriverPortal() {
           )}
         </TabsContent>
 
-        {activeDeliveries.length > 0 && (
-          <TabsContent value="my-deliveries" className="space-y-4">
+        <TabsContent value="my-deliveries" className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
             <Truck className="h-5 w-5" />
             <h2 className="text-xl font-semibold">Active Deliveries</h2>
