@@ -120,6 +120,15 @@ export function useDriverProfileRealtime(userId?: string) {
             refetchType: 'active'
           });
           
+          // If driver went off duty, invalidate their active deliveries too
+          if (payload.new.is_on_duty === false) {
+            console.log('Driver went off duty - invalidating active deliveries cache');
+            queryClient.invalidateQueries({ 
+              queryKey: ['/api/driver', userId, 'deliveries'],
+              refetchType: 'active'
+            });
+          }
+          
           console.log('Cache updated and queries invalidated');
         }
       )
