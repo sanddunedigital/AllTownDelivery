@@ -123,6 +123,19 @@ export default function DispatchPage() {
     },
   });
 
+  // Watch for business selection changes and auto-populate pickup address
+  const selectedBusinessId = form.watch('businessId');
+  useEffect(() => {
+    if (selectedBusinessId && selectedBusinessId !== 'custom') {
+      const selectedBusiness = businesses.find(b => b.id === selectedBusinessId);
+      if (selectedBusiness) {
+        form.setValue('pickupAddress', selectedBusiness.address);
+      }
+    } else if (selectedBusinessId === 'custom') {
+      form.setValue('pickupAddress', '');
+    }
+  }, [selectedBusinessId, businesses, form]);
+
   // Create phone order mutation
   const createPhoneOrder = useMutation({
     mutationFn: (data: PhoneOrderFormData) =>
@@ -289,19 +302,27 @@ export default function DispatchPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          {form.watch('businessId') ? 'Additional Pickup Notes' : 'Pickup Address'}
+                          {form.watch('businessId') && form.watch('businessId') !== 'custom' 
+                            ? 'Pickup Address (Additional Details)' 
+                            : 'Pickup Address'}
                         </FormLabel>
                         <FormControl>
                           <Input 
                             placeholder={
-                              form.watch('businessId') 
+                              form.watch('businessId') && form.watch('businessId') !== 'custom'
                                 ? "Suite number, special instructions, etc."
-                                : "Enter pickup address"
+                                : "Enter complete pickup address"
                             } 
                             {...field} 
+                            disabled={!!(form.watch('businessId') && form.watch('businessId') !== 'custom')}
                           />
                         </FormControl>
                         <FormMessage />
+                        {form.watch('businessId') && form.watch('businessId') !== 'custom' && (
+                          <p className="text-sm text-muted-foreground">
+                            Base address auto-filled from selected business. Add any additional details above.
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />
