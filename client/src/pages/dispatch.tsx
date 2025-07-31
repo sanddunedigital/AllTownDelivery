@@ -270,7 +270,7 @@ export default function DispatchPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">Custom pickup address</SelectItem>
+                            <SelectItem value="custom">Custom pickup address</SelectItem>
                             {businesses.map((business) => (
                               <SelectItem key={business.id} value={business.id}>
                                 {business.name} - {business.address}

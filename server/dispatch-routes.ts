@@ -33,24 +33,24 @@ function convertDeliveryFromDb(dbDelivery: any) {
   
   return {
     id: dbDelivery.id,
-    userId: dbDelivery.user_id,
-    businessId: dbDelivery.business_id,
-    customerName: dbDelivery.customer_name,
+    userId: dbDelivery.userId,
+    businessId: dbDelivery.businessId,
+    customerName: dbDelivery.customerName,
     phone: dbDelivery.phone,
     email: dbDelivery.email,
-    pickupAddress: dbDelivery.pickup_address,
-    deliveryAddress: dbDelivery.delivery_address,
-    preferredDate: dbDelivery.preferred_date,
-    preferredTime: dbDelivery.preferred_time,
-    paymentMethod: dbDelivery.payment_method,
-    specialInstructions: dbDelivery.special_instructions,
-    marketingConsent: dbDelivery.marketing_consent,
+    pickupAddress: dbDelivery.pickupAddress,
+    deliveryAddress: dbDelivery.deliveryAddress,
+    preferredDate: dbDelivery.preferredDate,
+    preferredTime: dbDelivery.preferredTime,
+    paymentMethod: dbDelivery.paymentMethod,
+    specialInstructions: dbDelivery.specialInstructions,
+    marketingConsent: dbDelivery.marketingConsent,
     status: dbDelivery.status,
-    usedFreeDelivery: dbDelivery.used_free_delivery,
-    claimedByDriver: dbDelivery.claimed_by_driver,
-    claimedAt: dbDelivery.claimed_at,
-    driverNotes: dbDelivery.driver_notes,
-    createdAt: dbDelivery.created_at,
+    usedFreeDelivery: dbDelivery.usedFreeDelivery,
+    claimedByDriver: dbDelivery.claimedByDriver,
+    claimedAt: dbDelivery.claimedAt,
+    driverNotes: dbDelivery.driverNotes,
+    createdAt: dbDelivery.createdAt,
   };
 }
 
@@ -86,9 +86,7 @@ router.get('/deliveries', async (req, res) => {
     
     console.log(`Found ${deliveries.length} deliveries`);
     
-    const convertedDeliveries = deliveries.map(convertDeliveryFromDb);
-    
-    res.json(convertedDeliveries);
+    res.json(deliveries);
   } catch (error) {
     console.error('Error fetching deliveries:', error);
     res.status(500).json({ error: 'Failed to fetch deliveries' });
