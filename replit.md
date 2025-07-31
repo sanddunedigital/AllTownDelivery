@@ -106,9 +106,12 @@ Preferred communication style: Simple, everyday language.
 
 ### Recent Changes (July 31, 2025)
 
-- **Real-Time Driver Toggle**: Fixed critical real-time update bug - driver duty toggle now works instantly with proper data conversion
-- **Mobile-First Driver Portal**: Redesigned for phone use - moved toggle to header, removed redundant sections, streamlined to 2 tabs
+- **Real-Time Customer Updates**: Implemented WebSocket subscriptions for customer deliveries on home page with live status updates
+- **Cache Invalidation Fix**: Resolved bug where released deliveries appeared in both available and active sections
+- **Enhanced Visual Feedback**: Added "Live Updates" indicator and animated status icons for real-time delivery tracking
 - **Smart Delivery Release**: When drivers go off duty, claimed deliveries automatically return to available queue for other drivers
+- **Real-Time Driver Toggle**: Fixed critical real-time update bug - driver duty toggle now works instantly with proper data conversion  
+- **Mobile-First Driver Portal**: Redesigned for phone use - moved toggle to header, removed redundant sections, streamlined to 2 tabs
 - **Data Conversion Fix**: Resolved snake_case/camelCase mismatch between database and frontend in real-time subscriptions
 - **Enhanced Cache Management**: React Query profile data now reactive to real-time updates instead of static AuthContext
 - **Driver Status Migration**: Changed driver status from string ("on-duty"/"off-duty") to boolean (isOnDuty) for better type safety

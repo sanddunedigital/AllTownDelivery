@@ -40,11 +40,11 @@ export default function Home() {
   // Set up real-time subscriptions for customer deliveries
   useCustomerDeliveriesRealtime(user?.id);
 
-  // Fetch user's active deliveries
+  // Fetch user's active deliveries with reduced polling since we have real-time
   const { data: userDeliveries } = useQuery({
     queryKey: [`/api/delivery-requests?userId=${user?.id}`],
     enabled: !!user?.id,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 120000, // Refresh every 2 minutes (reduced from 30 seconds)
   });
 
   // Fetch businesses
@@ -283,6 +283,12 @@ export default function Home() {
               <div className="flex items-center gap-3 mb-4">
                 <Package className="h-6 w-6 text-blue-600" />
                 <h2 className="text-xl font-semibold text-gray-900">Your Active Deliveries</h2>
+                <div className="flex items-center gap-2 ml-auto">
+                  <div className="flex items-center gap-1 text-sm text-green-600">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span>Live Updates</span>
+                  </div>
+                </div>
               </div>
               
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -331,7 +337,7 @@ export default function Home() {
 
                         {delivery.status === 'available' && (
                           <div className="flex items-center gap-2 text-sm text-orange-600">
-                            <AlertCircle className="h-4 w-4" />
+                            <AlertCircle className="h-4 w-4 animate-pulse" />
                             <span>Looking for available driver...</span>
                           </div>
                         )}
@@ -340,6 +346,13 @@ export default function Home() {
                           <div className="flex items-center gap-2 text-sm text-blue-600">
                             <CheckCircle className="h-4 w-4" />
                             <span>Driver assigned, preparing for pickup</span>
+                          </div>
+                        )}
+
+                        {delivery.status === 'in_progress' && (
+                          <div className="flex items-center gap-2 text-sm text-green-600">
+                            <Truck className="h-4 w-4" />
+                            <span>Driver is on the way</span>
                           </div>
                         )}
 

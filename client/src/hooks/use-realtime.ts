@@ -245,7 +245,12 @@ export function useCustomerDeliveriesRealtime(userId?: string) {
       '*',
       `userId=eq.${userId}`,
       (payload: RealtimePostgresChangesPayload<any>) => {
-        // Invalidate customer's delivery list
+        console.log('Customer delivery update received:', payload);
+        // Invalidate customer's delivery list - match the exact query key format
+        queryClient.invalidateQueries({ 
+          queryKey: [`/api/delivery-requests?userId=${userId}`] 
+        });
+        // Also invalidate the general delivery requests query for compatibility
         queryClient.invalidateQueries({ 
           queryKey: ['/api/delivery-requests'] 
         });
