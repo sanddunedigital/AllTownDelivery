@@ -17,6 +17,7 @@ export const userProfiles = pgTable("user_profiles", {
   totalDeliveries: integer("total_deliveries").default(0),
   freeDeliveryCredits: integer("free_delivery_credits").default(0),
   role: text("role").default("customer").notNull(), // customer, driver, admin
+  driverStatus: text("driver_status").default("off-duty"), // on-duty, off-duty (only relevant for drivers)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -125,6 +126,10 @@ export const updateDeliveryStatusSchema = z.object({
   driverNotes: z.string().optional(),
 });
 
+export const updateDriverStatusSchema = z.object({
+  driverStatus: z.enum(['on-duty', 'off-duty']),
+});
+
 // Legacy user schema (for compatibility)
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -146,6 +151,7 @@ export type DeliveryRequest = typeof deliveryRequests.$inferSelect;
 
 export type ClaimDelivery = z.infer<typeof claimDeliverySchema>;
 export type UpdateDeliveryStatus = z.infer<typeof updateDeliveryStatusSchema>;
+export type UpdateDriverStatus = z.infer<typeof updateDriverStatusSchema>;
 
 // Legacy types
 export type InsertUser = z.infer<typeof insertUserSchema>;

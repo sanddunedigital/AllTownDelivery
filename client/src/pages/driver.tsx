@@ -11,19 +11,22 @@ import { Label } from '../components/ui/label';
 import { toast } from '../hooks/use-toast';
 import { apiRequest } from '../lib/queryClient';
 import type { DeliveryRequest } from '@shared/schema';
-import { Truck, Clock, MapPin, Phone, DollarSign, Package, Home } from 'lucide-react';
+import { Truck, Clock, MapPin, Phone, DollarSign, Package, Home, Power, PowerOff } from 'lucide-react';
 
 export default function DriverPortal() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [claimNotes, setClaimNotes] = useState<{ [key: string]: string }>({});
   const [deliveryNotes, setDeliveryNotes] = useState<{ [key: string]: string }>({});
   const [activeTab, setActiveTab] = useState('available');
 
-  // Fetch available deliveries
+  // Check if driver is on duty
+  const isOnDuty = profile?.driverStatus === 'on-duty';
+
+  // Fetch available deliveries (only when on duty)
   const { data: availableDeliveries = [], isLoading: loadingAvailable } = useQuery<DeliveryRequest[]>({
     queryKey: ['/api/driver/deliveries/available'],
-    enabled: !!user
+    enabled: !!user && isOnDuty
   });
 
   // Fetch driver's claimed deliveries
@@ -76,6 +79,27 @@ export default function DriverPortal() {
       toast({
         title: "Error",
         description: error.message || "Failed to update status",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Update driver duty status mutation
+  const updateDriverStatusMutation = useMutation({
+    mutationFn: async (driverStatus: 'on-duty' | 'off-duty') => {
+      return apiRequest(`/api/driver/${user!.id}/status`, 'PATCH', { driverStatus });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/profile`] });
+      toast({
+        title: "Status Updated",
+        description: `You are now ${isOnDuty ? 'off-duty' : 'on-duty'}.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update duty status",
         variant: "destructive",
       });
     }
@@ -181,6 +205,50 @@ export default function DriverPortal() {
           <p className="text-gray-600">Manage your delivery assignments and track your progress</p>
         </div>
 
+        {/* Driver Duty Status */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {isOnDuty ? (
+                  <Power className="h-6 w-6 text-green-600" />
+                ) : (
+                  <PowerOff className="h-6 w-6 text-gray-400" />
+                )}
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    {isOnDuty ? "You're On Duty" : "You're Off Duty"}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {isOnDuty 
+                      ? "You can receive new delivery assignments" 
+                      : "You won't receive new delivery assignments"
+                    }
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => updateDriverStatusMutation.mutate(isOnDuty ? 'off-duty' : 'on-duty')}
+                disabled={updateDriverStatusMutation.isPending}
+                variant={isOnDuty ? "destructive" : "default"}
+                size="lg"
+              >
+                {isOnDuty ? (
+                  <>
+                    <PowerOff className="w-4 h-4 mr-2" />
+                    Go Off Duty
+                  </>
+                ) : (
+                  <>
+                    <Power className="w-4 h-4 mr-2" />
+                    Go On Duty
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="available">
@@ -200,7 +268,15 @@ export default function DriverPortal() {
             <h2 className="text-xl font-semibold">Available Deliveries</h2>
           </div>
           
-          {loadingAvailable ? (
+          {!isOnDuty ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <PowerOff className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-semibold mb-2">You're Off Duty</h3>
+                <p className="text-gray-600">Go on duty to see available deliveries and receive new assignments.</p>
+              </CardContent>
+            </Card>
+          ) : loadingAvailable ? (
             <div className="text-center py-8">Loading available deliveries...</div>
           ) : availableDeliveries.length === 0 ? (
             <Card>

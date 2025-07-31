@@ -9,6 +9,7 @@ import {
   insertDeliveryRequestAuthenticatedSchema,
   claimDeliverySchema,
   updateDeliveryStatusSchema,
+  updateDriverStatusSchema,
   insertBusinessSchema
 } from "@shared/schema";
 import { z } from "zod";
@@ -306,6 +307,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(400).json({ message: "Invalid update data", errors: error.errors });
       } else {
         console.error("Error updating delivery:", error);
+        res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
+      }
+    }
+  });
+
+  // Update driver duty status
+  app.patch("/api/driver/:driverId/status", async (req, res) => {
+    try {
+      const { driverId } = req.params;
+      const updates = updateDriverStatusSchema.parse(req.body);
+      
+      const profile = await storage.updateUserProfile(driverId, updates);
+      res.json(profile);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid status data", errors: error.errors });
+      } else {
+        console.error("Error updating driver status:", error);
         res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
       }
     }
