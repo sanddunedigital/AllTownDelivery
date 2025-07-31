@@ -131,12 +131,6 @@ export default function Home() {
               >
                 Reviews
               </button>
-              <button 
-                onClick={() => scrollToSection('contact')}
-                className="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Contact
-              </button>
               <Button 
                 onClick={() => scrollToSection('request-delivery')}
                 className="bg-accent hover:bg-accent/90 text-accent-foreground"
@@ -613,7 +607,7 @@ export default function Home() {
             </p>
             {user && (
               <p className="text-orange-600 font-medium mt-2">
-                ✨ Signed in users get loyalty rewards - every 10th delivery is free!
+                ✨ Signed in users get loyalty rewards - after 10 deliveries your next one is free!
               </p>
             )}
           </div>

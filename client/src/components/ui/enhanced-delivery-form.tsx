@@ -195,8 +195,7 @@ export function EnhancedDeliveryForm() {
                   </h3>
                   <p className="text-sm text-orange-100">
                     {loyaltyInfo.freeDeliveryCredits > 0
-                      ? `You have ${loyaltyInfo.freeDeliveryCredits} free delivery credit${loyaltyInfo.freeDeliveryCredits > 1 ? 's' : ''}!`
-                      : `${loyaltyInfo.deliveriesUntilNextFree} more paid deliveries until your next free credit`
+                      ? `Congratulations! Your next delivery is free! 🎉`                   : `${loyaltyInfo.deliveriesUntilNextFree} more deliveries until your next free delivery`
                     }
                   </p>
                 </div>
