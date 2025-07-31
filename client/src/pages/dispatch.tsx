@@ -24,7 +24,7 @@ const phoneOrderSchema = z.object({
   customerName: z.string().min(1, 'Customer name is required'),
   phone: z.string().min(10, 'Valid phone number is required'),
   email: z.string().email('Valid email is required'),
-  pickupAddress: z.string().min(1, 'Pickup address is required'),
+  pickupAddress: z.string().optional(),
   deliveryAddress: z.string().min(1, 'Delivery address is required'),
   preferredDate: z.string().min(1, 'Date is required'),
   preferredTime: z.string().min(1, 'Time is required'),
@@ -123,16 +123,17 @@ export default function DispatchPage() {
     },
   });
 
-  // Watch for business selection changes and auto-populate pickup address
+  // Watch for business selection changes and handle pickup address
   const selectedBusinessId = form.watch('businessId');
   useEffect(() => {
-    if (selectedBusinessId && selectedBusinessId !== 'custom') {
+    if (selectedBusinessId === 'custom') {
+      form.setValue('pickupAddress', '');
+    } else if (selectedBusinessId && selectedBusinessId !== 'custom') {
+      // For business selections, use the business address directly
       const selectedBusiness = businesses.find(b => b.id === selectedBusinessId);
       if (selectedBusiness) {
         form.setValue('pickupAddress', selectedBusiness.address);
       }
-    } else if (selectedBusinessId === 'custom') {
-      form.setValue('pickupAddress', '');
     }
   }, [selectedBusinessId, businesses, form]);
 
@@ -159,6 +160,23 @@ export default function DispatchPage() {
   });
 
   const onSubmitPhoneOrder = (data: PhoneOrderFormData) => {
+    // Validate pickup address based on business selection
+    if (data.businessId === 'custom' && !data.pickupAddress?.trim()) {
+      form.setError('pickupAddress', {
+        type: 'required',
+        message: 'Pickup address is required for custom locations',
+      });
+      return;
+    }
+    
+    if (!data.businessId) {
+      form.setError('businessId', {
+        type: 'required',
+        message: 'Please select a business or choose custom address',
+      });
+      return;
+    }
+    
     createPhoneOrder.mutate(data);
   };
 
@@ -275,7 +293,7 @@ export default function DispatchPage() {
                     name="businessId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Pickup Business (Optional)</FormLabel>
+                        <FormLabel>Pickup Business</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -296,36 +314,24 @@ export default function DispatchPage() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="pickupAddress"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {form.watch('businessId') && form.watch('businessId') !== 'custom' 
-                            ? 'Pickup Address (Additional Details)' 
-                            : 'Pickup Address'}
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder={
-                              form.watch('businessId') && form.watch('businessId') !== 'custom'
-                                ? "Suite number, special instructions, etc."
-                                : "Enter complete pickup address"
-                            } 
-                            {...field} 
-                            disabled={!!(form.watch('businessId') && form.watch('businessId') !== 'custom')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                        {form.watch('businessId') && form.watch('businessId') !== 'custom' && (
-                          <p className="text-sm text-muted-foreground">
-                            Base address auto-filled from selected business. Add any additional details above.
-                          </p>
-                        )}
-                      </FormItem>
-                    )}
-                  />
+                  {form.watch('businessId') === 'custom' && (
+                    <FormField
+                      control={form.control}
+                      name="pickupAddress"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Pickup Address</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Enter complete pickup address"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
