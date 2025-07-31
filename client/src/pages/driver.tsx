@@ -61,9 +61,8 @@ export default function DriverPortal() {
     enabled: !!user
   });
 
-  // Separate active and completed deliveries
+  // Filter active deliveries only  
   const activeDeliveries = myDeliveries.filter(d => d.status !== 'completed');
-  const completedDeliveries = myDeliveries.filter(d => d.status === 'completed');
 
   // Claim delivery mutation
   const claimDeliveryMutation = useMutation({
@@ -225,59 +224,46 @@ export default function DriverPortal() {
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Driver Portal</h1>
-          <p className="text-gray-600">Manage your delivery assignments and track your progress</p>
-        </div>
-
-        {/* Driver Duty Status */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {isOnDuty ? (
-                  <Power className="h-6 w-6 text-green-600" />
-                ) : (
-                  <PowerOff className="h-6 w-6 text-gray-400" />
-                )}
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    {isOnDuty ? "You're On Duty" : "You're Off Duty"}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {isOnDuty 
-                      ? "You can receive new delivery assignments" 
-                      : "You won't receive new delivery assignments"
-                    }
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
+      <div className="container mx-auto px-4 py-4 max-w-4xl">
+        {/* Header with Duty Toggle */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold">Driver Portal</h1>
+              <p className="text-sm text-gray-600">Welcome back, {profile?.fullName}!</p>
+            </div>
+            
+            {/* Compact duty toggle */}
+            <div className="flex items-center gap-3">
+              {isOnDuty ? (
+                <Power className="h-5 w-5 text-green-600" />
+              ) : (
+                <PowerOff className="h-5 w-5 text-gray-400" />
+              )}
+              <div className="text-right">
                 <Label htmlFor="duty-toggle" className="text-sm font-medium">
                   {isOnDuty ? "On Duty" : "Off Duty"}
                 </Label>
-                <Switch
-                  id="duty-toggle"
-                  checked={isOnDuty}
-                  onCheckedChange={(checked) => updateDriverStatusMutation.mutate(checked)}
-                  disabled={updateDriverStatusMutation.isPending}
-                />
+                <div className="mt-1">
+                  <Switch
+                    id="duty-toggle"
+                    checked={isOnDuty}
+                    onCheckedChange={(checked) => updateDriverStatusMutation.mutate(checked)}
+                    disabled={updateDriverStatusMutation.isPending}
+                  />
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="available">
             Available ({availableDeliveries.length})
           </TabsTrigger>
           <TabsTrigger value="my-deliveries">
             Active ({activeDeliveries.length})
-          </TabsTrigger>
-          <TabsTrigger value="completed">
-            Completed ({completedDeliveries.length})
           </TabsTrigger>
         </TabsList>
 
@@ -519,97 +505,7 @@ export default function DriverPortal() {
           )}
         </TabsContent>
 
-        <TabsContent value="completed" className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Package className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">Completed Deliveries</h2>
-            <Badge variant="outline">{completedDeliveries.length} today</Badge>
-          </div>
 
-          {loadingMy ? (
-            <div className="text-center py-8">Loading completed deliveries...</div>
-          ) : completedDeliveries.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-semibold mb-2">No Completed Deliveries</h3>
-                <p className="text-gray-600">Complete some deliveries to track your daily progress here.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {completedDeliveries.map((delivery: DeliveryRequest) => (
-                <Card key={delivery.id} className={`border-l-4 ${delivery.usedFreeDelivery ? 'border-l-yellow-500 bg-yellow-50' : 'border-l-purple-500'} opacity-75`}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-lg">{delivery.customerName}</CardTitle>
-                          {delivery.usedFreeDelivery && (
-                            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
-                              FREE DELIVERY
-                            </Badge>
-                          )}
-                        </div>
-                        <CardDescription className="flex items-center gap-1 mt-1">
-                          <Phone className="h-4 w-4" />
-                          {renderClickablePhone(delivery.phone)}
-                        </CardDescription>
-                      </div>
-                      <Badge className={getStatusColor(delivery.status)}>
-                        {delivery.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2">
-                          <MapPin className="h-4 w-4 mt-1 text-blue-500" />
-                          <div>
-                            <p className="font-medium text-sm">Pickup</p>
-                            {renderClickableAddress(delivery.pickupAddress)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2">
-                          <MapPin className="h-4 w-4 mt-1 text-green-500" />
-                          <div>
-                            <p className="font-medium text-sm">Delivery</p>
-                            {renderClickableAddress(delivery.deliveryAddress)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{delivery.preferredDate} at {delivery.preferredTime}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{delivery.paymentMethod}</span>
-                      </div>
-                    </div>
-
-                    {delivery.driverNotes && (
-                      <div className="bg-purple-50 p-3 rounded-md">
-                        <p className="font-medium text-sm mb-1">Delivery Notes</p>
-                        <p className="text-sm text-gray-600">{delivery.driverNotes}</p>
-                      </div>
-                    )}
-
-                    <div className="text-sm text-green-600 font-medium">
-                      ✓ Completed successfully
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
       </Tabs>
       </div>
     </div>
