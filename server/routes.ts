@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import dispatchRoutes from "./dispatch-routes";
+import adminRoutes from "./admin-routes";
 import { 
   insertDeliveryRequestSchema, 
   insertUserProfileSchema, 
@@ -345,6 +346,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Dispatch routes
   app.use('/api/dispatch', dispatchRoutes);
+
+  // Admin routes
+  app.use('/api/admin', adminRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

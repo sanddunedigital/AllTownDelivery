@@ -9,6 +9,7 @@ import Home from "@/pages/home";
 import Profile from "@/pages/profile";
 import DriverPortal from "@/pages/driver";
 import DispatchCenter from "@/pages/dispatch";
+import AdminDashboard from "@/pages/admin";
 import ResetPassword from "@/pages/reset-password";
 import Auth from "@/pages/auth";
 
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/driver" component={DriverPortal} />
       <Route path="/dispatch" component={DispatchCenter} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route component={NotFound} />
     </Switch>
