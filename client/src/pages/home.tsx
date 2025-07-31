@@ -29,12 +29,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useAuth } from "@/contexts/AuthContext";
 import { EnhancedDeliveryForm } from "@/components/ui/enhanced-delivery-form";
 import { useQuery } from "@tanstack/react-query";
+import { useCustomerDeliveriesRealtime } from "@/hooks/use-realtime";
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const { user, profile, signOut, loading } = useAuth();
   const [, navigate] = useLocation();
+
+  // Set up real-time subscriptions for customer deliveries
+  useCustomerDeliveriesRealtime(user?.id);
 
   // Fetch user's active deliveries
   const { data: userDeliveries } = useQuery({

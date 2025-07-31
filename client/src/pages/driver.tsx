@@ -11,6 +11,7 @@ import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
 import { toast } from '../hooks/use-toast';
 import { apiRequest } from '../lib/queryClient';
+import { useDriverProfileRealtime, useAvailableDeliveriesRealtime, useDriverDeliveriesRealtime } from '../hooks/use-realtime';
 import type { DeliveryRequest } from '@shared/schema';
 import { Truck, Clock, MapPin, Phone, DollarSign, Package, Home, Power, PowerOff } from 'lucide-react';
 
@@ -20,6 +21,11 @@ export default function DriverPortal() {
   const [claimNotes, setClaimNotes] = useState<{ [key: string]: string }>({});
   const [deliveryNotes, setDeliveryNotes] = useState<{ [key: string]: string }>({});
   const [activeTab, setActiveTab] = useState('available');
+
+  // Set up real-time subscriptions
+  useDriverProfileRealtime(user?.id);
+  useAvailableDeliveriesRealtime();
+  useDriverDeliveriesRealtime(user?.id);
 
   // Check if driver is on duty
   const isOnDuty = profile?.driverStatus === 'on-duty';
