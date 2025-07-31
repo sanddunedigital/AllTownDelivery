@@ -318,6 +318,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { driverId } = req.params;
       const updates = updateDriverStatusSchema.parse(req.body);
       
+      // If driver is going off duty, release any claimed deliveries back to available
+      if (updates.isOnDuty === false) {
+        console.log(`Driver ${driverId} going off duty - releasing claimed deliveries`);
+        try {
+          await storage.releaseDriverDeliveries(driverId);
+          console.log(`Released claimed deliveries for driver ${driverId}`);
+        } catch (releaseError) {
+          console.error("Error releasing driver deliveries:", releaseError);
+          // Don't fail the status update if release fails, just log it
+        }
+      }
+      
       const profile = await storage.updateUserProfile(driverId, updates);
       res.json(profile);
     } catch (error) {

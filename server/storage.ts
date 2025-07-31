@@ -32,6 +32,7 @@ export interface IStorage {
   getDriverDeliveries(driverId: string): Promise<DeliveryRequest[]>;
   claimDelivery(driverId: string, deliveryId: string, notes?: string): Promise<DeliveryRequest>;
   updateDeliveryForDriver(driverId: string, deliveryId: string, updates: Partial<UpdateDeliveryStatus>): Promise<DeliveryRequest>;
+  releaseDriverDeliveries(driverId: string): Promise<void>;
   
   // Business methods
   getBusinesses(): Promise<Business[]>;
@@ -218,6 +219,29 @@ export class MemStorage implements IStorage {
     };
     this.deliveryRequests.set(deliveryId, updated);
     return updated;
+  }
+
+  async releaseDriverDeliveries(driverId: string): Promise<void> {
+    // Find all claimed deliveries for this driver
+    const driverDeliveries = Array.from(this.deliveryRequests.values()).filter(
+      d => d.claimedByDriver === driverId && d.status === 'claimed'
+    );
+    
+    if (driverDeliveries.length > 0) {
+      console.log(`Releasing ${driverDeliveries.length} claimed deliveries for driver ${driverId}`);
+      
+      // Release claimed deliveries back to available
+      driverDeliveries.forEach(delivery => {
+        const updated: DeliveryRequest = {
+          ...delivery,
+          status: 'available',
+          claimedByDriver: null,
+          claimedAt: null,
+          driverNotes: null
+        };
+        this.deliveryRequests.set(delivery.id, updated);
+      });
+    }
   }
 
   // Business methods
@@ -451,6 +475,36 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async releaseDriverDeliveries(driverId: string): Promise<void> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    
+    // Find all claimed deliveries for this driver
+    const driverDeliveries = await db
+      .select()
+      .from(deliveryRequests)
+      .where(eq(deliveryRequests.claimedByDriver, driverId));
+    
+    // Filter only claimed deliveries (not in_progress or completed)
+    const claimedDeliveries = driverDeliveries.filter(d => d.status === 'claimed');
+    
+    if (claimedDeliveries.length > 0) {
+      console.log(`Releasing ${claimedDeliveries.length} claimed deliveries for driver ${driverId}`);
+      
+      // Release claimed deliveries back to available
+      await db
+        .update(deliveryRequests)
+        .set({
+          status: 'available',
+          claimedByDriver: null,
+          claimedAt: null,
+          driverNotes: null
+        })
+        .where(eq(deliveryRequests.claimedByDriver, driverId));
+    }
+  }
+
   // Business methods
   async getBusinesses(): Promise<Business[]> {
     if (!(await this.testConnection())) {
@@ -612,6 +666,15 @@ class SmartStorage implements IStorage {
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
       return await this.memStorage.updateDeliveryForDriver(driverId, deliveryId, updates);
+    }
+  }
+
+  async releaseDriverDeliveries(driverId: string): Promise<void> {
+    try {
+      await this.dbStorage.releaseDriverDeliveries(driverId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      await this.memStorage.releaseDriverDeliveries(driverId);
     }
   }
 

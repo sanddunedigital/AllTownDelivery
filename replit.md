@@ -106,12 +106,13 @@ Preferred communication style: Simple, everyday language.
 
 ### Recent Changes (July 31, 2025)
 
-- **Real-Time Updates**: Implemented Supabase real-time subscriptions for instant UI updates without polling
+- **Real-Time Driver Toggle**: Fixed critical real-time update bug - driver duty toggle now works instantly with proper data conversion
+- **Mobile-First Driver Portal**: Redesigned for phone use - moved toggle to header, removed redundant sections, streamlined to 2 tabs
+- **Smart Delivery Release**: When drivers go off duty, claimed deliveries automatically return to available queue for other drivers
+- **Data Conversion Fix**: Resolved snake_case/camelCase mismatch between database and frontend in real-time subscriptions
+- **Enhanced Cache Management**: React Query profile data now reactive to real-time updates instead of static AuthContext
 - **Driver Status Migration**: Changed driver status from string ("on-duty"/"off-duty") to boolean (isOnDuty) for better type safety
-- **Enhanced Driver Portal**: Real-time driver duty toggle with immediate UI feedback and cache invalidation
-- **WebSocket Foundation**: Established real-time subscription architecture for future push notification integration
-- **Debug Logging**: Added comprehensive real-time connection status tracking for troubleshooting
-- **Cache Optimization**: Improved query invalidation to trigger immediate UI re-renders on status changes
+- **WebSocket Foundation**: Established real-time subscription architecture with proper error handling and reconnection
 - **Form Improvements**: Default pickup date now set to today; removed delivery type field from form and database
 - **UI Optimization**: Active deliveries section on home page only appears when customer has active deliveries  
 - **Loyalty Bug Fix**: Fixed critical bug where free deliveries were incrementing loyalty points instead of preserving current progress
@@ -120,7 +121,6 @@ Preferred communication style: Simple, everyday language.
 - **Smart Point Tracking**: Loyalty points increment with paid deliveries only; reset to 0 when earning free credit or using free delivery
 - **Enhanced UI**: Free deliveries show green borders for customers, yellow borders for drivers across all delivery cards
 - **Database Schema**: Updated to properly handle boolean driver status with TypeScript validation
-- **Profile Persistence**: Delivery form now retains user profile information after successful submission
 
 ### Key Architectural Decisions
 
