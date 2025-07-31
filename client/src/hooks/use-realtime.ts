@@ -239,25 +239,39 @@ export function useCustomerDeliveriesRealtime(userId?: string) {
   useEffect(() => {
     if (!userId) return;
 
+    console.log(`Setting up customer delivery subscription for user: ${userId}`);
+
+    // Subscribe to all delivery changes and filter in the callback
+    // This avoids potential issues with Supabase filter syntax
     const channel = subscribe(
       `customer-deliveries-${userId}`,
       'delivery_requests',
       '*',
-      `userId=eq.${userId}`,
+      undefined, // No server-side filter, we'll filter client-side
       (payload: RealtimePostgresChangesPayload<any>) => {
         console.log('Customer delivery update received:', payload);
-        // Invalidate customer's delivery list - match the exact query key format
-        queryClient.invalidateQueries({ 
-          queryKey: [`/api/delivery-requests?userId=${userId}`] 
-        });
-        // Also invalidate the general delivery requests query for compatibility
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/delivery-requests'] 
-        });
+        
+        // Check if this delivery belongs to the current user (using snake_case from database)
+        const isUserDelivery = payload.new?.user_id === userId || payload.old?.user_id === userId;
+        
+        if (isUserDelivery) {
+          console.log('Delivery update is for current user - invalidating cache');
+          // Invalidate customer's delivery list - match the exact query key format
+          queryClient.invalidateQueries({ 
+            queryKey: [`/api/delivery-requests?userId=${userId}`] 
+          });
+          // Also invalidate the general delivery requests query for compatibility
+          queryClient.invalidateQueries({ 
+            queryKey: ['/api/delivery-requests'] 
+          });
+        } else {
+          console.log('Delivery update is not for current user - ignoring');
+        }
       }
     );
 
     return () => {
+      console.log(`Cleaning up customer delivery subscription for user: ${userId}`);
       supabase.removeChannel(channel);
     };
   }, [userId, subscribe, queryClient]);
