@@ -73,13 +73,13 @@ interface Business {
 }
 
 export default function DispatchPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showPhoneOrderDialog, setShowPhoneOrderDialog] = useState(false);
 
   // Check if user has dispatcher or admin access
-  if (!user || (user.role !== 'dispatcher' && user.role !== 'admin')) {
+  if (!user || !profile || (profile.role !== 'dispatcher' && profile.role !== 'admin')) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
