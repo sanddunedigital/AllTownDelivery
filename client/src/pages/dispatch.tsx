@@ -16,7 +16,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useDriverProfileRealtime, useCustomerDeliveriesRealtime } from '@/hooks/use-realtime';
-import { Users, Truck, Clock, Plus, Eye, RefreshCw } from 'lucide-react';
+import { Users, Truck, Clock, Plus, Eye, RefreshCw, Home } from 'lucide-react';
+import { Link } from 'wouter';
 import { format } from 'date-fns';
 
 // Define form schema for phone orders
@@ -197,15 +198,41 @@ export default function DispatchPage() {
   const offDutyDrivers = drivers.filter((d) => !d.isOnDuty);
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Dispatch Center</h1>
-          <p className="text-muted-foreground">
-            Monitor drivers and manage delivery queue
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Header */}
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+              <img 
+                src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
+                alt="Sara's Quickie Delivery Logo" 
+                className="h-8 w-auto"
+              />
+              <span className="ml-3 text-lg font-bold text-primary">Sara's Quickie Delivery</span>
+            </Link>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Dispatch Center</span>
+              <Link href="/">
+                <Button variant="outline" size="sm">
+                  <Home className="w-4 h-4 mr-2" />
+                  Home
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
+      </nav>
+
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Dispatch Center</h1>
+            <p className="text-muted-foreground">
+              Monitor drivers and manage delivery queue
+            </p>
+          </div>
         
         <div className="flex gap-2">
           <Button
@@ -672,6 +699,7 @@ export default function DispatchPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
