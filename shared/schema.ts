@@ -17,7 +17,7 @@ export const userProfiles = pgTable("user_profiles", {
   totalDeliveries: integer("total_deliveries").default(0),
   freeDeliveryCredits: integer("free_delivery_credits").default(0),
   role: text("role").default("customer").notNull(), // customer, driver, admin
-  driverStatus: text("driver_status").default("off-duty"), // on-duty, off-duty (only relevant for drivers)
+  isOnDuty: boolean("is_on_duty").default(false), // true when driver is available for deliveries
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -127,7 +127,7 @@ export const updateDeliveryStatusSchema = z.object({
 });
 
 export const updateDriverStatusSchema = z.object({
-  driverStatus: z.enum(['on-duty', 'off-duty']),
+  isOnDuty: z.boolean(),
 });
 
 // Legacy user schema (for compatibility)

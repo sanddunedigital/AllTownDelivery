@@ -35,7 +35,7 @@ export default function DriverPortal() {
   }, [user?.id, isProfileConnected]);
 
   // Check if driver is on duty
-  const isOnDuty = profile?.driverStatus === 'on-duty';
+  const isOnDuty = profile?.isOnDuty ?? false;
 
   // Fetch available deliveries (only when on duty)
   const { data: availableDeliveries = [], isLoading: loadingAvailable } = useQuery<DeliveryRequest[]>({
@@ -100,8 +100,8 @@ export default function DriverPortal() {
 
   // Update driver duty status mutation
   const updateDriverStatusMutation = useMutation({
-    mutationFn: async (driverStatus: 'on-duty' | 'off-duty') => {
-      return apiRequest(`/api/driver/${user!.id}/status`, 'PATCH', { driverStatus });
+    mutationFn: async (isOnDuty: boolean) => {
+      return apiRequest(`/api/driver/${user!.id}/status`, 'PATCH', { isOnDuty });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/profile`] });
@@ -248,7 +248,7 @@ export default function DriverPortal() {
                 <Switch
                   id="duty-toggle"
                   checked={isOnDuty}
-                  onCheckedChange={(checked) => updateDriverStatusMutation.mutate(checked ? 'on-duty' : 'off-duty')}
+                  onCheckedChange={(checked) => updateDriverStatusMutation.mutate(checked)}
                   disabled={updateDriverStatusMutation.isPending}
                 />
               </div>
