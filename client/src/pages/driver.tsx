@@ -12,15 +12,21 @@ import { Switch } from '../components/ui/switch';
 import { toast } from '../hooks/use-toast';
 import { apiRequest } from '../lib/queryClient';
 import { useDriverProfileRealtime, useAvailableDeliveriesRealtime, useDriverDeliveriesRealtime } from '../hooks/use-realtime';
-import type { DeliveryRequest } from '@shared/schema';
+import type { DeliveryRequest, UserProfile } from '@shared/schema';
 import { Truck, Clock, MapPin, Phone, DollarSign, Package, Home, Power, PowerOff } from 'lucide-react';
 
 export default function DriverPortal() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [claimNotes, setClaimNotes] = useState<{ [key: string]: string }>({});
   const [deliveryNotes, setDeliveryNotes] = useState<{ [key: string]: string }>({});
   const [activeTab, setActiveTab] = useState('available');
+
+  // Fetch profile directly with React Query to get real-time updates
+  const { data: profile } = useQuery<UserProfile>({
+    queryKey: [`/api/users/${user?.id}/profile`],
+    enabled: !!user?.id
+  });
 
   // Set up real-time subscriptions
   const isProfileConnected = useDriverProfileRealtime(user?.id);
@@ -34,8 +40,14 @@ export default function DriverPortal() {
     }
   }, [user?.id, isProfileConnected]);
 
-  // Check if driver is on duty
+  // Check if driver is on duty - this will now be reactive to real-time updates
   const isOnDuty = profile?.isOnDuty ?? false;
+  
+  // Debug the current state
+  useEffect(() => {
+    console.log('Driver portal - Current profile:', profile);
+    console.log('Driver portal - isOnDuty value:', isOnDuty);
+  }, [profile, isOnDuty]);
 
   // Fetch available deliveries (only when on duty)
   const { data: availableDeliveries = [], isLoading: loadingAvailable } = useQuery<DeliveryRequest[]>({
