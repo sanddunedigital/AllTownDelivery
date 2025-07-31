@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,9 +23,16 @@ export default function DriverPortal() {
   const [activeTab, setActiveTab] = useState('available');
 
   // Set up real-time subscriptions
-  useDriverProfileRealtime(user?.id);
+  const isProfileConnected = useDriverProfileRealtime(user?.id);
   useAvailableDeliveriesRealtime();
   useDriverDeliveriesRealtime(user?.id);
+
+  // Debug connection status
+  useEffect(() => {
+    if (user?.id && isProfileConnected) {
+      console.log(`Driver profile real-time connected for user: ${user.id}`);
+    }
+  }, [user?.id, isProfileConnected]);
 
   // Check if driver is on duty
   const isOnDuty = profile?.driverStatus === 'on-duty';

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
@@ -58,35 +58,62 @@ export function useRealtimeSubscription() {
   return { subscribe, unsubscribeAll };
 }
 
-// Specific hook for driver profile updates
+// Specific hook for driver profile updates with immediate connection
 export function useDriverProfileRealtime(userId?: string) {
   const queryClient = useQueryClient();
-  const { subscribe } = useRealtimeSubscription();
+  const [isConnected, setIsConnected] = useState(false);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+
+  const setupSubscription = useCallback(() => {
+    if (!userId || channelRef.current) return;
+
+    console.log(`Setting up real-time subscription for driver profile: ${userId}`);
+    
+    const channel = supabase
+      .channel(`driver-profile-${userId}`)
+      .on(
+        'postgres_changes' as any,
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_profiles',
+          filter: `id=eq.${userId}`
+        },
+        (payload: RealtimePostgresChangesPayload<any>) => {
+          console.log('Real-time profile update received:', payload);
+          
+          // Immediately update the profile cache
+          queryClient.setQueryData([`/api/users/${userId}/profile`], payload.new);
+          
+          // Also invalidate to ensure consistency
+          queryClient.invalidateQueries({ 
+            queryKey: [`/api/users/${userId}/profile`],
+            refetchType: 'none'
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Driver profile subscription status: ${status}`);
+        setIsConnected(status === 'SUBSCRIBED');
+      });
+
+    channelRef.current = channel;
+  }, [userId, queryClient]);
 
   useEffect(() => {
-    if (!userId) return;
-
-    const channel = subscribe(
-      `driver-profile-${userId}`,
-      'user_profiles',
-      'UPDATE',
-      `id=eq.${userId}`,
-      (payload: RealtimePostgresChangesPayload<any>) => {
-        // Immediately update the profile cache
-        queryClient.setQueryData([`/api/users/${userId}/profile`], payload.new);
-        
-        // Also invalidate to ensure consistency
-        queryClient.invalidateQueries({ 
-          queryKey: [`/api/users/${userId}/profile`],
-          refetchType: 'none' // Don't refetch, we already have the latest data
-        });
-      }
-    );
+    setupSubscription();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        console.log('Cleaning up driver profile subscription');
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+        setIsConnected(false);
+      }
     };
-  }, [userId, subscribe, queryClient]);
+  }, [setupSubscription]);
+
+  return isConnected;
 }
 
 // Hook for available deliveries real-time updates
@@ -105,8 +132,8 @@ export function useAvailableDeliveriesRealtime() {
         const { old: oldDelivery, new: newDelivery } = payload;
         
         // If status changed to/from 'available', update the available deliveries list
-        if (oldDelivery?.status !== newDelivery?.status && 
-            (oldDelivery?.status === 'available' || newDelivery?.status === 'available')) {
+        if ((oldDelivery as any)?.status !== (newDelivery as any)?.status && 
+            ((oldDelivery as any)?.status === 'available' || (newDelivery as any)?.status === 'available')) {
           queryClient.invalidateQueries({ 
             queryKey: ['/api/driver/deliveries/available'] 
           });
