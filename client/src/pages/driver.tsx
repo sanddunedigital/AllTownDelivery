@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
+import { Switch } from '../components/ui/switch';
 import { toast } from '../hooks/use-toast';
 import { apiRequest } from '../lib/queryClient';
 import type { DeliveryRequest } from '@shared/schema';
@@ -227,24 +228,17 @@ export default function DriverPortal() {
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={() => updateDriverStatusMutation.mutate(isOnDuty ? 'off-duty' : 'on-duty')}
-                disabled={updateDriverStatusMutation.isPending}
-                variant={isOnDuty ? "destructive" : "default"}
-                size="lg"
-              >
-                {isOnDuty ? (
-                  <>
-                    <PowerOff className="w-4 h-4 mr-2" />
-                    Go Off Duty
-                  </>
-                ) : (
-                  <>
-                    <Power className="w-4 h-4 mr-2" />
-                    Go On Duty
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-3">
+                <Label htmlFor="duty-toggle" className="text-sm font-medium">
+                  {isOnDuty ? "On Duty" : "Off Duty"}
+                </Label>
+                <Switch
+                  id="duty-toggle"
+                  checked={isOnDuty}
+                  onCheckedChange={(checked) => updateDriverStatusMutation.mutate(checked ? 'on-duty' : 'off-duty')}
+                  disabled={updateDriverStatusMutation.isPending}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
