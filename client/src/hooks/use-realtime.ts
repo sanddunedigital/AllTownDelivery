@@ -81,19 +81,46 @@ export function useDriverProfileRealtime(userId?: string) {
         },
         (payload: RealtimePostgresChangesPayload<any>) => {
           console.log('Real-time profile update received:', payload);
+          console.log('Updating cache for userId:', userId);
+          console.log('New profile data:', payload.new);
           
-          // Update the profile cache with new data and force re-fetch
-          queryClient.setQueryData([`/api/users/${userId}/profile`], payload.new);
+          // Convert snake_case to camelCase for the frontend
+          const profileData = {
+            id: payload.new.id,
+            email: payload.new.email,
+            fullName: payload.new.full_name,
+            phone: payload.new.phone,
+            defaultPickupAddress: payload.new.default_pickup_address,
+            defaultDeliveryAddress: payload.new.default_delivery_address,
+            preferredPaymentMethod: payload.new.preferred_payment_method,
+            marketingConsent: payload.new.marketing_consent,
+            loyaltyPoints: payload.new.loyalty_points,
+            totalDeliveries: payload.new.total_deliveries,
+            freeDeliveryCredits: payload.new.free_delivery_credits,
+            role: payload.new.role,
+            isOnDuty: payload.new.is_on_duty,
+            createdAt: payload.new.created_at,
+            updatedAt: payload.new.updated_at
+          };
+          
+          console.log('Converted profile data:', profileData);
+          
+          // Update the profile cache with converted data
+          queryClient.setQueryData([`/api/users/${userId}/profile`], profileData);
+          
+          // Force invalidation and refetch
           queryClient.invalidateQueries({ 
             queryKey: [`/api/users/${userId}/profile`],
             refetchType: 'active'
           });
           
-          // Also invalidate any driver-specific queries
+          // Also invalidate driver-specific queries
           queryClient.invalidateQueries({ 
             queryKey: ['/api/driver/deliveries/available'],
             refetchType: 'active'
           });
+          
+          console.log('Cache updated and queries invalidated');
         }
       )
       .subscribe((status) => {
