@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import dispatchRoutes from "./dispatch-routes";
 import { 
   insertDeliveryRequestSchema, 
   insertUserProfileSchema, 
@@ -341,6 +342,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
+
+  // Dispatch routes
+  app.use('/api/dispatch', dispatchRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

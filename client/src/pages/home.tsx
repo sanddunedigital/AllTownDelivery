@@ -20,7 +20,8 @@ import {
   AlertCircle,
   Filter,
   Globe,
-  Store
+  Store,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -170,6 +171,14 @@ export default function Home() {
                         <Link href="/driver" className="flex items-center w-full">
                           <Truck className="w-4 h-4 mr-2" />
                           Driver Portal
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {(profile?.role === 'dispatcher' || profile?.role === 'admin') && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/dispatch" className="flex items-center w-full">
+                          <Globe className="w-4 h-4 mr-2" />
+                          Dispatch Center
                         </Link>
                       </DropdownMenuItem>
                     )}

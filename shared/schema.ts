@@ -16,7 +16,7 @@ export const userProfiles = pgTable("user_profiles", {
   loyaltyPoints: integer("loyalty_points").default(0),
   totalDeliveries: integer("total_deliveries").default(0),
   freeDeliveryCredits: integer("free_delivery_credits").default(0),
-  role: text("role").default("customer").notNull(), // customer, driver, admin
+  role: text("role").default("customer").notNull(), // customer, driver, admin, dispatcher
   isOnDuty: boolean("is_on_duty").default(false), // true when driver is available for deliveries
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
