@@ -87,6 +87,7 @@ export class MemStorage implements IStorage {
       freeDeliveryCredits: 0,
       marketingConsent: insertProfile.marketingConsent || false,
       role: insertProfile.role || "customer",
+      isOnDuty: insertProfile.isOnDuty || null,
       createdAt: new Date(),
       updatedAt: new Date()
     };

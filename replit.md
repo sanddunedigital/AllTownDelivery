@@ -104,22 +104,23 @@ Preferred communication style: Simple, everyday language.
 - Storage interface allows seamless transition from memory to database
 - Environment variable configuration for database URL
 
-### Recent Changes (July 30, 2025)
+### Recent Changes (July 31, 2025)
 
+- **Real-Time Updates**: Implemented Supabase real-time subscriptions for instant UI updates without polling
+- **Driver Status Migration**: Changed driver status from string ("on-duty"/"off-duty") to boolean (isOnDuty) for better type safety
+- **Enhanced Driver Portal**: Real-time driver duty toggle with immediate UI feedback and cache invalidation
+- **WebSocket Foundation**: Established real-time subscription architecture for future push notification integration
+- **Debug Logging**: Added comprehensive real-time connection status tracking for troubleshooting
+- **Cache Optimization**: Improved query invalidation to trigger immediate UI re-renders on status changes
 - **Form Improvements**: Default pickup date now set to today; removed delivery type field from form and database
 - **UI Optimization**: Active deliveries section on home page only appears when customer has active deliveries  
 - **Loyalty Bug Fix**: Fixed critical bug where free deliveries were incrementing loyalty points instead of preserving current progress
-- **Driver Duty System**: Added on-duty/off-duty status for drivers with API endpoints and UI controls
-- **Loyalty System Overhaul**: Redesigned loyalty tracking to prevent free deliveries from counting toward next 10
 - **Credit-Based System**: After 10 paid deliveries, users earn 1 free delivery credit that auto-applies to next order
 - **Visual Indicators**: Added colored borders and "FREE DELIVERY" badges for clear identification of free deliveries
 - **Smart Point Tracking**: Loyalty points increment with paid deliveries only; reset to 0 when earning free credit or using free delivery
 - **Enhanced UI**: Free deliveries show green borders for customers, yellow borders for drivers across all delivery cards
-- **Database Schema**: Updated to properly handle usedFreeDelivery field with TypeScript validation
-- **Form Improvements**: Default pickup date now sets to current day for user convenience
-- **Simplified Service Model**: Removed delivery type field from forms and database - doesn't fit business model
+- **Database Schema**: Updated to properly handle boolean driver status with TypeScript validation
 - **Profile Persistence**: Delivery form now retains user profile information after successful submission
-- **Accurate Loyalty Display**: Fixed loyalty calculations to show correct "deliveries until next free credit" based on loyalty points
 
 ### Key Architectural Decisions
 

@@ -82,10 +82,17 @@ export function useDriverProfileRealtime(userId?: string) {
         (payload: RealtimePostgresChangesPayload<any>) => {
           console.log('Real-time profile update received:', payload);
           
-          // Immediately update the profile cache and invalidate to trigger re-render
+          // Update the profile cache with new data and force re-fetch
           queryClient.setQueryData([`/api/users/${userId}/profile`], payload.new);
           queryClient.invalidateQueries({ 
-            queryKey: [`/api/users/${userId}/profile`]
+            queryKey: [`/api/users/${userId}/profile`],
+            refetchType: 'active'
+          });
+          
+          // Also invalidate any driver-specific queries
+          queryClient.invalidateQueries({ 
+            queryKey: ['/api/driver/deliveries/available'],
+            refetchType: 'active'
           });
         }
       )
