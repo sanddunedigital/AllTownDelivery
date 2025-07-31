@@ -78,21 +78,6 @@ export default function DispatchPage() {
   const queryClient = useQueryClient();
   const [showPhoneOrderDialog, setShowPhoneOrderDialog] = useState(false);
 
-  // Check if user has dispatcher or admin access
-  if (!user || !profile || (profile.role !== 'dispatcher' && profile.role !== 'admin')) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
-              Access denied. This page is for dispatchers and administrators only.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // Fetch all drivers
   const { data: drivers = [], isLoading: loadingDrivers } = useQuery({
     queryKey: ['/api/dispatch/drivers'],
@@ -163,6 +148,21 @@ export default function DispatchPage() {
   const onSubmitPhoneOrder = (data: PhoneOrderFormData) => {
     createPhoneOrder.mutate(data);
   };
+
+  // Check if user has dispatcher or admin access
+  if (!user || !profile || (profile.role !== 'dispatcher' && profile.role !== 'admin')) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">
+              Access denied. This page is for dispatchers and administrators only.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Filter deliveries by status
   const availableDeliveries = deliveries.filter((d) => d.status === 'available');
@@ -611,7 +611,9 @@ export default function DispatchPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground">
-                          Created {format(new Date(delivery.createdAt), 'MMM d, h:mm a')}
+                          Created {delivery.createdAt && !isNaN(new Date(delivery.createdAt).getTime()) 
+                            ? format(new Date(delivery.createdAt), 'MMM d, h:mm a')
+                            : 'Unknown date'}
                         </p>
                       </div>
                     </div>
@@ -662,7 +664,7 @@ export default function DispatchPage() {
                             <div>
                               <p><strong>Driver:</strong> {driver?.fullName || 'Unknown'}</p>
                               <p><strong>Driver Phone:</strong> {driver?.phone || 'N/A'}</p>
-                              <p><strong>Claimed:</strong> {delivery.claimedAt ? format(new Date(delivery.claimedAt), 'MMM d, h:mm a') : 'N/A'}</p>
+                              <p><strong>Claimed:</strong> {delivery.claimedAt && !isNaN(new Date(delivery.claimedAt).getTime()) ? format(new Date(delivery.claimedAt), 'MMM d, h:mm a') : 'N/A'}</p>
                             </div>
                           </div>
                           {delivery.driverNotes && (
