@@ -22,7 +22,8 @@ import {
   Globe,
   Store,
   Users,
-  Settings
+  Settings,
+  Pill
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -464,12 +465,12 @@ export default function Home() {
             
             <Card className="p-6 text-center hover:shadow-lg transition-shadow">
               <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                <Package className="h-8 w-8 text-orange-500" />
+                <Pill className="h-8 w-8 text-orange-500" />
               </div>
               <CardContent className="p-0">
-                <h3 className="text-xl font-semibold mb-2">Package Delivery</h3>
+                <h3 className="text-xl font-semibold mb-2">Prescription Pickup</h3>
                 <p className="text-gray-600">
-                  Secure pickup and delivery of packages, documents, and important items.
+                  Safe and confidential pickup and delivery of prescriptions from local pharmacies.
                 </p>
               </CardContent>
             </Card>
