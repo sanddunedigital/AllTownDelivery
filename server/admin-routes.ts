@@ -296,7 +296,7 @@ router.patch('/businesses/:id/toggle', async (req, res) => {
 router.patch('/businesses/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, address, website, orderingInstructions, category } = req.body;
+    const { name, phone, address, website, orderingInstructions, category, imageUrl } = req.body;
 
     // Validate required fields
     if (!name || !phone || !address || !orderingInstructions) {
@@ -311,7 +311,8 @@ router.patch('/businesses/:id', async (req, res) => {
         address: address.trim(),
         website: website?.trim() || null,
         orderingInstructions: orderingInstructions.trim(),
-        category: category?.trim() || null
+        category: category?.trim() || null,
+        imageUrl: imageUrl || null
       })
       .where(eq(businesses.id, id))
       .returning();
@@ -328,6 +329,41 @@ router.patch('/businesses/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating business:', error);
     res.status(500).json({ error: 'Failed to update business' });
+  }
+});
+
+// Add new business
+router.post('/businesses', async (req, res) => {
+  try {
+    const { name, phone, address, website, orderingInstructions, category, imageUrl } = req.body;
+
+    // Validate required fields
+    if (!name || !phone || !address || !orderingInstructions) {
+      return res.status(400).json({ error: 'Name, phone, address, and ordering instructions are required' });
+    }
+
+    // Insert new business
+    const result = await db.insert(businesses)
+      .values({
+        name: name.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        website: website?.trim() || null,
+        orderingInstructions: orderingInstructions.trim(),
+        category: category?.trim() || null,
+        imageUrl: imageUrl || null,
+        isActive: true
+      })
+      .returning();
+
+    res.status(201).json({ 
+      success: true, 
+      message: 'Business added successfully',
+      business: result[0]
+    });
+  } catch (error) {
+    console.error('Error adding business:', error);
+    res.status(500).json({ error: 'Failed to add business' });
   }
 });
 
