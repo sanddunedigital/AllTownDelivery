@@ -549,7 +549,7 @@ export default function Home() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
                 <Card key={i} className="animate-pulse overflow-hidden">
-                  <div className="aspect-[16/9] bg-gray-200"></div>
+                  <div className="h-32 bg-gray-200"></div>
                   <CardHeader>
                     <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                     <div className="h-3 bg-gray-200 rounded w-1/2"></div>
@@ -570,7 +570,7 @@ export default function Home() {
                 return (
                   <Card key={business.id} className="hover:shadow-lg transition-shadow overflow-hidden">
                     {business.imageUrl && (
-                      <div className="aspect-[16/9] overflow-hidden">
+                      <div className="h-32 overflow-hidden">
                         <img
                           src={business.imageUrl}
                           alt={`${business.name} business image`}
