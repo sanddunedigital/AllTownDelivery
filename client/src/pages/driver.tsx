@@ -13,7 +13,8 @@ import { toast } from '../hooks/use-toast';
 import { apiRequest } from '../lib/queryClient';
 import { useDriverProfileRealtime, useAvailableDeliveriesRealtime, useDriverDeliveriesRealtime } from '../hooks/use-realtime';
 import type { DeliveryRequest, UserProfile } from '@shared/schema';
-import { Truck, Clock, MapPin, Phone, DollarSign, Package, Home, Power, PowerOff } from 'lucide-react';
+import { Truck, Clock, MapPin, Phone, DollarSign, Package, Home, Power, PowerOff, User, ChevronDown, LogOut, Globe, Settings } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
 export default function DriverPortal() {
   const { user } = useAuth();
@@ -213,12 +214,55 @@ export default function DriverPortal() {
             </Link>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Driver Portal</span>
-              <Link href="/">
-                <Button variant="outline" size="sm">
-                  <Home className="w-4 h-4 mr-2" />
-                  Home
-                </Button>
-              </Link>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                    <User className="w-4 h-4" />
+                    <span className="hidden sm:inline">{profile?.fullName || user?.email || 'User'}</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5">
+                    <div className="text-sm font-medium">{profile?.fullName || user?.email || 'User'}</div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/" className="flex items-center w-full">
+                      <Home className="w-4 h-4 mr-2" />
+                      Home
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  {/* Dispatch Center - Available to dispatchers and admins */}
+                  {(profile?.role === 'dispatcher' || profile?.role === 'admin') && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/dispatch" className="flex items-center w-full">
+                        <Globe className="w-4 h-4 mr-2" />
+                        Dispatch Center
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {/* Admin Dashboard - Available to admins only */}
+                  {profile?.role === 'admin' && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="flex items-center w-full">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth" className="flex items-center w-full text-red-600">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
