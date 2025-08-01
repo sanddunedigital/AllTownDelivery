@@ -286,6 +286,18 @@ function AdminDashboard() {
       category: business.category || ''
     });
     setEditingBusinessId(business.id);
+    
+    // Scroll to edit form after state update
+    setTimeout(() => {
+      const editForm = document.getElementById('edit-business-form');
+      if (editForm) {
+        editForm.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start',
+          inline: 'nearest'
+        });
+      }
+    }, 100);
   };
 
   const handleUpdateBusiness = (e: React.FormEvent) => {
@@ -697,7 +709,7 @@ function AdminDashboard() {
           <TabsContent value="businesses" className="space-y-6">
             {/* Edit Business Form - Show only when editing */}
             {editingBusinessId && (
-              <Card className="border-blue-200 bg-blue-50">
+              <Card id="edit-business-form" className="border-blue-200 bg-blue-50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Edit className="w-5 h-5" />
