@@ -59,12 +59,17 @@ router.get('/drivers', async (req, res) => {
   try {
     console.log('Fetching all drivers for dispatch...');
     
+    // Include drivers, dispatchers, and admins who can be on duty
     const drivers = await db
       .select()
       .from(userProfiles)
-      .where(eq(userProfiles.role, 'driver'));
+      .where(or(
+        eq(userProfiles.role, 'driver'),
+        eq(userProfiles.role, 'dispatcher'),
+        eq(userProfiles.role, 'admin')
+      ));
     
-    console.log(`Found ${drivers.length} drivers`);
+    console.log(`Found ${drivers.length} drivers/staff members`);
     
     const convertedDrivers = drivers.map(convertUserProfileFromDb);
     
