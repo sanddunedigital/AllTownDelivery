@@ -104,7 +104,17 @@ Preferred communication style: Simple, everyday language.
 - Storage interface allows seamless transition from memory to database
 - Environment variable configuration for database URL
 
-### Recent Changes (July 31, 2025)
+### Recent Changes (August 1, 2025)
+
+- **Business Image Management**: Added complete image upload functionality using Supabase Storage for business listings
+- **Image Upload Component**: Created BusinessImageUpload component with drag-and-drop interface, file validation, and error handling
+- **Database Schema Update**: Added imageUrl field to businesses table for storing Supabase Storage URLs
+- **Admin Dashboard Integration**: Integrated image upload into both add and edit business forms with live preview
+- **Storage Bucket Setup**: Created business-images bucket in Supabase Storage with proper public access configuration
+- **Visual Enhancement**: Business listings now display images alongside business information with responsive design
+- **Error Handling**: Automatic bucket creation if missing, with comprehensive upload error handling and user feedback
+
+### Previous Changes (July 31, 2025)
 
 - **Real-Time Customer Updates**: Implemented WebSocket subscriptions for customer deliveries on home page with live status updates
 - **Cache Invalidation Fix**: Resolved bug where released deliveries appeared in both available and active sections

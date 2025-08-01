@@ -56,12 +56,50 @@ export function BusinessImageUpload({
       const filePath = `business-images/${fileName}`;
 
       // Upload to Supabase Storage
+      let uploadData;
+      let uploadError;
+      
       const { data, error } = await supabase.storage
         .from('business-images')
         .upload(filePath, file);
 
-      if (error) {
-        throw error;
+      uploadData = data;
+      uploadError = error;
+
+      if (uploadError) {
+        // If bucket doesn't exist, try to create it first
+        if (uploadError.message.includes('Bucket not found')) {
+          try {
+            // Try to create the bucket
+            const { error: bucketError } = await supabase.storage
+              .createBucket('business-images', {
+                public: true,
+                allowedMimeTypes: ['image/*'],
+                fileSizeLimit: 5242880 // 5MB
+              });
+            
+            if (bucketError && !bucketError.message.includes('already exists')) {
+              throw new Error(`Failed to create storage bucket: ${bucketError.message}`);
+            }
+            
+            // Retry upload after creating bucket
+            const { data: retryData, error: retryError } = await supabase.storage
+              .from('business-images')
+              .upload(filePath, file);
+              
+            if (retryError) {
+              throw retryError;
+            }
+            
+            // Use retry data if successful
+            uploadData = retryData;
+            uploadError = null;
+          } catch (createError: any) {
+            throw new Error(`Storage setup failed: ${createError.message}`);
+          }
+        } else {
+          throw uploadError;
+        }
       }
 
       // Get public URL
