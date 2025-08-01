@@ -29,6 +29,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Tenant testing routes (development only)
+  if (process.env.NODE_ENV === 'development') {
+    const { createTestTenantData, testTenantIsolation, cleanupTestTenantData } = await import('./tenant-test');
+    
+    app.post("/api/tenant/test/create", async (req, res) => {
+      try {
+        const result = await createTestTenantData();
+        res.json({ message: "Test tenant data created", data: result });
+      } catch (error) {
+        console.error("Error creating test data:", error);
+        res.status(500).json({ message: "Failed to create test data" });
+      }
+    });
+
+    app.get("/api/tenant/test/isolation", async (req, res) => {
+      try {
+        const currentTenantId = getCurrentTenantId(req);
+        const result = await testTenantIsolation(currentTenantId);
+        res.json({ tenantId: currentTenantId, isolation: result });
+      } catch (error) {
+        console.error("Error testing isolation:", error);
+        res.status(500).json({ message: "Failed to test isolation" });
+      }
+    });
+
+    app.delete("/api/tenant/test/cleanup", async (req, res) => {
+      try {
+        await cleanupTestTenantData();
+        res.json({ message: "Test tenant data cleaned up" });
+      } catch (error) {
+        console.error("Error cleaning up test data:", error);
+        res.status(500).json({ message: "Failed to cleanup test data" });
+      }
+    });
+  }
+
   // User Profile Routes
   
   // Get user profile (create if needed)
