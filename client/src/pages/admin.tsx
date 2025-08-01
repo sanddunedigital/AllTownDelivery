@@ -11,7 +11,7 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from '../hooks/use-toast';
 import { apiRequest } from '../lib/queryClient';
-import type { UserProfile, DeliveryRequest } from '@shared/schema';
+import type { UserProfile, DeliveryRequest, Business, InsertBusiness } from '@shared/schema';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -24,7 +24,11 @@ import {
   Settings,
   UserCheck,
   UserX,
-  Mail
+  Mail,
+  Store,
+  Plus,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
 
@@ -63,10 +67,21 @@ const roleAssignmentSchema = {
   role: 'customer' as 'customer' | 'driver' | 'dispatcher' | 'admin'
 };
 
+// Business form schema
+const businessFormSchema = {
+  name: '',
+  phone: '',
+  address: '',
+  website: '',
+  orderingInstructions: '',
+  category: ''
+};
+
 function AdminDashboard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [roleAssignment, setRoleAssignment] = useState(roleAssignmentSchema);
+  const [businessForm, setBusinessForm] = useState(businessFormSchema);
 
   // Fetch admin profile to verify access
   const { data: profile } = useQuery<UserProfile>({
@@ -83,6 +98,12 @@ function AdminDashboard() {
   // Fetch all users for role management
   const { data: allUsers = [], isLoading: loadingUsers } = useQuery<UserProfile[]>({
     queryKey: ['/api/admin/users'],
+    enabled: !!user && profile?.role === 'admin'
+  });
+
+  // Fetch all businesses for management
+  const { data: allBusinesses = [], isLoading: loadingBusinesses } = useQuery<Business[]>({
+    queryKey: ['/api/admin/businesses'],
     enabled: !!user && profile?.role === 'admin'
   });
 
@@ -103,6 +124,49 @@ function AdminDashboard() {
       toast({
         title: "Error",
         description: error.message || "Failed to assign role",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Add business mutation
+  const addBusinessMutation = useMutation({
+    mutationFn: async (data: InsertBusiness) => {
+      return apiRequest('/api/businesses', 'POST', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/businesses'] });
+      toast({
+        title: "Business Added",
+        description: "New business has been added successfully.",
+      });
+      setBusinessForm(businessFormSchema);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add business",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Toggle business status mutation
+  const toggleBusinessMutation = useMutation({
+    mutationFn: async (data: { id: string; isActive: boolean }) => {
+      return apiRequest(`/api/admin/businesses/${data.id}/toggle`, 'PATCH', { isActive: data.isActive });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/businesses'] });
+      toast({
+        title: "Business Updated",
+        description: "Business status has been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update business status",
         variant: "destructive",
       });
     }
@@ -157,6 +221,19 @@ function AdminDashboard() {
       return;
     }
     assignRoleMutation.mutate(roleAssignment);
+  };
+
+  const handleAddBusiness = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!businessForm.name.trim() || !businessForm.phone.trim() || !businessForm.address.trim() || !businessForm.orderingInstructions.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    addBusinessMutation.mutate(businessForm);
   };
 
   // Calculate percentage changes
@@ -215,7 +292,7 @@ function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
               Business Analytics
@@ -223,6 +300,10 @@ function AdminDashboard() {
             <TabsTrigger value="users">
               <Settings className="w-4 h-4 mr-2" />
               User Management
+            </TabsTrigger>
+            <TabsTrigger value="businesses">
+              <Store className="w-4 h-4 mr-2" />
+              Business Network
             </TabsTrigger>
           </TabsList>
 
@@ -536,6 +617,194 @@ function AdminDashboard() {
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">No users found</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="businesses" className="space-y-6">
+            {/* Add New Business Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="w-5 h-5" />
+                  Add New Business
+                </CardTitle>
+                <CardDescription>
+                  Add a new business to the delivery network
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddBusiness} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="business-name">Business Name *</Label>
+                      <Input
+                        id="business-name"
+                        value={businessForm.name}
+                        onChange={(e) => setBusinessForm(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Enter business name"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="business-phone">Phone Number *</Label>
+                      <Input
+                        id="business-phone"
+                        value={businessForm.phone}
+                        onChange={(e) => setBusinessForm(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="(641) 555-0123"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="business-address">Address *</Label>
+                    <Input
+                      id="business-address"
+                      value={businessForm.address}
+                      onChange={(e) => setBusinessForm(prev => ({ ...prev, address: e.target.value }))}
+                      placeholder="123 Main St, Oskaloosa, IA 52577"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="business-website">Website</Label>
+                      <Input
+                        id="business-website"
+                        value={businessForm.website}
+                        onChange={(e) => setBusinessForm(prev => ({ ...prev, website: e.target.value }))}
+                        placeholder="https://example.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="business-category">Category</Label>
+                      <Select value={businessForm.category} onValueChange={(value) => setBusinessForm(prev => ({ ...prev, category: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="restaurant">Restaurant</SelectItem>
+                          <SelectItem value="grocery">Grocery Store</SelectItem>
+                          <SelectItem value="retail">Retail Store</SelectItem>
+                          <SelectItem value="pharmacy">Pharmacy</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="business-instructions">Ordering Instructions *</Label>
+                    <Input
+                      id="business-instructions"
+                      value={businessForm.orderingInstructions}
+                      onChange={(e) => setBusinessForm(prev => ({ ...prev, orderingInstructions: e.target.value }))}
+                      placeholder="How customers should place orders (e.g., Call ahead, Online ordering available)"
+                      required
+                    />
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    disabled={addBusinessMutation.isPending}
+                    className="w-full"
+                  >
+                    {addBusinessMutation.isPending ? 'Adding Business...' : 'Add Business'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Business List */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Store className="w-5 h-5" />
+                  Business Network ({allBusinesses.length})
+                </CardTitle>
+                <CardDescription>
+                  Manage participating businesses and their status
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingBusinesses ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Loading businesses...</p>
+                  </div>
+                ) : allBusinesses.length > 0 ? (
+                  <div className="space-y-3">
+                    {allBusinesses.map((business) => (
+                      <div key={business.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <div className="font-medium text-lg">{business.name}</div>
+                            <Badge 
+                              variant={business.isActive ? 'default' : 'secondary'}
+                              className={business.isActive ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'}
+                            >
+                              {business.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                            {business.category && (
+                              <Badge variant="outline">
+                                {business.category}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-3 h-3" />
+                              {business.phone}
+                            </div>
+                            <div className="mt-1">{business.address}</div>
+                            {business.website && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Globe className="w-3 h-3" />
+                                <a href={business.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                  {business.website}
+                                </a>
+                              </div>
+                            )}
+                            <div className="mt-2 text-xs">
+                              <strong>Ordering:</strong> {business.orderingInstructions}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleBusinessMutation.mutate({ 
+                              id: business.id, 
+                              isActive: !business.isActive 
+                            })}
+                            disabled={toggleBusinessMutation.isPending}
+                          >
+                            {business.isActive ? (
+                              <>
+                                <ToggleRight className="w-4 h-4 mr-1" />
+                                Deactivate
+                              </>
+                            ) : (
+                              <>
+                                <ToggleLeft className="w-4 h-4 mr-1" />
+                                Activate
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Store className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <p className="text-muted-foreground">No businesses in the network yet</p>
+                    <p className="text-sm text-muted-foreground">Add your first business above to get started</p>
                   </div>
                 )}
               </CardContent>

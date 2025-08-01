@@ -244,4 +244,52 @@ router.post('/assign-role', async (req, res) => {
   }
 });
 
+// Get all businesses for admin management
+router.get('/businesses', async (req, res) => {
+  try {
+    const allBusinesses = await db.select()
+      .from(businesses)
+      .orderBy(desc(businesses.createdAt));
+
+    res.json(allBusinesses);
+  } catch (error) {
+    console.error('Error fetching businesses:', error);
+    res.status(500).json({ error: 'Failed to fetch businesses' });
+  }
+});
+
+// Toggle business active status
+router.patch('/businesses/:id/toggle', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ error: 'isActive must be a boolean' });
+    }
+
+    // Update business status
+    const result = await db.update(businesses)
+      .set({ 
+        isActive,
+        // Note: businesses table doesn't have updatedAt field, so we don't update it
+      })
+      .where(eq(businesses.id, id))
+      .returning();
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Business ${isActive ? 'activated' : 'deactivated'} successfully`,
+      business: result[0]
+    });
+  } catch (error) {
+    console.error('Error toggling business status:', error);
+    res.status(500).json({ error: 'Failed to update business status' });
+  }
+});
+
 export default router;
