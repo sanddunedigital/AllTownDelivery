@@ -27,8 +27,6 @@ export async function createTestTenantData() {
 
     // Create a test delivery for different tenant
     await db.insert(deliveryRequests).values({
-      tenantId: testTenantId,
-      userId: 'test-user-456',
       customerName: 'Test Customer',
       customerPhone: '555-0123',
       customerEmail: 'test@competitor.com',
@@ -38,7 +36,9 @@ export async function createTestTenantData() {
       deliveryFee: 5.00,
       isUrgent: false,
       status: 'pending',
-      isFreeDelivery: false
+      isFreeDelivery: false,
+      tenantId: testTenantId,
+      userId: 'test-user-456'
     });
 
     console.log('Test tenant data created successfully');
