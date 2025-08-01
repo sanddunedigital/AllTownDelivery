@@ -292,4 +292,43 @@ router.patch('/businesses/:id/toggle', async (req, res) => {
   }
 });
 
+// Edit business information
+router.patch('/businesses/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, phone, address, website, orderingInstructions, category } = req.body;
+
+    // Validate required fields
+    if (!name || !phone || !address || !orderingInstructions) {
+      return res.status(400).json({ error: 'Name, phone, address, and ordering instructions are required' });
+    }
+
+    // Update business information
+    const result = await db.update(businesses)
+      .set({ 
+        name: name.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        website: website?.trim() || null,
+        orderingInstructions: orderingInstructions.trim(),
+        category: category?.trim() || null
+      })
+      .where(eq(businesses.id, id))
+      .returning();
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Business updated successfully',
+      business: result[0]
+    });
+  } catch (error) {
+    console.error('Error updating business:', error);
+    res.status(500).json({ error: 'Failed to update business' });
+  }
+});
+
 export default router;

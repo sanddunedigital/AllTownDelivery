@@ -28,7 +28,10 @@ import {
   Store,
   Plus,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Edit,
+  X,
+  Check
 } from 'lucide-react';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
 
@@ -77,11 +80,24 @@ const businessFormSchema = {
   category: ''
 };
 
+// Edit business form schema
+const editBusinessFormSchema = {
+  id: '',
+  name: '',
+  phone: '',
+  address: '',
+  website: '',
+  orderingInstructions: '',
+  category: ''
+};
+
 function AdminDashboard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [roleAssignment, setRoleAssignment] = useState(roleAssignmentSchema);
   const [businessForm, setBusinessForm] = useState(businessFormSchema);
+  const [editBusinessForm, setEditBusinessForm] = useState(editBusinessFormSchema);
+  const [editingBusinessId, setEditingBusinessId] = useState<string | null>(null);
 
   // Fetch admin profile to verify access
   const { data: profile } = useQuery<UserProfile>({
@@ -172,6 +188,29 @@ function AdminDashboard() {
     }
   });
 
+  // Edit business mutation
+  const editBusinessMutation = useMutation({
+    mutationFn: async (data: { id: string; updates: Omit<InsertBusiness, 'id'> }) => {
+      return apiRequest(`/api/admin/businesses/${data.id}`, 'PATCH', data.updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/businesses'] });
+      toast({
+        title: "Business Updated",
+        description: "Business information has been updated successfully.",
+      });
+      setEditingBusinessId(null);
+      setEditBusinessForm(editBusinessFormSchema);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update business",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Check if user has admin access
   if (!user || !profile || profile.role !== 'admin') {
     return (
@@ -234,6 +273,38 @@ function AdminDashboard() {
       return;
     }
     addBusinessMutation.mutate(businessForm);
+  };
+
+  const handleEditBusiness = (business: Business) => {
+    setEditBusinessForm({
+      id: business.id,
+      name: business.name,
+      phone: business.phone,
+      address: business.address,
+      website: business.website || '',
+      orderingInstructions: business.orderingInstructions,
+      category: business.category || ''
+    });
+    setEditingBusinessId(business.id);
+  };
+
+  const handleUpdateBusiness = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editBusinessForm.name.trim() || !editBusinessForm.phone.trim() || !editBusinessForm.address.trim() || !editBusinessForm.orderingInstructions.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    const { id, ...updates } = editBusinessForm;
+    editBusinessMutation.mutate({ id, updates });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBusinessId(null);
+    setEditBusinessForm(editBusinessFormSchema);
   };
 
   // Calculate percentage changes
@@ -624,17 +695,128 @@ function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="businesses" className="space-y-6">
-            {/* Add New Business Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="w-5 h-5" />
-                  Add New Business
-                </CardTitle>
-                <CardDescription>
-                  Add a new business to the delivery network
-                </CardDescription>
-              </CardHeader>
+            {/* Edit Business Form - Show only when editing */}
+            {editingBusinessId && (
+              <Card className="border-blue-200 bg-blue-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Edit className="w-5 h-5" />
+                    Edit Business
+                  </CardTitle>
+                  <CardDescription>
+                    Update business information
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleUpdateBusiness} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-business-name">Business Name *</Label>
+                        <Input
+                          id="edit-business-name"
+                          value={editBusinessForm.name}
+                          onChange={(e) => setEditBusinessForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Enter business name"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-business-phone">Phone Number *</Label>
+                        <Input
+                          id="edit-business-phone"
+                          value={editBusinessForm.phone}
+                          onChange={(e) => setEditBusinessForm(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="(641) 555-0123"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-business-address">Address *</Label>
+                      <Input
+                        id="edit-business-address"
+                        value={editBusinessForm.address}
+                        onChange={(e) => setEditBusinessForm(prev => ({ ...prev, address: e.target.value }))}
+                        placeholder="123 Main St, Oskaloosa, IA 52577"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-business-website">Website</Label>
+                        <Input
+                          id="edit-business-website"
+                          value={editBusinessForm.website}
+                          onChange={(e) => setEditBusinessForm(prev => ({ ...prev, website: e.target.value }))}
+                          placeholder="https://example.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-business-category">Category</Label>
+                        <Select value={editBusinessForm.category} onValueChange={(value) => setEditBusinessForm(prev => ({ ...prev, category: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="restaurant">Restaurant</SelectItem>
+                            <SelectItem value="grocery">Grocery Store</SelectItem>
+                            <SelectItem value="retail">Retail Store</SelectItem>
+                            <SelectItem value="pharmacy">Pharmacy</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-business-instructions">Ordering Instructions *</Label>
+                      <Input
+                        id="edit-business-instructions"
+                        value={editBusinessForm.orderingInstructions}
+                        onChange={(e) => setEditBusinessForm(prev => ({ ...prev, orderingInstructions: e.target.value }))}
+                        placeholder="How customers should place orders (e.g., Call ahead, Online ordering available)"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        type="submit" 
+                        disabled={editBusinessMutation.isPending}
+                        className="flex-1"
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        {editBusinessMutation.isPending ? 'Updating...' : 'Update Business'}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        className="flex-1"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Add New Business Form - Hide when editing */}
+            {!editingBusinessId && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="w-5 h-5" />
+                    Add New Business
+                  </CardTitle>
+                  <CardDescription>
+                    Add a new business to the delivery network
+                  </CardDescription>
+                </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddBusiness} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -719,6 +901,7 @@ function AdminDashboard() {
                 </form>
               </CardContent>
             </Card>
+            )}
 
             {/* Business List */}
             <Card>
@@ -775,6 +958,15 @@ function AdminDashboard() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditBusiness(business)}
+                            disabled={editingBusinessId === business.id}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
