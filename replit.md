@@ -27,12 +27,14 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Layer
 - **ORM**: Drizzle ORM configured for PostgreSQL with Supabase
-- **Schema Management**: Shared schema definitions between client and server
-- **Migration System**: Automatic table creation with SQL migrations
+- **Multi-Tenant Support**: Tenant-aware schema with automatic tenant isolation and support for SaaS expansion
+- **Schema Management**: Shared schema definitions between client and server with tenant context
+- **Migration System**: Automatic table creation with SQL migrations and tenant setup
 - **Smart Storage**: Automatic fallback from database to memory storage when connection fails
 - **Current Implementation**: Fully operational Supabase PostgreSQL connection with user profiles and loyalty tracking
 - **Status**: Database connection verified, user authentication working, loyalty program active (July 29, 2025)
 - **Authentication Flow**: Role-based redirects - drivers go to /driver portal, customers to home page
+- **Tenant Architecture**: All data belongs to Sara's Quickie tenant by default, ready for multi-tenant SaaS without breaking changes
 
 ## Key Components
 
@@ -49,10 +51,12 @@ Preferred communication style: Simple, everyday language.
 - Handles delivery request creation and retrieval
 
 ### API Routes (`server/routes.ts`)
+- `GET /api/tenant` - Get current tenant information and branding
 - `POST /api/delivery-requests` - Create new delivery request
 - `GET /api/delivery-requests` - Retrieve all requests (admin)
 - Comprehensive error handling with Zod validation
 - Type-safe request/response handling
+- Tenant-aware routing with automatic context resolution
 
 ### Frontend Components
 - Form-based delivery request submission with validation
@@ -106,6 +110,13 @@ Preferred communication style: Simple, everyday language.
 
 ### Recent Changes (August 1, 2025)
 
+- **Multi-Tenant Architecture Foundation**: Implemented tenant-ready database structure and middleware for future SaaS expansion
+- **Tenant System**: Added tenants table with support for subdomains, custom domains, and company-specific branding
+- **Database Migration**: All existing tables now include tenant_id with Sara's Quickie as default tenant (ID: 00000000-0000-0000-0000-000000000001)
+- **Tenant Middleware**: Request-level tenant resolution with caching for performance and custom domain support
+- **Flexible URL Mapping**: Architecture supports saras.yoursaas.com, sarasquickiedelivery.com, or yoursaas.com/saras patterns
+- **RLS Ready**: Row Level Security policies prepared but disabled to maintain current functionality
+- **Portal Navigation Enhancement**: Added dropdown navigation to driver, dispatch, and admin portals for seamless role switching
 - **Business Image Management**: Added complete image upload functionality using Supabase Storage for business listings
 - **Image Upload Component**: Created BusinessImageUpload component with drag-and-drop interface, file validation, and error handling
 - **Database Schema Update**: Added imageUrl field to businesses table for storing Supabase Storage URLs
@@ -149,3 +160,6 @@ Preferred communication style: Simple, everyday language.
 5. **Component Library**: shadcn/ui provides consistent, accessible UI components
 6. **Build Optimization**: Separate optimization strategies for client (Vite) and server (esbuild)
 7. **Role-Based Flow**: Smart authentication redirects based on user role for optimal experience
+8. **Multi-Tenant Ready**: Tenant-aware architecture prepared for SaaS expansion without breaking existing functionality
+9. **Flexible URL Strategy**: Support for subdomains, custom domains, and path-based tenant routing
+10. **Performance-Focused**: Tenant caching and efficient database queries with prepared RLS policies

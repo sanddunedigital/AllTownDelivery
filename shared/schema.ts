@@ -3,9 +3,25 @@ import { pgTable, text, varchar, timestamp, integer, boolean, uuid } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Tenants table for multi-tenant SaaS support
+export const tenants = pgTable("tenants", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyName: text("company_name").notNull(),
+  subdomain: text("subdomain").unique(), // for tenant.yoursaas.com
+  customDomain: text("custom_domain").unique(), // for custom domains
+  slug: text("slug").unique(), // for path-based routing
+  logoUrl: text("logo_url"),
+  primaryColor: text("primary_color").default("#f97316"), // Default orange
+  isActive: boolean("is_active").default(true).notNull(),
+  planType: text("plan_type").default("basic").notNull(), // basic, premium, enterprise
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // User profiles table (linked to Supabase Auth users)
 export const userProfiles = pgTable("user_profiles", {
   id: uuid("id").primaryKey(), // This will match Supabase Auth user ID
+  tenantId: uuid("tenant_id").default(sql`'00000000-0000-0000-0000-000000000001'::uuid`).notNull(), // Default to Sara's tenant
   email: text("email").notNull().unique(),
   fullName: text("full_name"),
   phone: text("phone"),
@@ -25,6 +41,7 @@ export const userProfiles = pgTable("user_profiles", {
 // Business partners table
 export const businesses = pgTable("businesses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").default(sql`'00000000-0000-0000-0000-000000000001'::uuid`).notNull(), // Default to Sara's tenant
   name: text("name").notNull(),
   phone: text("phone").notNull(),
   address: text("address").notNull(),
@@ -38,6 +55,7 @@ export const businesses = pgTable("businesses", {
 
 export const deliveryRequests = pgTable("delivery_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").default(sql`'00000000-0000-0000-0000-000000000001'::uuid`).notNull(), // Default to Sara's tenant
   userId: uuid("user_id"), // Optional - for guest checkouts
   businessId: varchar("business_id"), // References businesses.id for pickup location
   customerName: text("customer_name").notNull(),
@@ -63,6 +81,13 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+});
+
+// Tenant schemas
+export const insertTenantSchema = createInsertSchema(tenants).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // Business schemas
@@ -138,6 +163,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
 });
 
 // Type exports
+export type InsertTenant = z.infer<typeof insertTenantSchema>;
+export type Tenant = typeof tenants.$inferSelect;
+
 export type InsertBusiness = z.infer<typeof insertBusinessSchema>;
 export type Business = typeof businesses.$inferSelect;
 

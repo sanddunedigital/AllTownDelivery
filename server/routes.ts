@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import dispatchRoutes from "./dispatch-routes";
 import adminRoutes from "./admin-routes";
+import { getCurrentTenant, getCurrentTenantId } from "./tenant";
 import { 
   insertDeliveryRequestSchema, 
   insertUserProfileSchema, 
@@ -17,6 +18,17 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Tenant Information Route
+  app.get("/api/tenant", async (req, res) => {
+    try {
+      const tenant = getCurrentTenant(req);
+      res.json(tenant);
+    } catch (error) {
+      console.error("Error fetching tenant info:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // User Profile Routes
   
   // Get user profile (create if needed)
