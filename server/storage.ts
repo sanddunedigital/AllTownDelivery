@@ -17,6 +17,7 @@ export interface IStorage {
   
   // User profile methods (for Supabase Auth integration)
   getUserProfile(id: string): Promise<UserProfile | undefined>;
+  getDrivers(): Promise<UserProfile[]>; // Get all users who can be drivers (drivers, dispatchers, admins)
   createUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
   updateUserProfile(id: string, updates: UpdateUserProfile): Promise<UserProfile>;
   updateLoyaltyPoints(userId: string, points: number, wasFreeDelivery?: boolean): Promise<void>;
@@ -73,6 +74,12 @@ export class MemStorage implements IStorage {
   // User profile methods
   async getUserProfile(id: string): Promise<UserProfile | undefined> {
     return this.userProfiles.get(id);
+  }
+
+  async getDrivers(): Promise<UserProfile[]> {
+    return Array.from(this.userProfiles.values()).filter(
+      profile => profile.role === 'driver' || profile.role === 'dispatcher' || profile.role === 'admin'
+    );
   }
 
   async createUserProfile(insertProfile: InsertUserProfile): Promise<UserProfile> {
@@ -301,6 +308,17 @@ export class DatabaseStorage implements IStorage {
     }
     const result = await db.select().from(userProfiles).where(eq(userProfiles.id, id)).limit(1);
     return result[0];
+  }
+
+  async getDrivers(): Promise<UserProfile[]> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db
+      .select()
+      .from(userProfiles)
+      .where(sql`${userProfiles.role} IN ('driver', 'dispatcher', 'admin')`);
+    return result;
   }
 
   async createUserProfile(insertProfile: InsertUserProfile): Promise<UserProfile> {
@@ -562,6 +580,15 @@ class SmartStorage implements IStorage {
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
       return await this.memStorage.getUserProfile(id);
+    }
+  }
+
+  async getDrivers(): Promise<UserProfile[]> {
+    try {
+      return await this.dbStorage.getDrivers();
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getDrivers();
     }
   }
 

@@ -1,7 +1,8 @@
 import express from 'express';
 import { db } from './db';
 import { userProfiles, deliveryRequests } from '../shared/schema';
-import { eq, or, and } from 'drizzle-orm';
+import { eq, or, and, sql } from 'drizzle-orm';
+import { storage } from './storage';
 
 const router = express.Router();
 
@@ -59,21 +60,18 @@ router.get('/drivers', async (req, res) => {
   try {
     console.log('Fetching all drivers for dispatch...');
     
-    // Include drivers, dispatchers, and admins who can be on duty
-    const drivers = await db
-      .select()
-      .from(userProfiles)
-      .where(or(
-        eq(userProfiles.role, 'driver'),
-        eq(userProfiles.role, 'dispatcher'),
-        eq(userProfiles.role, 'admin')
-      ));
-    
+    // Use storage layer to get drivers (properly handles field conversion)
+    const drivers = await storage.getDrivers();
+
     console.log(`Found ${drivers.length} drivers/staff members`);
-    
-    const convertedDrivers = drivers.map(convertUserProfileFromDb);
-    
-    res.json(convertedDrivers);
+    console.log('Data from storage:', drivers.map(d => ({ 
+      id: d.id, 
+      email: d.email, 
+      role: d.role, 
+      isOnDuty: d.isOnDuty 
+    })));
+
+    res.json(drivers);
   } catch (error) {
     console.error('Error fetching drivers:', error);
     res.status(500).json({ error: 'Failed to fetch drivers' });
