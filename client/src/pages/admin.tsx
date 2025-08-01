@@ -151,7 +151,7 @@ function AdminDashboard() {
   // Add business mutation
   const addBusinessMutation = useMutation({
     mutationFn: async (data: InsertBusiness) => {
-      return apiRequest('/api/businesses', 'POST', data);
+      return apiRequest('/api/admin/businesses', 'POST', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/businesses'] });
@@ -787,7 +787,7 @@ function AdminDashboard() {
                     </div>
 
                     <BusinessImageUpload
-                      currentImageUrl={editBusinessForm.imageUrl}
+                      currentImageUrl={editBusinessForm.imageUrl || undefined}
                       onImageChange={(imageUrl) => setEditBusinessForm(prev => ({ ...prev, imageUrl }))}
                       businessId={editBusinessForm.id}
                       businessName={editBusinessForm.name}
@@ -904,7 +904,7 @@ function AdminDashboard() {
                   </div>
 
                   <BusinessImageUpload
-                    currentImageUrl={businessForm.imageUrl}
+                    currentImageUrl={businessForm.imageUrl || undefined}
                     onImageChange={(imageUrl) => setBusinessForm(prev => ({ ...prev, imageUrl }))}
                     businessName={businessForm.name}
                   />
