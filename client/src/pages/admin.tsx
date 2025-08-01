@@ -33,6 +33,7 @@ import {
   X,
   Check
 } from 'lucide-react';
+import { BusinessImageUpload } from '../components/BusinessImageUpload';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
 
 // Analytics interface
@@ -77,7 +78,8 @@ const businessFormSchema = {
   address: '',
   website: '',
   orderingInstructions: '',
-  category: ''
+  category: '',
+  imageUrl: null as string | null
 };
 
 // Edit business form schema
@@ -88,7 +90,8 @@ const editBusinessFormSchema = {
   address: '',
   website: '',
   orderingInstructions: '',
-  category: ''
+  category: '',
+  imageUrl: null as string | null
 };
 
 function AdminDashboard() {
@@ -283,7 +286,8 @@ function AdminDashboard() {
       address: business.address,
       website: business.website || '',
       orderingInstructions: business.orderingInstructions,
-      category: business.category || ''
+      category: business.category || '',
+      imageUrl: business.imageUrl || null
     });
     setEditingBusinessId(business.id);
     
@@ -782,6 +786,13 @@ function AdminDashboard() {
                       </div>
                     </div>
 
+                    <BusinessImageUpload
+                      currentImageUrl={editBusinessForm.imageUrl}
+                      onImageChange={(imageUrl) => setEditBusinessForm(prev => ({ ...prev, imageUrl }))}
+                      businessId={editBusinessForm.id}
+                      businessName={editBusinessForm.name}
+                    />
+
                     <div className="space-y-2">
                       <Label htmlFor="edit-business-instructions">Ordering Instructions *</Label>
                       <Input
@@ -892,6 +903,12 @@ function AdminDashboard() {
                     </div>
                   </div>
 
+                  <BusinessImageUpload
+                    currentImageUrl={businessForm.imageUrl}
+                    onImageChange={(imageUrl) => setBusinessForm(prev => ({ ...prev, imageUrl }))}
+                    businessName={businessForm.name}
+                  />
+
                   <div className="space-y-2">
                     <Label htmlFor="business-instructions">Ordering Instructions *</Label>
                     <Input
@@ -934,23 +951,33 @@ function AdminDashboard() {
                 ) : allBusinesses.length > 0 ? (
                   <div className="space-y-3">
                     {allBusinesses.map((business) => (
-                      <div key={business.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <div className="font-medium text-lg">{business.name}</div>
-                            <Badge 
-                              variant={business.isActive ? 'default' : 'secondary'}
-                              className={business.isActive ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'}
-                            >
-                              {business.isActive ? 'Active' : 'Inactive'}
-                            </Badge>
-                            {business.category && (
-                              <Badge variant="outline">
-                                {business.category}
+                      <div key={business.id} className="flex items-start justify-between p-4 border rounded-lg">
+                        <div className="flex gap-4 flex-1">
+                          {business.imageUrl && (
+                            <div className="flex-shrink-0">
+                              <img
+                                src={business.imageUrl}
+                                alt={business.name}
+                                className="w-16 h-16 object-cover rounded-lg border"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <div className="font-medium text-lg">{business.name}</div>
+                              <Badge 
+                                variant={business.isActive ? 'default' : 'secondary'}
+                                className={business.isActive ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'}
+                              >
+                                {business.isActive ? 'Active' : 'Inactive'}
                               </Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-muted-foreground mt-1">
+                              {business.category && (
+                                <Badge variant="outline">
+                                  {business.category}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">
                             <div className="flex items-center gap-2">
                               <Phone className="w-3 h-3" />
                               {business.phone}
@@ -968,8 +995,9 @@ function AdminDashboard() {
                               <strong>Ordering:</strong> {business.orderingInstructions}
                             </div>
                           </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           <Button
                             variant="outline"
                             size="sm"

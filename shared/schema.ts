@@ -32,6 +32,7 @@ export const businesses = pgTable("businesses", {
   orderingInstructions: text("ordering_instructions").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   category: text("category"), // e.g., "restaurant", "grocery", "retail"
+  imageUrl: text("image_url"), // Supabase Storage URL for business image
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
