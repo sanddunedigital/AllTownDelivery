@@ -21,7 +21,8 @@ import {
   Filter,
   Globe,
   Store,
-  Users
+  Users,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -166,7 +167,9 @@ export default function Home() {
                         Profile
                       </Link>
                     </DropdownMenuItem>
-                    {profile?.role === 'driver' && (
+                    
+                    {/* Driver Portal - Available to drivers, dispatchers, and admins */}
+                    {(profile?.role === 'driver' || profile?.role === 'dispatcher' || profile?.role === 'admin') && (
                       <DropdownMenuItem asChild>
                         <Link href="/driver" className="flex items-center w-full">
                           <Truck className="w-4 h-4 mr-2" />
@@ -174,11 +177,23 @@ export default function Home() {
                         </Link>
                       </DropdownMenuItem>
                     )}
+                    
+                    {/* Dispatch Center - Available to dispatchers and admins */}
                     {(profile?.role === 'dispatcher' || profile?.role === 'admin') && (
                       <DropdownMenuItem asChild>
                         <Link href="/dispatch" className="flex items-center w-full">
                           <Globe className="w-4 h-4 mr-2" />
                           Dispatch Center
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    
+                    {/* Admin Dashboard - Available to admins only */}
+                    {profile?.role === 'admin' && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin" className="flex items-center w-full">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Admin Dashboard
                         </Link>
                       </DropdownMenuItem>
                     )}
