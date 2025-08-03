@@ -747,7 +747,7 @@ export default function BusinessSettingsPage() {
                               <div className="flex items-center gap-4 text-sm">
                                 <span className="flex items-center gap-1">
                                   <DollarSign className="w-3 h-3" />
-                                  ${zone.deliveryFee?.toFixed(2)}
+                                  ${Number(zone.deliveryFee || 0).toFixed(2)}
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
