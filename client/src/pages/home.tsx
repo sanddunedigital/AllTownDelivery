@@ -77,11 +77,15 @@ export default function Home() {
   });
 
   // Fetch user loyalty info if logged in and loyalty program is enabled
+  const loyaltyEnabled = !!user?.id && businessSettings?.features?.loyaltyProgram === true;
   const { data: loyaltyInfo } = useQuery<LoyaltyInfo>({
     queryKey: [`/api/users/${user?.id}/loyalty`],
-    enabled: !!user?.id && !!businessSettings?.features?.loyaltyProgram,
-    refetchInterval: 120000, // Refresh every 2 minutes
+    enabled: loyaltyEnabled,
+    refetchInterval: loyaltyEnabled ? 120000 : false, // Only refresh when enabled
   });
+
+  // Clear loyalty info when loyalty program is disabled
+  const effectiveLoyaltyInfo = loyaltyEnabled ? loyaltyInfo : null;
 
   // Type the delivery data properly
   const deliveries = (userDeliveries as any[]) || [];
@@ -471,13 +475,13 @@ export default function Home() {
                 <p className="text-green-800 font-medium">
                   Welcome back, {profile?.fullName || user?.email || 'User'}!
                 </p>
-                {businessSettings?.features?.loyaltyProgram && loyaltyInfo && (
+                {businessSettings?.features?.loyaltyProgram && effectiveLoyaltyInfo && (
                   <p className="text-green-700 text-sm mt-1">
-                    {loyaltyInfo.deliveriesUntilNextFree > 0 
-                      ? `${loyaltyInfo.deliveriesUntilNextFree} more deliveries until your next free delivery`
-                      : loyaltyInfo.freeDeliveryCredits > 0 
-                        ? `You have ${loyaltyInfo.freeDeliveryCredits} free delivery credit${loyaltyInfo.freeDeliveryCredits > 1 ? 's' : ''} available!`
-                        : `${loyaltyInfo.totalDeliveries} deliveries completed`
+                    {effectiveLoyaltyInfo.deliveriesUntilNextFree > 0 
+                      ? `${effectiveLoyaltyInfo.deliveriesUntilNextFree} more deliveries until your next free delivery`
+                      : effectiveLoyaltyInfo.freeDeliveryCredits > 0 
+                        ? `You have ${effectiveLoyaltyInfo.freeDeliveryCredits} free delivery credit${effectiveLoyaltyInfo.freeDeliveryCredits > 1 ? 's' : ''} available!`
+                        : `${effectiveLoyaltyInfo.totalDeliveries} deliveries completed`
                     }
                   </p>
                 )}
