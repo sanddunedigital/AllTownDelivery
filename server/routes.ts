@@ -551,7 +551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         urgentDeliveryFee: formData.deliveryPricing?.basePrice ? 
           (parseFloat(formData.deliveryPricing.basePrice) + 5.00).toString() : 
           "10.00",
-        freeDeliveryThreshold: formData.deliveryPricing?.freeDeliveryThreshold?.toString() || null,
+        freeDeliveryThreshold: formData.deliveryPricing?.freeDeliveryThreshold?.toString() || "50.00",
         customerNotifications: {
           email: formData.notifications?.emailNotifications ?? true,
           sms: formData.notifications?.smsNotifications ?? false,
@@ -562,8 +562,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         enableScheduledDeliveries: formData.features?.scheduledDeliveries ?? false
       };
       
-      const settings = await storage.updateBusinessSettings(tenantId, dbData);
-      res.json(settings);
+      const dbSettings = await storage.updateBusinessSettings(tenantId, dbData);
+      
+      // Return transformed data matching GET endpoint format
+      const transformedSettings = {
+        id: dbSettings.id,
+        tenantId: dbSettings.tenantId,
+        businessName: dbSettings.businessName || "Sara's Quickie Delivery",
+        businessEmail: dbSettings.businessEmail || "contact@sarasquickiedelivery.com",
+        businessPhone: dbSettings.businessPhone || "(641) 673-0123",
+        businessAddress: dbSettings.businessAddress || "Oskaloosa, IA",
+        logoUrl: dbSettings.logoUrl,
+        primaryColor: dbSettings.primaryColor || "#0369a1",
+        secondaryColor: dbSettings.secondaryColor || "#64748b",
+        currency: dbSettings.currency || "USD",
+        timezone: dbSettings.timezone || "America/Chicago",
+        businessHours: dbSettings.operatingHours || formData.businessHours,
+        deliveryPricing: {
+          basePrice: parseFloat(dbSettings.baseDeliveryFee) || 5.00,
+          pricePerMile: 1.50,
+          minimumOrder: 10.00,
+          freeDeliveryThreshold: parseFloat(dbSettings.freeDeliveryThreshold) || 50.00,
+          rushDeliveryMultiplier: 1.5
+        },
+        notifications: {
+          emailNotifications: dbSettings.customerNotifications?.email ?? true,
+          smsNotifications: dbSettings.customerNotifications?.sms ?? false,
+          customerUpdates: true,
+          driverAlerts: true
+        },
+        features: {
+          loyaltyProgram: dbSettings.enableLoyaltyProgram ?? true,
+          realTimeTracking: dbSettings.enableRealTimeTracking ?? true,
+          scheduledDeliveries: dbSettings.enableScheduledDeliveries ?? false,
+          multiplePaymentMethods: true
+        },
+        createdAt: dbSettings.createdAt,
+        updatedAt: dbSettings.updatedAt
+      };
+      
+      res.json(transformedSettings);
     } catch (error) {
       console.error("Error updating business settings:", error);
       res.status(500).json({ message: "Internal server error" });

@@ -182,7 +182,7 @@ export default function BusinessSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/business-settings'] });
       toast({
         title: "Settings Saved",
-        description: "Business settings have been updated successfully.",
+        description: "Business settings have been saved to the database successfully.",
       });
     },
     onError: (error: any) => {
