@@ -34,6 +34,20 @@ import { EnhancedDeliveryForm } from "@/components/ui/enhanced-delivery-form";
 import { useQuery } from "@tanstack/react-query";
 import { useCustomerDeliveriesRealtime } from "@/hooks/use-realtime";
 
+interface BusinessSettings {
+  features?: {
+    loyaltyProgram?: boolean;
+  };
+}
+
+interface LoyaltyInfo {
+  loyaltyPoints: number;
+  totalDeliveries: number;
+  freeDeliveryCredits: number;
+  eligibleForFreeDelivery: boolean;
+  deliveriesUntilNextFree: number;
+}
+
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -57,9 +71,16 @@ export default function Home() {
   });
 
   // Fetch business settings for pricing and branding
-  const { data: businessSettings } = useQuery({
+  const { data: businessSettings } = useQuery<BusinessSettings>({
     queryKey: ['/api/business-settings'],
     refetchInterval: 300000, // Refresh every 5 minutes
+  });
+
+  // Fetch user loyalty info if logged in and loyalty program is enabled
+  const { data: loyaltyInfo } = useQuery<LoyaltyInfo>({
+    queryKey: [`/api/users/${user?.id}/loyalty`],
+    enabled: !!user?.id && businessSettings?.features?.loyaltyProgram,
+    refetchInterval: 120000, // Refresh every 2 minutes
   });
 
   // Type the delivery data properly
@@ -448,7 +469,20 @@ export default function Home() {
             {user && (
               <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg max-w-md mx-auto">
                 <p className="text-green-800 font-medium">
-                  Welcome back! Your delivery preferences are saved for faster checkout.
+                  Welcome back, {profile?.fullName || user?.email || 'User'}!
+                </p>
+                {businessSettings?.features?.loyaltyProgram && loyaltyInfo && (
+                  <p className="text-green-700 text-sm mt-1">
+                    {loyaltyInfo.deliveriesUntilNextFree > 0 
+                      ? `${loyaltyInfo.deliveriesUntilNextFree} more deliveries until your next free delivery`
+                      : loyaltyInfo.freeDeliveryCredits > 0 
+                        ? `You have ${loyaltyInfo.freeDeliveryCredits} free delivery credit${loyaltyInfo.freeDeliveryCredits > 1 ? 's' : ''} available!`
+                        : `${loyaltyInfo.totalDeliveries} deliveries completed`
+                    }
+                  </p>
+                )}
+                <p className="text-green-700 text-sm mt-1">
+                  Your delivery preferences are saved for faster checkout.
                 </p>
               </div>
             )}
@@ -677,7 +711,7 @@ export default function Home() {
             <p className="text-xl text-gray-600">
               Fill out the form below and we'll get your items delivered quickly!
             </p>
-            {user && (
+            {user && businessSettings?.features?.loyaltyProgram && (
               <p className="text-orange-600 font-medium mt-2">
                 ✨ Signed in users get loyalty rewards - after 10 deliveries your next one is free!
               </p>

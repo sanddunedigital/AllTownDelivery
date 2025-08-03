@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ChangePasswordForm } from '@/components/ui/change-password-form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trophy, Star, Gift, MapPin, Phone, Mail, User, Home } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 interface LoyaltyInfo {
   loyaltyPoints: number;
@@ -18,7 +19,13 @@ interface LoyaltyInfo {
   deliveriesUntilNextFree: number;
 }
 
-function UserProfile() {
+interface BusinessSettings {
+  features?: {
+    loyaltyProgram?: boolean;
+  };
+}
+
+function UserProfile({ businessSettings }: { businessSettings?: BusinessSettings }) {
   const { user, profile, updateProfile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -91,58 +98,60 @@ function UserProfile() {
 
   return (
     <div className="space-y-6">
-      {/* Loyalty Card */}
-      <Card className="bg-gradient-to-r from-orange-500 to-red-600 text-white">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5" />
-            Sara's Loyalty Rewards
-          </CardTitle>
-          <CardDescription className="text-orange-100">
-            Every 10th delivery is free!
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {loyaltyInfo && (
-            <>
-              <div className="flex justify-between items-center">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{loyaltyInfo.totalDeliveries}</div>
-                  <div className="text-sm text-orange-100">Total Deliveries</div>
+      {/* Loyalty Card - Only show if loyalty program is enabled */}
+      {businessSettings?.features?.loyaltyProgram && (
+        <Card className="bg-gradient-to-r from-orange-500 to-red-600 text-white">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              Sara's Loyalty Rewards
+            </CardTitle>
+            <CardDescription className="text-orange-100">
+              Every 10th delivery is free!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {loyaltyInfo && (
+              <>
+                <div className="flex justify-between items-center">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{loyaltyInfo.totalDeliveries}</div>
+                    <div className="text-sm text-orange-100">Total Deliveries</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{loyaltyInfo.freeDeliveryCredits}</div>
+                    <div className="text-sm text-orange-100">Free Credits</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{loyaltyInfo.deliveriesUntilNextFree}</div>
+                    <div className="text-sm text-orange-100">Until Next Free</div>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{loyaltyInfo.freeDeliveryCredits}</div>
-                  <div className="text-sm text-orange-100">Free Credits</div>
+                
+                {loyaltyInfo.eligibleForFreeDelivery && (
+                  <Badge className="bg-green-500 hover:bg-green-600 w-full justify-center">
+                    <Gift className="h-4 w-4 mr-2" />
+                    You have free delivery credits available!
+                  </Badge>
+                )}
+                
+                <div className="bg-white/20 rounded-lg p-3">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Progress to next free delivery</span>
+                    <span>{loyaltyInfo.totalDeliveries % 10}/10</span>
+                  </div>
+                  <div className="w-full bg-white/20 rounded-full h-2">
+                    <div 
+                      className="bg-white rounded-full h-2 transition-all duration-300"
+                      style={{ width: `${((loyaltyInfo.totalDeliveries % 10) / 10) * 100}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{loyaltyInfo.deliveriesUntilNextFree}</div>
-                  <div className="text-sm text-orange-100">Until Next Free</div>
-                </div>
-              </div>
-              
-              {loyaltyInfo.eligibleForFreeDelivery && (
-                <Badge className="bg-green-500 hover:bg-green-600 w-full justify-center">
-                  <Gift className="h-4 w-4 mr-2" />
-                  You have free delivery credits available!
-                </Badge>
-              )}
-              
-              <div className="bg-white/20 rounded-lg p-3">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Progress to next free delivery</span>
-                  <span>{loyaltyInfo.totalDeliveries % 10}/10</span>
-                </div>
-                <div className="w-full bg-white/20 rounded-full h-2">
-                  <div 
-                    className="bg-white rounded-full h-2 transition-all duration-300"
-                    style={{ width: `${((loyaltyInfo.totalDeliveries % 10) / 10) * 100}%` }}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Profile Information */}
       <Card>
@@ -238,6 +247,12 @@ function UserProfile() {
 
 export default function ProfilePage() {
   const { user, loading } = useAuth();
+  
+  // Fetch business settings to check if loyalty program is enabled  
+  const { data: businessSettings } = useQuery<BusinessSettings>({
+    queryKey: ['/api/business-settings'],
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
 
   if (loading) {
     return (
@@ -306,10 +321,10 @@ export default function ProfilePage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-            <p className="text-gray-600 mt-2">Manage your delivery preferences and loyalty rewards</p>
+            <p className="text-gray-600 mt-2">Manage your delivery preferences{businessSettings?.features?.loyaltyProgram ? ' and loyalty rewards' : ''}</p>
           </div>
           
-          <UserProfile />
+          <UserProfile businessSettings={businessSettings} />
         </div>
       </div>
     </div>
