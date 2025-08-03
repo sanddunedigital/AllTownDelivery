@@ -196,6 +196,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get business settings for frontend (public endpoint)
+  app.get("/api/business-settings", async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      const settings = await storage.getBusinessSettings(tenantId);
+      
+      // Return only public-facing settings
+      const publicSettings = {
+        businessName: settings?.businessName,
+        businessPhone: settings?.businessPhone,
+        businessAddress: settings?.businessAddress,
+        primaryColor: settings?.primaryColor,
+        secondaryColor: settings?.secondaryColor,
+        logoUrl: settings?.logoUrl,
+        businessHours: settings?.businessHours,
+        currency: settings?.currency,
+        timezone: settings?.timezone,
+        deliveryPricing: {
+          basePrice: settings?.deliveryPricing?.basePrice,
+          pricePerMile: settings?.deliveryPricing?.pricePerMile,
+          minimumOrder: settings?.deliveryPricing?.minimumOrder,
+          freeDeliveryThreshold: settings?.deliveryPricing?.freeDeliveryThreshold,
+          rushDeliveryMultiplier: settings?.deliveryPricing?.rushDeliveryMultiplier
+        },
+        features: {
+          loyaltyProgram: settings?.features?.loyaltyProgram,
+          realTimeTracking: settings?.features?.realTimeTracking,
+          scheduledDeliveries: settings?.features?.scheduledDeliveries,
+          multiplePaymentMethods: settings?.features?.multiplePaymentMethods
+        }
+      };
+      
+      res.json(publicSettings);
+    } catch (error) {
+      console.error("Error fetching business settings:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Delivery Request Routes
 
   // Create delivery request (supports both guest and authenticated users)
@@ -206,13 +245,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let validatedData;
       let usedFreeDelivery = false;
       
+      // Get business settings for pricing calculations
+      const tenantId = getCurrentTenantId(req);
+      const businessSettings = await storage.getBusinessSettings(tenantId);
+      
       if (userId) {
         // Authenticated user request
         validatedData = insertDeliveryRequestAuthenticatedSchema.parse(req.body);
         
-        // Check if user has free delivery credits and auto-apply them
+        // Check if loyalty program is enabled and user has free delivery credits
         const profile = await storage.getUserProfile(userId);
-        if (profile?.freeDeliveryCredits && profile.freeDeliveryCredits > 0) {
+        if (businessSettings?.features?.loyaltyProgram && profile?.freeDeliveryCredits && profile.freeDeliveryCredits > 0) {
           usedFreeDelivery = true;
           // Reduce free delivery credits by 1
           await storage.updateUserProfile(userId, {
@@ -236,9 +279,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData = insertDeliveryRequestGuestSchema.parse(requestData);
       }
 
-      // Add the usedFreeDelivery flag to the request
+      // Calculate delivery fee based on business settings
+      let deliveryFee = businessSettings?.deliveryPricing?.basePrice || 5.00;
+      
+      // Apply distance-based pricing if available
+      if (businessSettings?.deliveryPricing?.pricePerMile && requestData.estimatedDistance) {
+        deliveryFee += businessSettings.deliveryPricing.pricePerMile * requestData.estimatedDistance;
+      }
+      
+      // Apply rush delivery multiplier if requested
+      if (requestData.isRush && businessSettings?.deliveryPricing?.rushDeliveryMultiplier) {
+        deliveryFee *= businessSettings.deliveryPricing.rushDeliveryMultiplier;
+      }
+      
+      // Check for free delivery threshold
+      if (businessSettings?.deliveryPricing?.freeDeliveryThreshold && 
+          requestData.orderTotal >= businessSettings.deliveryPricing.freeDeliveryThreshold) {
+        deliveryFee = 0;
+      }
+      
+      // Apply free delivery if user used credit
+      if (usedFreeDelivery) {
+        deliveryFee = 0;
+      }
+
+      // Add the calculated delivery fee and free delivery flag to the request
       const deliveryRequestData = {
         ...validatedData,
+        deliveryFee,
         usedFreeDelivery
       };
 
@@ -283,9 +351,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.updateDeliveryStatus(id, status);
       
-      // Award loyalty points when delivery is completed
+      // Award loyalty points when delivery is completed (only if loyalty program is enabled)
       if (status === 'completed' && delivery?.userId) {
-        await storage.updateLoyaltyPoints(delivery.userId, 1, delivery.usedFreeDelivery || false); // 1 point per completed delivery
+        const tenantId = getCurrentTenantId(req);
+        const businessSettings = await storage.getBusinessSettings(tenantId);
+        
+        if (businessSettings?.features?.loyaltyProgram) {
+          await storage.updateLoyaltyPoints(delivery.userId, 1, delivery.usedFreeDelivery || false); // 1 point per completed delivery
+        }
       }
       
       res.json({ message: "Status updated successfully" });

@@ -31,6 +31,12 @@ export function EnhancedDeliveryForm() {
     queryKey: ['/api/businesses'],
     refetchInterval: 60000, // Refresh every minute
   });
+
+  // Fetch business settings for pricing display
+  const { data: businessSettings } = useQuery<any>({
+    queryKey: ['/api/business-settings'],
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
   
   const schema = user ? insertDeliveryRequestAuthenticatedSchema : insertDeliveryRequestGuestSchema;
   
@@ -444,6 +450,40 @@ export function EnhancedDeliveryForm() {
                   )}
                 />
               </div>
+
+              {/* Pricing Information */}
+              {businessSettings?.deliveryPricing && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Delivery Pricing</h3>
+                  <Card className="border-green-200 bg-green-50">
+                    <CardContent className="pt-4">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span>Base delivery fee:</span>
+                          <span className="font-semibold">${businessSettings.deliveryPricing.basePrice?.toFixed(2)}</span>
+                        </div>
+                        {businessSettings.deliveryPricing.pricePerMile > 0 && (
+                          <div className="flex justify-between items-center text-gray-600">
+                            <span>+ ${businessSettings.deliveryPricing.pricePerMile?.toFixed(2)} per mile</span>
+                          </div>
+                        )}
+                        {businessSettings.deliveryPricing.freeDeliveryThreshold > 0 && (
+                          <div className="flex justify-between items-center text-green-700 font-medium border-t pt-2">
+                            <span>Free delivery on orders over:</span>
+                            <span>${businessSettings.deliveryPricing.freeDeliveryThreshold?.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {loyaltyInfo?.freeDeliveryCredits > 0 && (
+                          <div className="flex justify-between items-center text-blue-700 font-medium border-t pt-2">
+                            <Gift className="w-4 h-4 mr-1 inline" />
+                            <span>You have {loyaltyInfo.freeDeliveryCredits} free delivery credit{loyaltyInfo.freeDeliveryCredits > 1 ? 's' : ''}!</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
               {/* Additional Information */}
               <div className="space-y-4">

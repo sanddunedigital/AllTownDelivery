@@ -56,6 +56,12 @@ export default function Home() {
     refetchInterval: 60000, // Refresh every minute
   });
 
+  // Fetch business settings for pricing and branding
+  const { data: businessSettings } = useQuery({
+    queryKey: ['/api/business-settings'],
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
+
   // Type the delivery data properly
   const deliveries = (userDeliveries as any[]) || [];
   const businessList = (businesses as any[]) || [];
