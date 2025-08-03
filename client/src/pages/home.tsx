@@ -31,7 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { EnhancedDeliveryForm } from "@/components/ui/enhanced-delivery-form";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCustomerDeliveriesRealtime } from "@/hooks/use-realtime";
 
 interface BusinessSettings {
@@ -76,18 +76,23 @@ export default function Home() {
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 
+  const queryClient = useQueryClient();
+  
   // Fetch user loyalty info if logged in and loyalty program is enabled
   const loyaltyEnabled = !!user?.id && businessSettings?.features?.loyaltyProgram === true;
-  
-  // Debug logging
-  console.log('Home page - loyaltyEnabled:', loyaltyEnabled);
-  console.log('Home page - businessSettings?.features?.loyaltyProgram:', businessSettings?.features?.loyaltyProgram);
   
   const { data: loyaltyInfo } = useQuery<LoyaltyInfo>({
     queryKey: [`/api/users/${user?.id}/loyalty`],
     enabled: loyaltyEnabled,
     refetchInterval: loyaltyEnabled ? 120000 : false, // Only refresh when enabled
   });
+
+  // Clear loyalty query and data when loyalty program is disabled
+  useEffect(() => {
+    if (!loyaltyEnabled && businessSettings?.features?.loyaltyProgram === false && user?.id) {
+      queryClient.removeQueries({ queryKey: [`/api/users/${user.id}/loyalty`] });
+    }
+  }, [loyaltyEnabled, businessSettings?.features?.loyaltyProgram, queryClient, user?.id]);
 
   // Clear loyalty info when loyalty program is disabled
   const effectiveLoyaltyInfo = loyaltyEnabled ? loyaltyInfo : null;
