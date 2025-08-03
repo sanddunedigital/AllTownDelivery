@@ -254,6 +254,16 @@ export default function DriverPortal() {
                       </Link>
                     </DropdownMenuItem>
                   )}
+                  
+                  {/* Business Settings - Available to admins only */}
+                  {profile?.role === 'admin' && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/business-settings" className="flex items-center w-full">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Business Settings
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href="/auth" className="flex items-center w-full text-red-600">

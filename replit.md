@@ -127,6 +127,7 @@ Preferred communication style: Simple, everyday language.
 - **Business Settings Integration**: Connected business settings to control actual delivery pricing, loyalty program behavior, and customer experience
 - **Live Pricing Display**: Delivery form now shows current fees and thresholds based on business settings configuration
 - **Admin Interface Cleanup**: Removed business settings tab from admin dashboard - settings now only accessible via dropdown navigation
+- **Navigation Standardization**: Added business settings access to dropdown navigation on all pages for consistent admin access
 
 ### Previous Changes (July 31, 2025)
 

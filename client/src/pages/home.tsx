@@ -204,6 +204,16 @@ export default function Home() {
                         </Link>
                       </DropdownMenuItem>
                     )}
+                    
+                    {/* Business Settings - Available to admins only */}
+                    {profile?.role === 'admin' && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/business-settings" className="flex items-center w-full">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Business Settings
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
                       <LogOut className="w-4 h-4 mr-2" />
