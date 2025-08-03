@@ -397,6 +397,14 @@ function AdminDashboard() {
                       Dispatch Center
                     </Link>
                   </DropdownMenuItem>
+                  
+                  {/* Business Settings */}
+                  <DropdownMenuItem asChild>
+                    <Link href="/business-settings" className="flex items-center w-full">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Business Settings
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href="/auth" className="flex items-center w-full text-red-600">
@@ -1104,13 +1112,10 @@ function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">Advanced business settings are available on a dedicated page</p>
-                  <Link href="/business-settings">
-                    <Button>
-                      <Settings className="w-4 h-4 mr-2" />
-                      Open Business Settings
-                    </Button>
-                  </Link>
+                  <p className="text-muted-foreground mb-4">Business settings are now available in the navigation menu</p>
+                  <p className="text-sm text-muted-foreground">
+                    Click your profile menu in the top right, then select "Business Settings" to configure pricing, hours, and service zones.
+                  </p>
                 </div>
               </CardContent>
             </Card>

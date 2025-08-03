@@ -157,7 +157,14 @@ export default function BusinessSettingsPage() {
   // Update settings state when data is loaded
   useEffect(() => {
     if (businessSettings) {
-      setSettings(businessSettings);
+      setSettings({
+        ...defaultSettings,
+        ...businessSettings,
+        features: { ...defaultSettings.features, ...businessSettings.features },
+        notifications: { ...defaultSettings.notifications, ...businessSettings.notifications },
+        deliveryPricing: { ...defaultSettings.deliveryPricing, ...businessSettings.deliveryPricing },
+        businessHours: { ...defaultBusinessHours, ...businessSettings.businessHours }
+      } as BusinessSettings);
     }
   }, [businessSettings]);
 
