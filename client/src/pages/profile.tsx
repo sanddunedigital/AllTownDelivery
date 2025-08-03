@@ -49,13 +49,16 @@ function UserProfile({ businessSettings }: { businessSettings?: BusinessSettings
   }, [profile]);
 
   useEffect(() => {
-    if (user) {
+    if (user && businessSettings?.features?.loyaltyProgram === true) {
       fetchLoyaltyInfo();
+    } else if (businessSettings?.features?.loyaltyProgram === false) {
+      // Clear loyalty info when loyalty program is disabled
+      setLoyaltyInfo(null);
     }
-  }, [user]);
+  }, [user, businessSettings?.features?.loyaltyProgram]);
 
   const fetchLoyaltyInfo = async () => {
-    if (!user) return;
+    if (!user || businessSettings?.features?.loyaltyProgram !== true) return;
     
     try {
       const response = await fetch(`/api/users/${user.id}/loyalty`);
