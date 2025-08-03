@@ -1,497 +1,847 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { Settings, DollarSign, Clock, MapPin, Bell, CreditCard, Globe, Phone, Mail } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Link } from 'wouter';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Switch } from '../components/ui/switch';
+import { Textarea } from '../components/ui/textarea';
+import { Separator } from '../components/ui/separator';
+import { toast } from '../hooks/use-toast';
+import { apiRequest } from '../lib/queryClient';
+import { 
+  Settings, 
+  DollarSign, 
+  Clock, 
+  MapPin, 
+  Palette, 
+  Globe, 
+  Phone, 
+  Mail,
+  Save,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Edit,
+  Home
+} from 'lucide-react';
 
-// Business settings form schema
-const businessSettingsSchema = z.object({
-  // Pricing
-  baseDeliveryFee: z.string().min(1, "Base delivery fee is required"),
-  urgentDeliveryFee: z.string().min(1, "Urgent delivery fee is required"),
-  freeDeliveryThreshold: z.string().optional(),
-  loyaltyPointsPerDollar: z.number().min(1).max(10),
-  pointsForFreeDelivery: z.number().min(5).max(50),
-  
-  // Service
-  maxDeliveryRadius: z.number().min(5).max(100),
-  averageDeliveryTime: z.number().min(10).max(120),
-  
-  // Contact
-  businessPhone: z.string().optional(),
-  businessEmail: z.string().email().optional().or(z.literal("")),
-  businessAddress: z.string().optional(),
-  websiteUrl: z.string().url().optional().or(z.literal("")),
-  
-  // Features
-  enableRealTimeTracking: z.boolean(),
-  enableLoyaltyProgram: z.boolean(),
-  enableScheduledDeliveries: z.boolean(),
-  enableMultiStopDeliveries: z.boolean(),
-  
-  // Payment
-  requirePaymentUpfront: z.boolean(),
-  
-  // Notifications
-  smsNotifications: z.boolean(),
-  emailNotifications: z.boolean(),
-  pushNotifications: z.boolean(),
-});
+interface BusinessSettings {
+  id?: string;
+  tenantId: string;
+  businessName: string;
+  businessEmail: string;
+  businessPhone: string;
+  businessAddress: string;
+  logoUrl?: string;
+  primaryColor: string;
+  secondaryColor: string;
+  currency: string;
+  timezone: string;
+  businessHours: {
+    monday: { open: string; close: string; closed: boolean };
+    tuesday: { open: string; close: string; closed: boolean };
+    wednesday: { open: string; close: string; closed: boolean };
+    thursday: { open: string; close: string; closed: boolean };
+    friday: { open: string; close: string; closed: boolean };
+    saturday: { open: string; close: string; closed: boolean };
+    sunday: { open: string; close: string; closed: boolean };
+  };
+  deliveryPricing: {
+    basePrice: number;
+    pricePerMile: number;
+    minimumOrder: number;
+    freeDeliveryThreshold: number;
+    rushDeliveryMultiplier: number;
+  };
+  notifications: {
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+    customerUpdates: boolean;
+    driverAlerts: boolean;
+  };
+  features: {
+    loyaltyProgram: boolean;
+    realTimeTracking: boolean;
+    scheduledDeliveries: boolean;
+    multiplePaymentMethods: boolean;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
 
-type BusinessSettingsForm = z.infer<typeof businessSettingsSchema>;
+interface ServiceZone {
+  id?: string;
+  tenantId: string;
+  name: string;
+  description: string;
+  coordinates: string; // JSON string of coordinates
+  deliveryFee: number;
+  estimatedTime: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
-export default function BusinessSettings() {
-  const { toast } = useToast();
+const defaultBusinessHours = {
+  monday: { open: '09:00', close: '17:00', closed: false },
+  tuesday: { open: '09:00', close: '17:00', closed: false },
+  wednesday: { open: '09:00', close: '17:00', closed: false },
+  thursday: { open: '09:00', close: '17:00', closed: false },
+  friday: { open: '09:00', close: '17:00', closed: false },
+  saturday: { open: '10:00', close: '16:00', closed: false },
+  sunday: { open: '12:00', close: '16:00', closed: true }
+};
+
+const defaultSettings: Partial<BusinessSettings> = {
+  businessName: "Sara's Quickie Delivery",
+  businessEmail: "contact@sarasquickiedelivery.com",
+  businessPhone: "(641) 673-0123",
+  businessAddress: "Oskaloosa, IA",
+  primaryColor: "#0369a1",
+  secondaryColor: "#64748b",
+  currency: "USD",
+  timezone: "America/Chicago",
+  businessHours: defaultBusinessHours,
+  deliveryPricing: {
+    basePrice: 5.00,
+    pricePerMile: 1.50,
+    minimumOrder: 10.00,
+    freeDeliveryThreshold: 50.00,
+    rushDeliveryMultiplier: 1.5
+  },
+  notifications: {
+    emailNotifications: true,
+    smsNotifications: false,
+    customerUpdates: true,
+    driverAlerts: true
+  },
+  features: {
+    loyaltyProgram: true,
+    realTimeTracking: true,
+    scheduledDeliveries: false,
+    multiplePaymentMethods: true
+  }
+};
+
+export default function BusinessSettingsPage() {
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("pricing");
+  const [settings, setSettings] = useState<BusinessSettings>(defaultSettings as BusinessSettings);
+  const [newZone, setNewZone] = useState<Partial<ServiceZone>>({
+    name: '',
+    description: '',
+    coordinates: '',
+    deliveryFee: 5.00,
+    estimatedTime: '30-45 minutes',
+    isActive: true
+  });
 
   // Fetch business settings
-  const { data: settings, isLoading } = useQuery({
+  const { data: businessSettings, isLoading: loadingSettings } = useQuery<BusinessSettings>({
     queryKey: ['/api/admin/business-settings'],
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!user && profile?.role === 'admin'
   });
 
-  // Form setup
-  const form = useForm<BusinessSettingsForm>({
-    resolver: zodResolver(businessSettingsSchema),
-    defaultValues: {
-      baseDeliveryFee: settings?.baseDeliveryFee || "5.00",
-      urgentDeliveryFee: settings?.urgentDeliveryFee || "10.00",
-      freeDeliveryThreshold: settings?.freeDeliveryThreshold || "",
-      loyaltyPointsPerDollar: settings?.loyaltyPointsPerDollar || 1,
-      pointsForFreeDelivery: settings?.pointsForFreeDelivery || 10,
-      maxDeliveryRadius: settings?.maxDeliveryRadius || 25,
-      averageDeliveryTime: settings?.averageDeliveryTime || 30,
-      businessPhone: settings?.businessPhone || "",
-      businessEmail: settings?.businessEmail || "",
-      businessAddress: settings?.businessAddress || "",
-      websiteUrl: settings?.websiteUrl || "",
-      enableRealTimeTracking: settings?.enableRealTimeTracking ?? true,
-      enableLoyaltyProgram: settings?.enableLoyaltyProgram ?? true,
-      enableScheduledDeliveries: settings?.enableScheduledDeliveries ?? false,
-      enableMultiStopDeliveries: settings?.enableMultiStopDeliveries ?? false,
-      requirePaymentUpfront: settings?.requirePaymentUpfront ?? false,
-      smsNotifications: settings?.customerNotifications?.sms ?? true,
-      emailNotifications: settings?.customerNotifications?.email ?? true,
-      pushNotifications: settings?.customerNotifications?.push ?? false,
+  // Fetch service zones
+  const { data: serviceZones = [], isLoading: loadingZones } = useQuery<ServiceZone[]>({
+    queryKey: ['/api/admin/service-zones'],
+    enabled: !!user && profile?.role === 'admin'
+  });
+
+  // Update settings state when data is loaded
+  useEffect(() => {
+    if (businessSettings) {
+      setSettings(businessSettings);
+    }
+  }, [businessSettings]);
+
+  // Save business settings mutation
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (data: BusinessSettings) => {
+      return apiRequest('/api/admin/business-settings', 'PUT', data);
     },
-  });
-
-  // Update settings mutation
-  const updateSettings = useMutation({
-    mutationFn: (data: BusinessSettingsForm) =>
-      apiRequest('/api/admin/business-settings', {
-        method: 'PUT',
-        body: {
-          baseDeliveryFee: data.baseDeliveryFee,
-          urgentDeliveryFee: data.urgentDeliveryFee,
-          freeDeliveryThreshold: data.freeDeliveryThreshold,
-          loyaltyPointsPerDollar: data.loyaltyPointsPerDollar,
-          pointsForFreeDelivery: data.pointsForFreeDelivery,
-          maxDeliveryRadius: data.maxDeliveryRadius,
-          averageDeliveryTime: data.averageDeliveryTime,
-          businessPhone: data.businessPhone,
-          businessEmail: data.businessEmail,
-          businessAddress: data.businessAddress,
-          websiteUrl: data.websiteUrl,
-          enableRealTimeTracking: data.enableRealTimeTracking,
-          enableLoyaltyProgram: data.enableLoyaltyProgram,
-          enableScheduledDeliveries: data.enableScheduledDeliveries,
-          enableMultiStopDeliveries: data.enableMultiStopDeliveries,
-          requirePaymentUpfront: data.requirePaymentUpfront,
-          customerNotifications: {
-            sms: data.smsNotifications,
-            email: data.emailNotifications,
-            push: data.pushNotifications,
-          },
-        },
-      }),
     onSuccess: () => {
-      toast({ title: "Settings updated successfully!" });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/business-settings'] });
+      toast({
+        title: "Settings Saved",
+        description: "Business settings have been updated successfully.",
+      });
     },
     onError: (error: any) => {
       toast({
-        title: "Failed to update settings",
-        description: error.message,
+        title: "Error",
+        description: error.message || "Failed to save settings",
         variant: "destructive",
       });
-    },
+    }
   });
 
-  const onSubmit = (data: BusinessSettingsForm) => {
-    updateSettings.mutate(data);
-  };
+  // Create service zone mutation
+  const createZoneMutation = useMutation({
+    mutationFn: async (data: Partial<ServiceZone>) => {
+      return apiRequest('/api/admin/service-zones', 'POST', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/service-zones'] });
+      setNewZone({
+        name: '',
+        description: '',
+        coordinates: '',
+        deliveryFee: 5.00,
+        estimatedTime: '30-45 minutes',
+        isActive: true
+      });
+      toast({
+        title: "Zone Created",
+        description: "Service zone has been created successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create service zone",
+        variant: "destructive",
+      });
+    }
+  });
 
-  if (isLoading) {
+  // Delete service zone mutation
+  const deleteZoneMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest(`/api/admin/service-zones/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/service-zones'] });
+      toast({
+        title: "Zone Deleted",
+        description: "Service zone has been deleted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete service zone",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Check if user has admin access
+  if (!user || !profile || profile.role !== 'admin') {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Settings className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">Business Settings</h1>
+      <div className="min-h-screen bg-gray-50">
+        <nav className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+                <img 
+                  src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
+                  alt="Sara's Quickie Delivery Logo" 
+                  className="h-8 w-auto"
+                />
+                <span className="ml-3 text-lg font-bold text-primary">Sara's Quickie Delivery</span>
+              </Link>
+              <Link href="/">
+                <Button variant="outline" size="sm">
+                  <Home className="w-4 h-4 mr-2" />
+                  Home
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </nav>
+        
+        <div className="container mx-auto px-4 py-8">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-center text-muted-foreground">
+                Access denied. This page is for administrators only.
+              </p>
+            </CardContent>
+          </Card>
         </div>
-        <div className="text-center py-8">Loading settings...</div>
       </div>
     );
   }
 
+  const handleSaveSettings = () => {
+    saveSettingsMutation.mutate(settings);
+  };
+
+  const handleCreateZone = () => {
+    if (!newZone.name || !newZone.description) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    createZoneMutation.mutate(newZone);
+  };
+
+  const updateBusinessHours = (day: string, field: string, value: string | boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      businessHours: {
+        ...prev.businessHours,
+        [day]: {
+          ...prev.businessHours[day as keyof typeof prev.businessHours],
+          [field]: value
+        }
+      }
+    }));
+  };
+
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="flex items-center gap-2 mb-6">
-        <Settings className="h-6 w-6" />
-        <h1 className="text-2xl font-bold">Business Settings</h1>
-        <Badge variant="secondary" className="ml-2">Admin</Badge>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Header */}
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+              <img 
+                src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
+                alt="Sara's Quickie Delivery Logo" 
+                className="h-8 w-auto"
+              />
+              <span className="ml-3 text-lg font-bold text-primary">Sara's Quickie Delivery</span>
+            </Link>
+            <div className="flex items-center space-x-4">
+              <Link href="/admin">
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Admin
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
 
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="pricing" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Pricing
-            </TabsTrigger>
-            <TabsTrigger value="service" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Service
-            </TabsTrigger>
-            <TabsTrigger value="contact" className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Contact
-            </TabsTrigger>
-            <TabsTrigger value="features" className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Features
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              Notifications
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Pricing Settings */}
-          <TabsContent value="pricing">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Pricing Configuration
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="baseDeliveryFee">Base Delivery Fee ($)</Label>
-                    <Input
-                      id="baseDeliveryFee"
-                      type="number"
-                      step="0.01"
-                      {...form.register("baseDeliveryFee")}
-                    />
-                    {form.formState.errors.baseDeliveryFee && (
-                      <p className="text-sm text-red-500">{form.formState.errors.baseDeliveryFee.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="urgentDeliveryFee">Urgent Delivery Fee ($)</Label>
-                    <Input
-                      id="urgentDeliveryFee"
-                      type="number"
-                      step="0.01"
-                      {...form.register("urgentDeliveryFee")}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="freeDeliveryThreshold">Free Delivery Threshold ($)</Label>
-                    <Input
-                      id="freeDeliveryThreshold"
-                      type="number"
-                      step="0.01"
-                      placeholder="Optional minimum order"
-                      {...form.register("freeDeliveryThreshold")}
-                    />
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Loyalty Program</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="loyaltyPointsPerDollar">Points per Dollar Spent</Label>
-                      <Input
-                        id="loyaltyPointsPerDollar"
-                        type="number"
-                        min="1"
-                        max="10"
-                        {...form.register("loyaltyPointsPerDollar", { valueAsNumber: true })}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="pointsForFreeDelivery">Points for Free Delivery</Label>
-                      <Input
-                        id="pointsForFreeDelivery"
-                        type="number"
-                        min="5"
-                        max="50"
-                        {...form.register("pointsForFreeDelivery", { valueAsNumber: true })}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Service Settings */}
-          <TabsContent value="service">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Service Configuration
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="maxDeliveryRadius">Max Delivery Radius (miles)</Label>
-                    <Input
-                      id="maxDeliveryRadius"
-                      type="number"
-                      min="5"
-                      max="100"
-                      {...form.register("maxDeliveryRadius", { valueAsNumber: true })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="averageDeliveryTime">Average Delivery Time (minutes)</Label>
-                    <Input
-                      id="averageDeliveryTime"
-                      type="number"
-                      min="10"
-                      max="120"
-                      {...form.register("averageDeliveryTime", { valueAsNumber: true })}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Contact Settings */}
-          <TabsContent value="contact">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Phone className="h-5 w-5" />
-                  Business Contact Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="businessPhone">Business Phone</Label>
-                    <Input
-                      id="businessPhone"
-                      type="tel"
-                      placeholder="(555) 123-4567"
-                      {...form.register("businessPhone")}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="businessEmail">Business Email</Label>
-                    <Input
-                      id="businessEmail"
-                      type="email"
-                      placeholder="contact@business.com"
-                      {...form.register("businessEmail")}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="businessAddress">Business Address</Label>
-                  <Input
-                    id="businessAddress"
-                    placeholder="123 Main St, City, State 12345"
-                    {...form.register("businessAddress")}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="websiteUrl">Website URL</Label>
-                  <Input
-                    id="websiteUrl"
-                    type="url"
-                    placeholder="https://yourbusiness.com"
-                    {...form.register("websiteUrl")}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Features Settings */}
-          <TabsContent value="features">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Service Features
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Real-Time Tracking</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow customers to track their deliveries in real-time
-                      </p>
-                    </div>
-                    <Switch
-                      checked={form.watch("enableRealTimeTracking")}
-                      onCheckedChange={(checked) => form.setValue("enableRealTimeTracking", checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Loyalty Program</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Enable points-based loyalty rewards for customers
-                      </p>
-                    </div>
-                    <Switch
-                      checked={form.watch("enableLoyaltyProgram")}
-                      onCheckedChange={(checked) => form.setValue("enableLoyaltyProgram", checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Scheduled Deliveries</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow customers to schedule deliveries for later
-                      </p>
-                    </div>
-                    <Switch
-                      checked={form.watch("enableScheduledDeliveries")}
-                      onCheckedChange={(checked) => form.setValue("enableScheduledDeliveries", checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Multi-Stop Deliveries</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Enable deliveries with multiple pickup/drop-off points
-                      </p>
-                    </div>
-                    <Switch
-                      checked={form.watch("enableMultiStopDeliveries")}
-                      onCheckedChange={(checked) => form.setValue("enableMultiStopDeliveries", checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Require Payment Upfront</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Require customers to pay before delivery starts
-                      </p>
-                    </div>
-                    <Switch
-                      checked={form.watch("requirePaymentUpfront")}
-                      onCheckedChange={(checked) => form.setValue("requirePaymentUpfront", checked)}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Notifications Settings */}
-          <TabsContent value="notifications">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  Customer Notifications
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>SMS Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Send delivery updates via text message
-                    </p>
-                  </div>
-                  <Switch
-                    checked={form.watch("smsNotifications")}
-                    onCheckedChange={(checked) => form.setValue("smsNotifications", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Send delivery updates via email
-                    </p>
-                  </div>
-                  <Switch
-                    checked={form.watch("emailNotifications")}
-                    onCheckedChange={(checked) => form.setValue("emailNotifications", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Push Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Send real-time push notifications via app
-                    </p>
-                  </div>
-                  <Switch
-                    checked={form.watch("pushNotifications")}
-                    onCheckedChange={(checked) => form.setValue("pushNotifications", checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        <div className="flex justify-end pt-6">
-          <Button
-            type="submit"
-            disabled={updateSettings.isPending}
-            className="min-w-[120px]"
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Business Settings</h1>
+            <p className="text-muted-foreground">
+              Configure your delivery service preferences and pricing
+            </p>
+          </div>
+          <Button 
+            onClick={handleSaveSettings}
+            disabled={saveSettingsMutation.isPending}
+            className="flex items-center gap-2"
           >
-            {updateSettings.isPending ? "Saving..." : "Save Settings"}
+            <Save className="w-4 h-4" />
+            {saveSettingsMutation.isPending ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
-      </form>
+
+        {loadingSettings ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Loading business settings...</p>
+          </div>
+        ) : (
+          <Tabs defaultValue="general" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="general">
+                <Settings className="w-4 h-4 mr-2" />
+                General
+              </TabsTrigger>
+              <TabsTrigger value="pricing">
+                <DollarSign className="w-4 h-4 mr-2" />
+                Pricing
+              </TabsTrigger>
+              <TabsTrigger value="hours">
+                <Clock className="w-4 h-4 mr-2" />
+                Hours
+              </TabsTrigger>
+              <TabsTrigger value="zones">
+                <MapPin className="w-4 h-4 mr-2" />
+                Service Zones
+              </TabsTrigger>
+              <TabsTrigger value="branding">
+                <Palette className="w-4 h-4 mr-2" />
+                Branding
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="general" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Business Information</CardTitle>
+                  <CardDescription>Basic information about your delivery service</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="businessName">Business Name</Label>
+                      <Input
+                        id="businessName"
+                        value={settings.businessName}
+                        onChange={(e) => setSettings(prev => ({ ...prev, businessName: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="businessEmail">Business Email</Label>
+                      <Input
+                        id="businessEmail"
+                        type="email"
+                        value={settings.businessEmail}
+                        onChange={(e) => setSettings(prev => ({ ...prev, businessEmail: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="businessPhone">Business Phone</Label>
+                      <Input
+                        id="businessPhone"
+                        value={settings.businessPhone}
+                        onChange={(e) => setSettings(prev => ({ ...prev, businessPhone: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="timezone">Timezone</Label>
+                      <Select
+                        value={settings.timezone}
+                        onValueChange={(value) => setSettings(prev => ({ ...prev, timezone: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="America/Chicago">Central Time (Chicago)</SelectItem>
+                          <SelectItem value="America/New_York">Eastern Time (New York)</SelectItem>
+                          <SelectItem value="America/Los_Angeles">Pacific Time (Los Angeles)</SelectItem>
+                          <SelectItem value="America/Denver">Mountain Time (Denver)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="businessAddress">Business Address</Label>
+                    <Textarea
+                      id="businessAddress"
+                      value={settings.businessAddress}
+                      onChange={(e) => setSettings(prev => ({ ...prev, businessAddress: e.target.value }))}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Features & Notifications</CardTitle>
+                  <CardDescription>Configure service features and notification preferences</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="text-sm font-medium mb-4">Service Features</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Loyalty Program</Label>
+                          <p className="text-sm text-muted-foreground">Enable customer loyalty points and rewards</p>
+                        </div>
+                        <Switch
+                          checked={settings.features.loyaltyProgram}
+                          onCheckedChange={(checked) => setSettings(prev => ({
+                            ...prev,
+                            features: { ...prev.features, loyaltyProgram: checked }
+                          }))}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Real-Time Tracking</Label>
+                          <p className="text-sm text-muted-foreground">Live delivery status updates for customers</p>
+                        </div>
+                        <Switch
+                          checked={settings.features.realTimeTracking}
+                          onCheckedChange={(checked) => setSettings(prev => ({
+                            ...prev,
+                            features: { ...prev.features, realTimeTracking: checked }
+                          }))}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Scheduled Deliveries</Label>
+                          <p className="text-sm text-muted-foreground">Allow customers to schedule future deliveries</p>
+                        </div>
+                        <Switch
+                          checked={settings.features.scheduledDeliveries}
+                          onCheckedChange={(checked) => setSettings(prev => ({
+                            ...prev,
+                            features: { ...prev.features, scheduledDeliveries: checked }
+                          }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="text-sm font-medium mb-4">Notifications</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Email Notifications</Label>
+                          <p className="text-sm text-muted-foreground">Send notifications via email</p>
+                        </div>
+                        <Switch
+                          checked={settings.notifications.emailNotifications}
+                          onCheckedChange={(checked) => setSettings(prev => ({
+                            ...prev,
+                            notifications: { ...prev.notifications, emailNotifications: checked }
+                          }))}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Customer Updates</Label>
+                          <p className="text-sm text-muted-foreground">Automatically notify customers of delivery status changes</p>
+                        </div>
+                        <Switch
+                          checked={settings.notifications.customerUpdates}
+                          onCheckedChange={(checked) => setSettings(prev => ({
+                            ...prev,
+                            notifications: { ...prev.notifications, customerUpdates: checked }
+                          }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="pricing" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Delivery Pricing</CardTitle>
+                  <CardDescription>Configure your delivery fees and pricing structure</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="basePrice">Base Delivery Fee ($)</Label>
+                      <Input
+                        id="basePrice"
+                        type="number"
+                        step="0.01"
+                        value={settings.deliveryPricing.basePrice}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          deliveryPricing: { ...prev.deliveryPricing, basePrice: parseFloat(e.target.value) || 0 }
+                        }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="pricePerMile">Price Per Mile ($)</Label>
+                      <Input
+                        id="pricePerMile"
+                        type="number"
+                        step="0.01"
+                        value={settings.deliveryPricing.pricePerMile}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          deliveryPricing: { ...prev.deliveryPricing, pricePerMile: parseFloat(e.target.value) || 0 }
+                        }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="minimumOrder">Minimum Order ($)</Label>
+                      <Input
+                        id="minimumOrder"
+                        type="number"
+                        step="0.01"
+                        value={settings.deliveryPricing.minimumOrder}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          deliveryPricing: { ...prev.deliveryPricing, minimumOrder: parseFloat(e.target.value) || 0 }
+                        }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="freeDeliveryThreshold">Free Delivery Threshold ($)</Label>
+                      <Input
+                        id="freeDeliveryThreshold"
+                        type="number"
+                        step="0.01"
+                        value={settings.deliveryPricing.freeDeliveryThreshold}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          deliveryPricing: { ...prev.deliveryPricing, freeDeliveryThreshold: parseFloat(e.target.value) || 0 }
+                        }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="rushMultiplier">Rush Delivery Multiplier</Label>
+                      <Input
+                        id="rushMultiplier"
+                        type="number"
+                        step="0.1"
+                        value={settings.deliveryPricing.rushDeliveryMultiplier}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          deliveryPricing: { ...prev.deliveryPricing, rushDeliveryMultiplier: parseFloat(e.target.value) || 1 }
+                        }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currency">Currency</Label>
+                      <Select
+                        value={settings.currency}
+                        onValueChange={(value) => setSettings(prev => ({ ...prev, currency: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD ($)</SelectItem>
+                          <SelectItem value="CAD">CAD ($)</SelectItem>
+                          <SelectItem value="EUR">EUR (€)</SelectItem>
+                          <SelectItem value="GBP">GBP (£)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="hours" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Business Hours</CardTitle>
+                  <CardDescription>Set your operating hours for each day of the week</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {Object.entries(settings.businessHours).map(([day, hours]) => (
+                    <div key={day} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-24">
+                          <Label className="capitalize font-medium">{day}</Label>
+                        </div>
+                        <Switch
+                          checked={!hours.closed}
+                          onCheckedChange={(checked) => updateBusinessHours(day, 'closed', !checked)}
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          {hours.closed ? 'Closed' : 'Open'}
+                        </span>
+                      </div>
+                      {!hours.closed && (
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="time"
+                            value={hours.open}
+                            onChange={(e) => updateBusinessHours(day, 'open', e.target.value)}
+                            className="w-32"
+                          />
+                          <span className="text-muted-foreground">to</span>
+                          <Input
+                            type="time"
+                            value={hours.close}
+                            onChange={(e) => updateBusinessHours(day, 'close', e.target.value)}
+                            className="w-32"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="zones" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Service Zones</CardTitle>
+                  <CardDescription>Define delivery areas with custom pricing and time estimates</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Add new zone form */}
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <h4 className="font-medium">Add New Service Zone</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="zoneName">Zone Name</Label>
+                        <Input
+                          id="zoneName"
+                          value={newZone.name || ''}
+                          onChange={(e) => setNewZone(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Downtown Area"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="zoneDescription">Description</Label>
+                        <Input
+                          id="zoneDescription"
+                          value={newZone.description || ''}
+                          onChange={(e) => setNewZone(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Central business district"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="zoneFee">Delivery Fee ($)</Label>
+                        <Input
+                          id="zoneFee"
+                          type="number"
+                          step="0.01"
+                          value={newZone.deliveryFee || 0}
+                          onChange={(e) => setNewZone(prev => ({ ...prev, deliveryFee: parseFloat(e.target.value) || 0 }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="zoneTime">Estimated Time</Label>
+                        <Input
+                          id="zoneTime"
+                          value={newZone.estimatedTime || ''}
+                          onChange={(e) => setNewZone(prev => ({ ...prev, estimatedTime: e.target.value }))}
+                          placeholder="30-45 minutes"
+                        />
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={handleCreateZone}
+                      disabled={createZoneMutation.isPending}
+                      className="w-full"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {createZoneMutation.isPending ? 'Creating...' : 'Add Service Zone'}
+                    </Button>
+                  </div>
+
+                  {/* Existing zones */}
+                  <div className="space-y-4">
+                    {loadingZones ? (
+                      <p className="text-center text-muted-foreground">Loading service zones...</p>
+                    ) : serviceZones.length > 0 ? (
+                      serviceZones.map((zone) => (
+                        <div key={zone.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium">{zone.name}</h4>
+                                <Badge variant={zone.isActive ? "default" : "secondary"}>
+                                  {zone.isActive ? "Active" : "Inactive"}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{zone.description}</p>
+                              <div className="flex items-center gap-4 text-sm">
+                                <span className="flex items-center gap-1">
+                                  <DollarSign className="w-3 h-3" />
+                                  ${zone.deliveryFee?.toFixed(2)}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {zone.estimatedTime}
+                                </span>
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteZoneMutation.mutate(zone.id!)}
+                              disabled={deleteZoneMutation.isPending}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <MapPin className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        <p className="text-muted-foreground">No service zones configured yet</p>
+                        <p className="text-sm text-muted-foreground">Add your first service zone above</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="branding" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Brand Customization</CardTitle>
+                  <CardDescription>Customize the look and feel of your delivery platform</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="primaryColor">Primary Color</Label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          id="primaryColor"
+                          type="color"
+                          value={settings.primaryColor}
+                          onChange={(e) => setSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
+                          className="w-20 h-10"
+                        />
+                        <Input
+                          value={settings.primaryColor}
+                          onChange={(e) => setSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
+                          placeholder="#0369a1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="secondaryColor">Secondary Color</Label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          id="secondaryColor"
+                          type="color"
+                          value={settings.secondaryColor}
+                          onChange={(e) => setSettings(prev => ({ ...prev, secondaryColor: e.target.value }))}
+                          className="w-20 h-10"
+                        />
+                        <Input
+                          value={settings.secondaryColor}
+                          onChange={(e) => setSettings(prev => ({ ...prev, secondaryColor: e.target.value }))}
+                          placeholder="#64748b"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="logoUrl">Logo URL</Label>
+                    <Input
+                      id="logoUrl"
+                      value={settings.logoUrl || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, logoUrl: e.target.value }))}
+                      placeholder="https://example.com/logo.png"
+                    />
+                  </div>
+                  
+                  <div className="border rounded-lg p-4 space-y-2">
+                    <Label>Preview</Label>
+                    <div className="bg-gray-50 p-4 rounded border" style={{ backgroundColor: settings.secondaryColor + '10' }}>
+                      <div 
+                        className="text-lg font-bold mb-2" 
+                        style={{ color: settings.primaryColor }}
+                      >
+                        {settings.businessName}
+                      </div>
+                      <p className="text-sm text-muted-foreground">This is how your brand colors will appear</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
     </div>
   );
 }
