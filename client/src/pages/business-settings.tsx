@@ -28,8 +28,13 @@ import {
   Plus,
   Trash2,
   Edit,
-  Home
+  Home,
+  User,
+  ChevronDown,
+  LogOut,
+  Truck
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
 interface BusinessSettings {
   id?: string;
@@ -321,12 +326,58 @@ export default function BusinessSettingsPage() {
               <span className="ml-3 text-lg font-bold text-primary">Sara's Quickie Delivery</span>
             </Link>
             <div className="flex items-center space-x-4">
-              <Link href="/admin">
-                <Button variant="outline" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Admin
-                </Button>
-              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                    <User className="w-4 h-4" />
+                    <span className="hidden sm:inline">{profile?.fullName || user?.email || 'User'}</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5">
+                    <div className="text-sm font-medium">{profile?.fullName || user?.email || 'User'}</div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/" className="flex items-center w-full">
+                      <Home className="w-4 h-4 mr-2" />
+                      Home
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  {/* Driver Portal */}
+                  <DropdownMenuItem asChild>
+                    <Link href="/driver" className="flex items-center w-full">
+                      <Truck className="w-4 h-4 mr-2" />
+                      Driver Portal
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  {/* Dispatch Center */}
+                  <DropdownMenuItem asChild>
+                    <Link href="/dispatch" className="flex items-center w-full">
+                      <Globe className="w-4 h-4 mr-2" />
+                      Dispatch Center
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  {/* Admin Dashboard */}
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin" className="flex items-center w-full">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Admin Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth" className="flex items-center w-full text-red-600">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
