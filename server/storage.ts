@@ -3,7 +3,7 @@ import {
   type UserProfile, type InsertUserProfile, type UpdateUserProfile,
   type ClaimDelivery, type UpdateDeliveryStatus,
   type Business, type InsertBusiness,
-  users, deliveryRequests, userProfiles, businesses 
+  users, deliveryRequests, userProfiles, businesses, businessSettings, serviceZones 
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -38,6 +38,16 @@ export interface IStorage {
   // Business methods
   getBusinesses(): Promise<Business[]>;
   createBusiness(business: InsertBusiness): Promise<Business>;
+  
+  // Business settings methods
+  getBusinessSettings(tenantId: string): Promise<any>;
+  updateBusinessSettings(tenantId: string, settings: any): Promise<any>;
+  
+  // Service zones methods  
+  getServiceZones(tenantId: string): Promise<any[]>;
+  createServiceZone(zone: any): Promise<any>;
+  updateServiceZone(id: string, updates: any): Promise<any>;
+  deleteServiceZone(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -268,6 +278,32 @@ export class MemStorage implements IStorage {
     };
     this.businesses.set(id, business);
     return business;
+  }
+
+  // Business settings methods (memory storage - stubbed)
+  async getBusinessSettings(tenantId: string): Promise<any> {
+    return null; // Memory storage doesn't support business settings
+  }
+
+  async updateBusinessSettings(tenantId: string, settings: any): Promise<any> {
+    return settings; // Memory storage doesn't persist business settings
+  }
+
+  // Service zones methods (memory storage - stubbed)  
+  async getServiceZones(tenantId: string): Promise<any[]> {
+    return []; // Memory storage doesn't support service zones
+  }
+
+  async createServiceZone(zone: any): Promise<any> {
+    return zone; // Memory storage doesn't persist service zones
+  }
+
+  async updateServiceZone(id: string, updates: any): Promise<any> {
+    return updates; // Memory storage doesn't persist service zones
+  }
+
+  async deleteServiceZone(id: string): Promise<void> {
+    // Memory storage doesn't persist service zones
   }
 }
 
@@ -538,6 +574,76 @@ export class DatabaseStorage implements IStorage {
     const result = await db.insert(businesses).values(insertBusiness).returning();
     return result[0];
   }
+
+  // Business settings methods
+  async getBusinessSettings(tenantId: string): Promise<any> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.select().from(businessSettings).where(eq(businessSettings.tenantId, tenantId));
+    return result[0] || null;
+  }
+
+  async updateBusinessSettings(tenantId: string, settings: any): Promise<any> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    
+    // Check if settings exist for this tenant
+    const existing = await this.getBusinessSettings(tenantId);
+    
+    if (existing) {
+      // Update existing settings
+      const result = await db
+        .update(businessSettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(businessSettings.tenantId, tenantId))
+        .returning();
+      return result[0];
+    } else {
+      // Create new settings
+      const result = await db
+        .insert(businessSettings)
+        .values({ ...settings, tenantId })
+        .returning();
+      return result[0];
+    }
+  }
+
+  // Service zones methods
+  async getServiceZones(tenantId: string): Promise<any[]> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    return await db.select().from(serviceZones).where(eq(serviceZones.tenantId, tenantId));
+  }
+
+  async createServiceZone(zone: any): Promise<any> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.insert(serviceZones).values(zone).returning();
+    return result[0];
+  }
+
+  async updateServiceZone(id: string, updates: any): Promise<any> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db
+      .update(serviceZones)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(serviceZones.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteServiceZone(id: string): Promise<void> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    await db.delete(serviceZones).where(eq(serviceZones.id, id));
+  }
 }
 
 // Smart storage selection - try database first, fallback to memory
@@ -721,6 +827,62 @@ class SmartStorage implements IStorage {
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
       return await this.memStorage.createBusiness(business);
+    }
+  }
+
+  // Business settings methods
+  async getBusinessSettings(tenantId: string): Promise<any> {
+    try {
+      return await this.dbStorage.getBusinessSettings(tenantId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getBusinessSettings(tenantId);
+    }
+  }
+
+  async updateBusinessSettings(tenantId: string, settings: any): Promise<any> {
+    try {
+      return await this.dbStorage.updateBusinessSettings(tenantId, settings);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.updateBusinessSettings(tenantId, settings);
+    }
+  }
+
+  // Service zones methods
+  async getServiceZones(tenantId: string): Promise<any[]> {
+    try {
+      return await this.dbStorage.getServiceZones(tenantId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getServiceZones(tenantId);
+    }
+  }
+
+  async createServiceZone(zone: any): Promise<any> {
+    try {
+      return await this.dbStorage.createServiceZone(zone);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.createServiceZone(zone);
+    }
+  }
+
+  async updateServiceZone(id: string, updates: any): Promise<any> {
+    try {
+      return await this.dbStorage.updateServiceZone(id, updates);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.updateServiceZone(id, updates);
+    }
+  }
+
+  async deleteServiceZone(id: string): Promise<void> {
+    try {
+      await this.dbStorage.deleteServiceZone(id);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      await this.memStorage.deleteServiceZone(id);
     }
   }
 }

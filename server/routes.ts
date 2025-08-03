@@ -392,6 +392,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Business Settings API Routes
+  
+  // Get business settings for tenant
+  app.get("/api/admin/business-settings", async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      const settings = await storage.getBusinessSettings(tenantId);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching business settings:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update business settings
+  app.put("/api/admin/business-settings", async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      const settings = await storage.updateBusinessSettings(tenantId, req.body);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating business settings:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Service Zones API Routes
+  
+  // Get service zones for tenant
+  app.get("/api/admin/service-zones", async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      const zones = await storage.getServiceZones(tenantId);
+      res.json(zones);
+    } catch (error) {
+      console.error("Error fetching service zones:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create service zone
+  app.post("/api/admin/service-zones", async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      const zone = await storage.createServiceZone({ ...req.body, tenantId });
+      res.json(zone);
+    } catch (error) {
+      console.error("Error creating service zone:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update service zone
+  app.put("/api/admin/service-zones/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const zone = await storage.updateServiceZone(id, req.body);
+      res.json(zone);
+    } catch (error) {
+      console.error("Error updating service zone:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete service zone
+  app.delete("/api/admin/service-zones/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteServiceZone(id);
+      res.json({ message: "Service zone deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting service zone:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Dispatch routes
   app.use('/api/dispatch', dispatchRoutes);
 

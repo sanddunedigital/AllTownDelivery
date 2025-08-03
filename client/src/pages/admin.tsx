@@ -423,7 +423,7 @@ function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
               Business Analytics
@@ -435,6 +435,10 @@ function AdminDashboard() {
             <TabsTrigger value="businesses">
               <Store className="w-4 h-4 mr-2" />
               Business Network
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <Settings className="w-4 h-4 mr-2" />
+              Business Settings
             </TabsTrigger>
           </TabsList>
 
@@ -1083,6 +1087,31 @@ function AdminDashboard() {
                     <p className="text-sm text-muted-foreground">Add your first business above to get started</p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Business Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure your delivery service preferences and pricing
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">Advanced business settings are available on a dedicated page</p>
+                  <Link href="/business-settings">
+                    <Button>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Open Business Settings
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

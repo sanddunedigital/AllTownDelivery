@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, uuid, numeric, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -76,6 +76,79 @@ export const deliveryRequests = pgTable("delivery_requests", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Business settings for tenant customization
+export const businessSettings = pgTable("business_settings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").default(sql`'00000000-0000-0000-0000-000000000001'::uuid`).notNull(),
+  
+  // Pricing Configuration
+  baseDeliveryFee: numeric("base_delivery_fee", { precision: 10, scale: 2 }).default("5.00"),
+  urgentDeliveryFee: numeric("urgent_delivery_fee", { precision: 10, scale: 2 }).default("10.00"),
+  freeDeliveryThreshold: numeric("free_delivery_threshold", { precision: 10, scale: 2 }),
+  loyaltyPointsPerDollar: integer("loyalty_points_per_dollar").default(1),
+  pointsForFreeDelivery: integer("points_for_free_delivery").default(10),
+  
+  // Service Configuration
+  maxDeliveryRadius: integer("max_delivery_radius_miles").default(25),
+  averageDeliveryTime: integer("average_delivery_time_minutes").default(30),
+  operatingHours: jsonb("operating_hours").$type<{
+    monday: { open: string; close: string; closed?: boolean };
+    tuesday: { open: string; close: string; closed?: boolean };
+    wednesday: { open: string; close: string; closed?: boolean };
+    thursday: { open: string; close: string; closed?: boolean };
+    friday: { open: string; close: string; closed?: boolean };
+    saturday: { open: string; close: string; closed?: boolean };
+    sunday: { open: string; close: string; closed?: boolean };
+  }>(),
+  
+  // Branding & Contact
+  businessPhone: text("business_phone"),
+  businessEmail: text("business_email"),
+  businessAddress: text("business_address"),
+  websiteUrl: text("website_url"),
+  socialMediaLinks: jsonb("social_media_links").$type<{
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    linkedin?: string;
+  }>(),
+  
+  // Service Features
+  enableRealTimeTracking: boolean("enable_real_time_tracking").default(true),
+  enableLoyaltyProgram: boolean("enable_loyalty_program").default(true),
+  enableScheduledDeliveries: boolean("enable_scheduled_deliveries").default(false),
+  enableMultiStopDeliveries: boolean("enable_multi_stop_deliveries").default(false),
+  
+  // Payment Options
+  acceptedPaymentMethods: text("accepted_payment_methods").array().default(sql`ARRAY['cash', 'credit_card', 'digital_wallet']`),
+  requirePaymentUpfront: boolean("require_payment_upfront").default(false),
+  
+  // Notifications
+  customerNotifications: jsonb("customer_notifications").$type<{
+    sms: boolean;
+    email: boolean;
+    push: boolean;
+  }>().default(sql`'{"sms": true, "email": true, "push": false}'`),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Service area zones for delivery pricing
+export const serviceZones = pgTable("service_zones", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").default(sql`'00000000-0000-0000-0000-000000000001'::uuid`).notNull(),
+  name: text("name").notNull(), // e.g., "Downtown", "Suburbs", "Extended Area"
+  description: text("description"),
+  deliveryFee: numeric("delivery_fee", { precision: 10, scale: 2 }).notNull(),
+  estimatedTime: integer("estimated_time_minutes").notNull(),
+  isActive: boolean("is_active").default(true),
+  zipCodes: text("zip_codes").array(),
+  boundaries: jsonb("boundaries"), // For future map integration
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Legacy users table (can be removed later)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -83,12 +156,32 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
+// Business settings schemas
+export const insertBusinessSettingsSchema = createInsertSchema(businessSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateBusinessSettingsSchema = insertBusinessSettingsSchema.partial();
+
+// Service zones schemas
+export const insertServiceZoneSchema = createInsertSchema(serviceZones).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateServiceZoneSchema = insertServiceZoneSchema.partial();
+
 // Tenant schemas
 export const insertTenantSchema = createInsertSchema(tenants).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
+
+export const updateTenantSchema = insertTenantSchema.partial();
 
 // Business schemas
 export const insertBusinessSchema = createInsertSchema(businesses).omit({
