@@ -848,14 +848,18 @@ export default function Home() {
                 <h4 className="font-semibold text-lg mb-4">Business Hours</h4>
                 <div className="space-y-3">
                   {businessSettings?.businessHours ? (
-                    Object.entries(businessSettings.businessHours).map(([day, hours]: [string, any]) => (
-                      <div key={day} className="flex justify-between">
-                        <span className="font-medium capitalize">{day}</span>
-                        <span className="text-gray-600">
-                          {hours.closed ? 'Closed' : `${formatTime(hours.open)} - ${formatTime(hours.close)}`}
-                        </span>
-                      </div>
-                    ))
+                    ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map((day) => {
+                      const hours = businessSettings.businessHours[day];
+                      if (!hours) return null;
+                      return (
+                        <div key={day} className="flex justify-between">
+                          <span className="font-medium capitalize">{day}</span>
+                          <span className="text-gray-600">
+                            {hours.closed ? 'Closed' : `${formatTime(hours.open)} - ${formatTime(hours.close)}`}
+                          </span>
+                        </div>
+                      );
+                    })
                   ) : (
                     <div className="space-y-3">
                       <div className="flex justify-between">
