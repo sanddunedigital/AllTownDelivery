@@ -200,31 +200,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/business-settings", async (req, res) => {
     try {
       const tenantId = getCurrentTenantId(req);
-      const settings = await storage.getBusinessSettings(tenantId);
+      const dbSettings = await storage.getBusinessSettings(tenantId);
       
-      // Return only public-facing settings
+      if (!dbSettings) {
+        return res.status(404).json({ message: "Business settings not found" });
+      }
+      
+      // Transform database fields to public settings (same logic as admin endpoint)
       const publicSettings = {
-        businessName: settings?.businessName,
-        businessPhone: settings?.businessPhone,
-        businessAddress: settings?.businessAddress,
-        primaryColor: settings?.primaryColor,
-        secondaryColor: settings?.secondaryColor,
-        logoUrl: settings?.logoUrl,
-        businessHours: settings?.businessHours,
-        currency: settings?.currency,
-        timezone: settings?.timezone,
+        businessName: dbSettings.businessName,
+        businessPhone: dbSettings.businessPhone,
+        businessAddress: dbSettings.businessAddress,
+        primaryColor: dbSettings.primaryColor,
+        secondaryColor: dbSettings.secondaryColor,
+        logoUrl: dbSettings.logoUrl,
+        businessHours: dbSettings.operatingHours || {
+          monday: { open: '09:00', close: '17:00', closed: false },
+          tuesday: { open: '09:00', close: '17:00', closed: false },
+          wednesday: { open: '09:00', close: '17:00', closed: false },
+          thursday: { open: '09:00', close: '17:00', closed: false },
+          friday: { open: '09:00', close: '17:00', closed: false },
+          saturday: { open: '10:00', close: '16:00', closed: false },
+          sunday: { open: '12:00', close: '16:00', closed: true }
+        },
+        currency: dbSettings.currency,
+        timezone: dbSettings.timezone,
         deliveryPricing: {
-          basePrice: settings?.deliveryPricing?.basePrice,
-          pricePerMile: settings?.deliveryPricing?.pricePerMile,
-          minimumOrder: settings?.deliveryPricing?.minimumOrder,
-          freeDeliveryThreshold: settings?.deliveryPricing?.freeDeliveryThreshold,
-          rushDeliveryMultiplier: settings?.deliveryPricing?.rushDeliveryMultiplier
+          basePrice: parseFloat(dbSettings.baseDeliveryFee) || 5.00,
+          pricePerMile: parseFloat(dbSettings.pricePerMile) || 1.50,
+          minimumOrder: parseFloat(dbSettings.minimumOrderValue) || 10.00,
+          freeDeliveryThreshold: parseFloat(dbSettings.freeDeliveryThreshold) || 50.00,
+          rushDeliveryMultiplier: parseFloat(dbSettings.rushDeliveryMultiplier) || 1.5
         },
         features: {
-          loyaltyProgram: settings?.features?.loyaltyProgram,
-          realTimeTracking: settings?.features?.realTimeTracking,
-          scheduledDeliveries: settings?.features?.scheduledDeliveries,
-          multiplePaymentMethods: settings?.features?.multiplePaymentMethods
+          loyaltyProgram: dbSettings.enableLoyaltyProgram ?? true,
+          realTimeTracking: dbSettings.enableRealTimeTracking ?? true,
+          scheduledDeliveries: dbSettings.enableScheduledDeliveries ?? false,
+          multiplePaymentMethods: true
         }
       };
       
