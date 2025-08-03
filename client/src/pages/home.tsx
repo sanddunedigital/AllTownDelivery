@@ -48,6 +48,16 @@ interface LoyaltyInfo {
   deliveriesUntilNextFree: number;
 }
 
+// Helper function to format time from 24-hour to 12-hour format
+const formatTime = (time: string) => {
+  if (!time) return '';
+  const [hours, minutes] = time.split(':');
+  const hour = parseInt(hours, 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const formattedHour = hour % 12 || 12;
+  return `${formattedHour}:${minutes} ${ampm}`;
+};
+
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -837,14 +847,31 @@ export default function Home() {
               <CardContent className="p-0">
                 <h4 className="font-semibold text-lg mb-4">Business Hours</h4>
                 <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Monday</span>
-                    <span className="text-gray-600">9:00 AM - 4:00 PM</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Tuesday - Sunday</span>
-                    <span className="text-gray-600">9:00 AM - 9:00 PM</span>
-                  </div>
+                  {businessSettings?.businessHours ? (
+                    Object.entries(businessSettings.businessHours).map(([day, hours]: [string, any]) => (
+                      <div key={day} className="flex justify-between">
+                        <span className="font-medium capitalize">{day}</span>
+                        <span className="text-gray-600">
+                          {hours.closed ? 'Closed' : `${formatTime(hours.open)} - ${formatTime(hours.close)}`}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="font-medium">Monday</span>
+                        <span className="text-gray-600">9:00 AM - 5:00 PM</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Tuesday - Friday</span>
+                        <span className="text-gray-600">9:00 AM - 5:00 PM</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Saturday - Sunday</span>
+                        <span className="text-gray-600">Closed</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="mt-8 pt-6 border-t">
