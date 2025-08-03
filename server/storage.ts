@@ -587,18 +587,11 @@ export class DatabaseStorage implements IStorage {
 
   // Business settings methods
   async getBusinessSettings(tenantId: string): Promise<any> {
-    if (!(await this.testConnection())) {
-      throw new Error("Database connection unavailable");
-    }
     const result = await db.select().from(businessSettings).where(eq(businessSettings.tenantId, tenantId));
     return result[0] || null;
   }
 
   async updateBusinessSettings(tenantId: string, settings: any): Promise<any> {
-    if (!(await this.testConnection())) {
-      throw new Error("Database connection unavailable");
-    }
-    
     // Check if settings exist for this tenant
     const existing = await this.getBusinessSettings(tenantId);
     
