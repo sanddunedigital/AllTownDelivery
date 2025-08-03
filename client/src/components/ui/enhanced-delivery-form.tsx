@@ -384,19 +384,36 @@ export function EnhancedDeliveryForm() {
                   <FormField
                     control={form.control}
                     name="preferredDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Pick up Date *</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="date" 
-                            min={new Date().toISOString().split('T')[0]}
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const scheduledDeliveriesEnabled = businessSettings?.features?.scheduledDeliveries === true;
+                      const todayDate = new Date().toISOString().split('T')[0];
+                      
+                      // If scheduled deliveries are disabled, lock to today's date
+                      if (!scheduledDeliveriesEnabled && field.value !== todayDate) {
+                        field.onChange(todayDate);
+                      }
+                      
+                      return (
+                        <FormItem>
+                          <FormLabel>Pick up Date *</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="date" 
+                              min={todayDate}
+                              disabled={!scheduledDeliveriesEnabled}
+                              value={scheduledDeliveriesEnabled ? field.value : todayDate}
+                              onChange={scheduledDeliveriesEnabled ? field.onChange : undefined}
+                            />
+                          </FormControl>
+                          {!scheduledDeliveriesEnabled && (
+                            <p className="text-sm text-muted-foreground">
+                              Scheduled deliveries are not available. Orders can only be placed for today.
+                            </p>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   
                   <FormField
