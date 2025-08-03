@@ -110,11 +110,12 @@ Preferred communication style: Simple, everyday language.
 
 ### Recent Changes (August 3, 2025)
 
-- **Business Settings Data Fix**: Resolved critical data structure mismatch between form and database that prevented settings persistence
-- **Field Mapping Implementation**: Added proper transformation layer to map form fields (deliveryPricing.basePrice) to database fields (baseDeliveryFee)
-- **API Transformation**: Enhanced /api/admin/business-settings endpoints with bidirectional data conversion between form schema and database schema
-- **Settings Persistence**: Business settings form now successfully saves and retrieves all configuration changes including pricing, contact info, and features
-- **Data Type Handling**: Fixed string/number conversion issues ensuring proper data types throughout the transformation pipeline
+- **Complete Business Settings Fix**: Resolved all field mapping issues - all pricing fields now save and persist correctly to Supabase database
+- **Enhanced Database Schema**: Added missing pricing columns (pricePerMile, minimumOrderValue, rushDeliveryMultiplier) to business_settings table
+- **Full Field Mapping**: All 5 pricing fields (basePrice, pricePerMile, minimumOrder, freeDeliveryThreshold, rushDeliveryMultiplier) now map properly between form and database
+- **API Transformation**: Enhanced /api/admin/business-settings endpoints with complete bidirectional data conversion for all fields
+- **Database Migration**: Added price_per_mile, minimum_order_value, and rush_delivery_multiplier columns with proper defaults
+- **Persistence Verification**: Confirmed all business settings save correctly to database with accurate toast notifications
 
 ### Previous Changes (August 1, 2025)
 

@@ -83,7 +83,10 @@ export const businessSettings = pgTable("business_settings", {
   
   // Pricing Configuration
   baseDeliveryFee: numeric("base_delivery_fee", { precision: 10, scale: 2 }).default("5.00"),
+  pricePerMile: numeric("price_per_mile", { precision: 10, scale: 2 }).default("1.50"),
+  minimumOrderValue: numeric("minimum_order_value", { precision: 10, scale: 2 }).default("10.00"),
   urgentDeliveryFee: numeric("urgent_delivery_fee", { precision: 10, scale: 2 }).default("10.00"),
+  rushDeliveryMultiplier: numeric("rush_delivery_multiplier", { precision: 10, scale: 2 }).default("1.5"),
   freeDeliveryThreshold: numeric("free_delivery_threshold", { precision: 10, scale: 2 }),
   loyaltyPointsPerDollar: integer("loyalty_points_per_dollar").default(1),
   pointsForFreeDelivery: integer("points_for_free_delivery").default(10),

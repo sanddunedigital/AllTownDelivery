@@ -501,10 +501,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         deliveryPricing: {
           basePrice: parseFloat(dbSettings.baseDeliveryFee) || 5.00,
-          pricePerMile: 1.50,
-          minimumOrder: 10.00,
+          pricePerMile: parseFloat(dbSettings.pricePerMile) || 1.50,
+          minimumOrder: parseFloat(dbSettings.minimumOrderValue) || 10.00,
           freeDeliveryThreshold: parseFloat(dbSettings.freeDeliveryThreshold) || 50.00,
-          rushDeliveryMultiplier: 1.5
+          rushDeliveryMultiplier: parseFloat(dbSettings.rushDeliveryMultiplier) || 1.5
         },
         notifications: {
           emailNotifications: dbSettings.customerNotifications?.email ?? true,
@@ -548,6 +548,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timezone: formData.timezone,
         operatingHours: formData.businessHours,
         baseDeliveryFee: formData.deliveryPricing?.basePrice?.toString() || "5.00",
+        pricePerMile: formData.deliveryPricing?.pricePerMile?.toString() || "1.50",
+        minimumOrderValue: formData.deliveryPricing?.minimumOrder?.toString() || "10.00",
+        rushDeliveryMultiplier: formData.deliveryPricing?.rushDeliveryMultiplier?.toString() || "1.5",
         urgentDeliveryFee: formData.deliveryPricing?.basePrice ? 
           (parseFloat(formData.deliveryPricing.basePrice) + 5.00).toString() : 
           "10.00",
@@ -580,10 +583,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         businessHours: dbSettings.operatingHours || formData.businessHours,
         deliveryPricing: {
           basePrice: parseFloat(dbSettings.baseDeliveryFee) || 5.00,
-          pricePerMile: 1.50,
-          minimumOrder: 10.00,
+          pricePerMile: parseFloat(dbSettings.pricePerMile) || 1.50,
+          minimumOrder: parseFloat(dbSettings.minimumOrderValue) || 10.00,
           freeDeliveryThreshold: parseFloat(dbSettings.freeDeliveryThreshold) || 50.00,
-          rushDeliveryMultiplier: 1.5
+          rushDeliveryMultiplier: parseFloat(dbSettings.rushDeliveryMultiplier) || 1.5
         },
         notifications: {
           emailNotifications: dbSettings.customerNotifications?.email ?? true,
