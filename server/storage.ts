@@ -847,6 +847,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.dbStorage.updateBusinessSettings(tenantId, settings);
     } catch (error) {
+      console.error("Database error in updateBusinessSettings:", error);
       console.warn("Database unavailable, using memory storage");
       return await this.memStorage.updateBusinessSettings(tenantId, settings);
     }
