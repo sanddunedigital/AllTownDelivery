@@ -595,11 +595,18 @@ export class DatabaseStorage implements IStorage {
     // Check if settings exist for this tenant
     const existing = await this.getBusinessSettings(tenantId);
     
+    // Clean the settings object and ensure proper Date handling
+    const cleanSettings = { ...settings };
+    delete cleanSettings.id;
+    delete cleanSettings.tenantId;
+    delete cleanSettings.createdAt;
+    delete cleanSettings.updatedAt;
+    
     if (existing) {
       // Update existing settings
       const result = await db
         .update(businessSettings)
-        .set({ ...settings, updatedAt: new Date() })
+        .set({ ...cleanSettings, updatedAt: new Date() })
         .where(eq(businessSettings.tenantId, tenantId))
         .returning();
       return result[0];
@@ -607,7 +614,7 @@ export class DatabaseStorage implements IStorage {
       // Create new settings
       const result = await db
         .insert(businessSettings)
-        .values({ ...settings, tenantId })
+        .values({ ...cleanSettings, tenantId, createdAt: new Date(), updatedAt: new Date() })
         .returning();
       return result[0];
     }
