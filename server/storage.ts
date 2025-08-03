@@ -95,6 +95,7 @@ export class MemStorage implements IStorage {
   async createUserProfile(insertProfile: InsertUserProfile): Promise<UserProfile> {
     const profile: UserProfile = {
       ...insertProfile,
+      tenantId: insertProfile.tenantId || "00000000-0000-0000-0000-000000000001",
       fullName: insertProfile.fullName || null,
       phone: insertProfile.phone || null,
       defaultPickupAddress: insertProfile.defaultPickupAddress || null,
@@ -162,6 +163,7 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const request: DeliveryRequest = { 
       ...insertRequest,
+      tenantId: insertRequest.tenantId || "00000000-0000-0000-0000-000000000001",
       userId: insertRequest.userId || null,
       businessId: insertRequest.businessId || null,
       specialInstructions: insertRequest.specialInstructions || null,
@@ -271,6 +273,7 @@ export class MemStorage implements IStorage {
     const business: Business = {
       ...insertBusiness,
       id,
+      tenantId: insertBusiness.tenantId || "00000000-0000-0000-0000-000000000001",
       website: insertBusiness.website || null,
       category: insertBusiness.category || null,
       isActive: insertBusiness.isActive ?? true,
