@@ -79,7 +79,7 @@ export default function Home() {
   // Fetch user loyalty info if logged in and loyalty program is enabled
   const { data: loyaltyInfo } = useQuery<LoyaltyInfo>({
     queryKey: [`/api/users/${user?.id}/loyalty`],
-    enabled: !!user?.id && businessSettings?.features?.loyaltyProgram,
+    enabled: !!user?.id && !!businessSettings?.features?.loyaltyProgram,
     refetchInterval: 120000, // Refresh every 2 minutes
   });
 
