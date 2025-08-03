@@ -78,6 +78,11 @@ export default function Home() {
 
   // Fetch user loyalty info if logged in and loyalty program is enabled
   const loyaltyEnabled = !!user?.id && businessSettings?.features?.loyaltyProgram === true;
+  
+  // Debug logging
+  console.log('Home page - loyaltyEnabled:', loyaltyEnabled);
+  console.log('Home page - businessSettings?.features?.loyaltyProgram:', businessSettings?.features?.loyaltyProgram);
+  
   const { data: loyaltyInfo } = useQuery<LoyaltyInfo>({
     queryKey: [`/api/users/${user?.id}/loyalty`],
     enabled: loyaltyEnabled,
