@@ -309,7 +309,14 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   private async testConnection(): Promise<boolean> {
-    return true; // Temporarily disable connection test to force database usage
+    try {
+      // Test the database connection with a simple query
+      await db.execute(sql`SELECT 1`);
+      return true;
+    } catch (error) {
+      console.error("Database connection test failed:", error);
+      return false;
+    }
   }
 
   // Legacy user methods
