@@ -108,7 +108,15 @@ Preferred communication style: Simple, everyday language.
 - Storage interface allows seamless transition from memory to database
 - Environment variable configuration for database URL
 
-### Recent Changes (August 1, 2025)
+### Recent Changes (August 3, 2025)
+
+- **Business Settings Data Fix**: Resolved critical data structure mismatch between form and database that prevented settings persistence
+- **Field Mapping Implementation**: Added proper transformation layer to map form fields (deliveryPricing.basePrice) to database fields (baseDeliveryFee)
+- **API Transformation**: Enhanced /api/admin/business-settings endpoints with bidirectional data conversion between form schema and database schema
+- **Settings Persistence**: Business settings form now successfully saves and retrieves all configuration changes including pricing, contact info, and features
+- **Data Type Handling**: Fixed string/number conversion issues ensuring proper data types throughout the transformation pipeline
+
+### Previous Changes (August 1, 2025)
 
 - **Multi-Tenant Architecture Foundation**: Implemented tenant-ready database structure and middleware for future SaaS expansion
 - **Tenant System**: Added tenants table with support for subdomains, custom domains, and company-specific branding

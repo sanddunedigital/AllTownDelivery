@@ -471,7 +471,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/business-settings", async (req, res) => {
     try {
       const tenantId = getCurrentTenantId(req);
-      const settings = await storage.getBusinessSettings(tenantId);
+      const dbSettings = await storage.getBusinessSettings(tenantId);
+      
+      if (!dbSettings) {
+        return res.json(null);
+      }
+      
+      // Transform database fields to form schema
+      const settings = {
+        id: dbSettings.id,
+        tenantId: dbSettings.tenantId,
+        businessName: dbSettings.businessName || "Sara's Quickie Delivery",
+        businessEmail: dbSettings.businessEmail || "contact@sarasquickiedelivery.com",
+        businessPhone: dbSettings.businessPhone || "(641) 673-0123",
+        businessAddress: dbSettings.businessAddress || "Oskaloosa, IA",
+        logoUrl: dbSettings.logoUrl,
+        primaryColor: dbSettings.primaryColor || "#0369a1",
+        secondaryColor: dbSettings.secondaryColor || "#64748b",
+        currency: dbSettings.currency || "USD",
+        timezone: dbSettings.timezone || "America/Chicago",
+        businessHours: dbSettings.operatingHours || {
+          monday: { open: '09:00', close: '17:00', closed: false },
+          tuesday: { open: '09:00', close: '17:00', closed: false },
+          wednesday: { open: '09:00', close: '17:00', closed: false },
+          thursday: { open: '09:00', close: '17:00', closed: false },
+          friday: { open: '09:00', close: '17:00', closed: false },
+          saturday: { open: '10:00', close: '16:00', closed: false },
+          sunday: { open: '12:00', close: '16:00', closed: true }
+        },
+        deliveryPricing: {
+          basePrice: parseFloat(dbSettings.baseDeliveryFee) || 5.00,
+          pricePerMile: 1.50,
+          minimumOrder: 10.00,
+          freeDeliveryThreshold: parseFloat(dbSettings.freeDeliveryThreshold) || 50.00,
+          rushDeliveryMultiplier: 1.5
+        },
+        notifications: {
+          emailNotifications: dbSettings.customerNotifications?.email ?? true,
+          smsNotifications: dbSettings.customerNotifications?.sms ?? false,
+          customerUpdates: true,
+          driverAlerts: true
+        },
+        features: {
+          loyaltyProgram: dbSettings.enableLoyaltyProgram ?? true,
+          realTimeTracking: dbSettings.enableRealTimeTracking ?? true,
+          scheduledDeliveries: dbSettings.enableScheduledDeliveries ?? false,
+          multiplePaymentMethods: true
+        },
+        createdAt: dbSettings.createdAt,
+        updatedAt: dbSettings.updatedAt
+      };
+      
       res.json(settings);
     } catch (error) {
       console.error("Error fetching business settings:", error);
@@ -483,7 +533,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/admin/business-settings", async (req, res) => {
     try {
       const tenantId = getCurrentTenantId(req);
-      const settings = await storage.updateBusinessSettings(tenantId, req.body);
+      
+      // Transform form schema to database fields
+      const formData = req.body;
+      const dbData = {
+        businessName: formData.businessName,
+        businessEmail: formData.businessEmail,
+        businessPhone: formData.businessPhone,
+        businessAddress: formData.businessAddress,
+        logoUrl: formData.logoUrl,
+        primaryColor: formData.primaryColor,
+        secondaryColor: formData.secondaryColor,
+        currency: formData.currency,
+        timezone: formData.timezone,
+        operatingHours: formData.businessHours,
+        baseDeliveryFee: formData.deliveryPricing?.basePrice?.toString() || "5.00",
+        urgentDeliveryFee: formData.deliveryPricing?.basePrice ? 
+          (parseFloat(formData.deliveryPricing.basePrice) + 5.00).toString() : 
+          "10.00",
+        freeDeliveryThreshold: formData.deliveryPricing?.freeDeliveryThreshold?.toString() || null,
+        customerNotifications: {
+          email: formData.notifications?.emailNotifications ?? true,
+          sms: formData.notifications?.smsNotifications ?? false,
+          push: false
+        },
+        enableLoyaltyProgram: formData.features?.loyaltyProgram ?? true,
+        enableRealTimeTracking: formData.features?.realTimeTracking ?? true,
+        enableScheduledDeliveries: formData.features?.scheduledDeliveries ?? false
+      };
+      
+      const settings = await storage.updateBusinessSettings(tenantId, dbData);
       res.json(settings);
     } catch (error) {
       console.error("Error updating business settings:", error);
