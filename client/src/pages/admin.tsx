@@ -431,7 +431,7 @@ function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
               Business Analytics
@@ -443,10 +443,6 @@ function AdminDashboard() {
             <TabsTrigger value="businesses">
               <Store className="w-4 h-4 mr-2" />
               Business Network
-            </TabsTrigger>
-            <TabsTrigger value="settings">
-              <Settings className="w-4 h-4 mr-2" />
-              Business Settings
             </TabsTrigger>
           </TabsList>
 
@@ -1099,27 +1095,7 @@ function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  Business Settings
-                </CardTitle>
-                <CardDescription>
-                  Configure your delivery service preferences and pricing
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">Business settings are now available in the navigation menu</p>
-                  <p className="text-sm text-muted-foreground">
-                    Click your profile menu in the top right, then select "Business Settings" to configure pricing, hours, and service zones.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+
         </Tabs>
       </div>
     </div>

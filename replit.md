@@ -124,6 +124,9 @@ Preferred communication style: Simple, everyday language.
 - **Storage Bucket Setup**: Created business-images bucket in Supabase Storage with proper public access configuration
 - **Visual Enhancement**: Business listings now display images alongside business information with responsive design
 - **Error Handling**: Automatic bucket creation if missing, with comprehensive upload error handling and user feedback
+- **Business Settings Integration**: Connected business settings to control actual delivery pricing, loyalty program behavior, and customer experience
+- **Live Pricing Display**: Delivery form now shows current fees and thresholds based on business settings configuration
+- **Admin Interface Cleanup**: Removed business settings tab from admin dashboard - settings now only accessible via dropdown navigation
 
 ### Previous Changes (July 31, 2025)
 
