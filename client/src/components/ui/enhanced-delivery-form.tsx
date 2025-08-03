@@ -470,12 +470,7 @@ export function EnhancedDeliveryForm() {
                             <span>+ ${businessSettings.deliveryPricing.pricePerMile?.toFixed(2)} per mile</span>
                           </div>
                         )}
-                        {businessSettings.deliveryPricing.freeDeliveryThreshold > 0 && (
-                          <div className="flex justify-between items-center text-green-700 font-medium border-t pt-2">
-                            <span>Free delivery on orders over:</span>
-                            <span>${businessSettings.deliveryPricing.freeDeliveryThreshold?.toFixed(2)}</span>
-                          </div>
-                        )}
+
                         {loyaltyInfo?.freeDeliveryCredits > 0 && (
                           <div className="flex justify-between items-center text-blue-700 font-medium border-t pt-2">
                             <Gift className="w-4 h-4 mr-1 inline" />
