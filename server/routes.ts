@@ -214,6 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         businessAddress: dbSettings.businessAddress,
         primaryColor: dbSettings.primaryColor,
         secondaryColor: dbSettings.secondaryColor,
+        accentColor: dbSettings.accentColor,
         logoUrl: dbSettings.logoUrl,
         businessHours: dbSettings.operatingHours || {
           monday: { open: '09:00', close: '17:00', closed: false },
@@ -501,6 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         logoUrl: dbSettings.logoUrl,
         primaryColor: dbSettings.primaryColor || "#0369a1",
         secondaryColor: dbSettings.secondaryColor || "#64748b",
+        accentColor: dbSettings.accentColor || "#ea580c",
         currency: dbSettings.currency || "USD",
         timezone: dbSettings.timezone || "America/Chicago",
         businessHours: dbSettings.operatingHours || {
@@ -557,6 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         logoUrl: formData.logoUrl,
         primaryColor: formData.primaryColor,
         secondaryColor: formData.secondaryColor,
+        accentColor: formData.accentColor,
         currency: formData.currency,
         timezone: formData.timezone,
         operatingHours: formData.businessHours,
@@ -591,6 +594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         logoUrl: dbSettings.logoUrl,
         primaryColor: dbSettings.primaryColor || "#0369a1",
         secondaryColor: dbSettings.secondaryColor || "#64748b",
+        accentColor: dbSettings.accentColor || "#ea580c",
         currency: dbSettings.currency || "USD",
         timezone: dbSettings.timezone || "America/Chicago",
         businessHours: dbSettings.operatingHours || formData.businessHours,
