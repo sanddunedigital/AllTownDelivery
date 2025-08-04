@@ -215,7 +215,7 @@ export default function Home() {
               
               {/* Auth Section */}
               {loading ? (
-                <div className="w-8 h-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></div>
+                <div className="w-8 h-8 animate-spin rounded-full border-2 border-accent border-t-transparent"></div>
               ) : user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -439,7 +439,7 @@ export default function Home() {
                         </div>
 
                         {delivery.status === 'available' && (
-                          <div className="flex items-center gap-2 text-sm text-orange-600">
+                          <div className="flex items-center gap-2 text-sm text-accent">
                             <AlertCircle className="h-4 w-4 animate-pulse" />
                             <span>Looking for available driver...</span>
                           </div>
@@ -476,12 +476,12 @@ export default function Home() {
       )}
 
       {/* Hero Section */}
-      <section className="relative pt-16 pb-20 bg-gradient-to-br from-orange-50 to-red-50">
+      <section className="relative pt-16 pb-20 bg-gradient-to-br from-accent-50 to-red-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               Fast & Reliable
-              <span className="text-orange-500 block">Delivery Service</span>
+              <span className="text-accent block">Delivery Service</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
               Sara's Quickie Delivery provides professional delivery services throughout Oskaloosa and surrounding areas. 
@@ -491,7 +491,7 @@ export default function Home() {
               <Button 
                 size="lg" 
                 onClick={() => scrollToSection('request-delivery')}
-                className="text-lg px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white"
+                className="text-lg px-8 py-3 bg-accent hover:bg-accent/90 text-accent-foreground"
               >
                 <Truck className="mr-2 h-5 w-5" />
                 Request Delivery Now
@@ -543,8 +543,8 @@ export default function Home() {
           
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-              <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                <ShoppingBag className="h-8 w-8 text-orange-500" />
+              <div className="mx-auto w-16 h-16 bg-accent-100 rounded-full flex items-center justify-center mb-4">
+                <ShoppingBag className="h-8 w-8 text-accent" />
               </div>
               <CardContent className="p-0">
                 <h3 className="text-xl font-semibold mb-2">Grocery Delivery</h3>
@@ -555,8 +555,8 @@ export default function Home() {
             </Card>
             
             <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-              <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                <Pill className="h-8 w-8 text-orange-500" />
+              <div className="mx-auto w-16 h-16 bg-accent-100 rounded-full flex items-center justify-center mb-4">
+                <Pill className="h-8 w-8 text-accent" />
               </div>
               <CardContent className="p-0">
                 <h3 className="text-xl font-semibold mb-2">Prescription Pickup</h3>
@@ -567,8 +567,8 @@ export default function Home() {
             </Card>
             
             <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-              <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                <Utensils className="h-8 w-8 text-orange-500" />
+              <div className="mx-auto w-16 h-16 bg-accent-100 rounded-full flex items-center justify-center mb-4">
+                <Utensils className="h-8 w-8 text-accent" />
               </div>
               <CardContent className="p-0">
                 <h3 className="text-xl font-semibold mb-2">Restaurant Delivery</h3>
@@ -582,21 +582,21 @@ export default function Home() {
           <div className="mt-12 text-center">
             <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
               <div className="flex items-center justify-center">
-                <Clock className="h-8 w-8 text-orange-500 mr-3" />
+                <Clock className="h-8 w-8 text-accent mr-3" />
                 <div className="text-left">
                   <h4 className="font-semibold">Fast Delivery</h4>
                   <p className="text-gray-600">Same-day delivery available</p>
                 </div>
               </div>
               <div className="flex items-center justify-center">
-                <Shield className="h-8 w-8 text-orange-500 mr-3" />
+                <Shield className="h-8 w-8 text-accent mr-3" />
                 <div className="text-left">
                   <h4 className="font-semibold">Secure & Safe</h4>
                   <p className="text-gray-600">Insured and reliable service</p>
                 </div>
               </div>
               <div className="flex items-center justify-center">
-                <MapPin className="h-8 w-8 text-orange-500 mr-3" />
+                <MapPin className="h-8 w-8 text-accent mr-3" />
                 <div className="text-left">
                   <h4 className="font-semibold">Local Coverage</h4>
                   <p className="text-gray-600">Serving Oskaloosa area</p>
@@ -679,7 +679,7 @@ export default function Home() {
                         <div className="flex-1">
                           <CardTitle className="text-lg">{business.name}</CardTitle>
                           <div className="flex items-center gap-2 mt-1">
-                            <CategoryIcon className="h-4 w-4 text-orange-500" />
+                            <CategoryIcon className="h-4 w-4 text-accent" />
                             <Badge variant="secondary" className="text-xs">
                               {business.category}
                             </Badge>
@@ -709,7 +709,7 @@ export default function Home() {
                           </a>
                         </div>
                       )}
-                      <div className="bg-gray-50 p-3 rounded-lg border-l-4 border-l-orange-500">
+                      <div className="bg-gray-50 p-3 rounded-lg border-l-4 border-l-accent">
                         <p className="text-xs font-medium text-gray-700 mb-1">Ordering Instructions:</p>
                         <p className="text-xs text-gray-600">{business.orderingInstructions}</p>
                       </div>
@@ -753,7 +753,7 @@ export default function Home() {
               Fill out the form below and we'll get your items delivered quickly!
             </p>
             {user && businessSettings?.features?.loyaltyProgram && (
-              <p className="text-orange-600 font-medium mt-2">
+              <p className="text-accent font-medium mt-2">
                 ✨ Signed in users get loyalty rewards - after 10 deliveries your next one is free!
               </p>
             )}
@@ -837,31 +837,31 @@ export default function Home() {
               <h3 className="text-2xl font-semibold mb-6">Get in Touch</h3>
               <div className="space-y-4">
                 <div className="flex items-center">
-                  <Phone className="h-6 w-6 text-orange-500 mr-4" />
+                  <Phone className="h-6 w-6 text-accent mr-4" />
                   <div>
                     <p className="font-semibold">Phone</p>
                     <a 
                       href={`tel:${businessSettings?.businessPhone || '(641) 638-0756'}`}
-                      className="text-gray-600 hover:text-orange-500 transition-colors"
+                      className="text-gray-600 hover:text-accent transition-colors"
                     >
                       {businessSettings?.businessPhone || '(641) 638-0756'}
                     </a>
                   </div>
                 </div>
                 <div className="flex items-center">
-                  <Mail className="h-6 w-6 text-orange-500 mr-4" />
+                  <Mail className="h-6 w-6 text-accent mr-4" />
                   <div>
                     <p className="font-semibold">Email</p>
                     <a 
                       href={`mailto:${businessSettings?.businessEmail || 'sarasquickiedelivery@gmail.com'}`}
-                      className="text-gray-600 hover:text-orange-500 transition-colors"
+                      className="text-gray-600 hover:text-accent transition-colors"
                     >
                       {businessSettings?.businessEmail || 'sarasquickiedelivery@gmail.com'}
                     </a>
                   </div>
                 </div>
                 <div className="flex items-center">
-                  <MapPin className="h-6 w-6 text-orange-500 mr-4" />
+                  <MapPin className="h-6 w-6 text-accent mr-4" />
                   <div>
                     <p className="font-semibold">Service Area</p>
                     <p className="text-gray-600">Oskaloosa, IA and surrounding areas</p>
