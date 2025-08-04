@@ -486,7 +486,7 @@ export default function Home() {
                 className="text-lg px-8 py-3"
               >
                 <Phone className="mr-2 h-5 w-5" />
-                Call (641) 638-0756
+                Call {businessSettings?.businessPhone || '(641) 638-0756'}
               </Button>
             </div>
             
@@ -823,7 +823,12 @@ export default function Home() {
                   <Phone className="h-6 w-6 text-orange-500 mr-4" />
                   <div>
                     <p className="font-semibold">Phone</p>
-                    <p className="text-gray-600">(641) 638-0756</p>
+                    <a 
+                      href={`tel:${businessSettings?.businessPhone || '(641) 638-0756'}`}
+                      className="text-gray-600 hover:text-orange-500 transition-colors"
+                    >
+                      {businessSettings?.businessPhone || '(641) 638-0756'}
+                    </a>
                   </div>
                 </div>
                 <div className="flex items-center">
@@ -922,7 +927,7 @@ export default function Home() {
                 Your trusted local delivery service in Oskaloosa, Iowa. Fast, reliable, and professional delivery solutions for all your needs.
               </p>
               <div className="flex space-x-4">
-                <a href="tel:(641) 638-0756" className="text-gray-300 hover:text-white transition-colors">
+                <a href={`tel:${businessSettings?.businessPhone || '(641) 638-0756'}`} className="text-gray-300 hover:text-white transition-colors">
                   <Phone className="h-5 w-5" />
                 </a>
                 <a href="mailto:sarasquickiedelivery@gmail.com" className="text-gray-300 hover:text-white transition-colors">
@@ -974,8 +979,18 @@ export default function Home() {
               <div className="space-y-2 text-gray-300">
                 <p>N I St</p>
                 <p>Oskaloosa, IA 52577</p>
-                <p>(641) 638-0756</p>
-                <p>sarasquickiedelivery@gmail.com</p>
+                <a 
+                  href={`tel:${businessSettings?.businessPhone || '(641) 638-0756'}`}
+                  className="hover:text-white transition-colors block"
+                >
+                  {businessSettings?.businessPhone || '(641) 638-0756'}
+                </a>
+                <a 
+                  href="mailto:sarasquickiedelivery@gmail.com"
+                  className="hover:text-white transition-colors block"
+                >
+                  sarasquickiedelivery@gmail.com
+                </a>
               </div>
             </div>
           </div>
