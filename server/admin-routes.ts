@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { eq, sql, and, gte, lte, desc, count } from 'drizzle-orm';
 import { db } from './db';
-import { userProfiles, deliveryRequests, businesses } from '@shared/schema';
+import { userProfiles, deliveryRequests, businesses, businessSettings } from '@shared/schema';
+
+const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
 
 const router = Router();
@@ -381,8 +383,15 @@ router.put('/business-settings/logo', async (req, res) => {
     const logoFilename = urlParts[urlParts.length - 1].split('?')[0]; // Remove query params
     const logoPath = `/public-objects/logos/${logoFilename}`;
 
-    // Here we would update the business settings in the database with the logo path
-    // For now, just return the public path for serving the logo
+    // Update the business settings in the database with the logo URL
+    const result = await db.update(businessSettings)
+      .set({
+        logoUrl: logoPath,
+        updatedAt: new Date()
+      })
+      .where(eq(businessSettings.tenantId, DEFAULT_TENANT_ID))
+      .returning();
+
     res.json({
       success: true,
       logoPath: logoPath,

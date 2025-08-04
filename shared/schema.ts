@@ -105,10 +105,16 @@ export const businessSettings = pgTable("business_settings", {
   }>(),
   
   // Branding & Contact
+  businessName: text("business_name"),
   businessPhone: text("business_phone"),
   businessEmail: text("business_email"),
   businessAddress: text("business_address"),
+  logoUrl: text("logo_url"),
   websiteUrl: text("website_url"),
+  primaryColor: text("primary_color").default("#0369a1"),
+  secondaryColor: text("secondary_color").default("#64748b"),
+  currency: text("currency").default("USD"),
+  timezone: text("timezone").default("America/Chicago"),
   socialMediaLinks: jsonb("social_media_links").$type<{
     facebook?: string;
     instagram?: string;

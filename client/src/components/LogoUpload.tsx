@@ -49,6 +49,13 @@ export function LogoUpload({
       return;
     }
 
+    // Show immediate preview while uploading
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
     setUploading(true);
 
     try {
