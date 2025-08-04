@@ -835,7 +835,12 @@ export default function Home() {
                   <Mail className="h-6 w-6 text-orange-500 mr-4" />
                   <div>
                     <p className="font-semibold">Email</p>
-                    <p className="text-gray-600">sarasquickiedelivery@gmail.com</p>
+                    <a 
+                      href={`mailto:${businessSettings?.businessEmail || 'sarasquickiedelivery@gmail.com'}`}
+                      className="text-gray-600 hover:text-orange-500 transition-colors"
+                    >
+                      {businessSettings?.businessEmail || 'sarasquickiedelivery@gmail.com'}
+                    </a>
                   </div>
                 </div>
                 <div className="flex items-center">
@@ -930,7 +935,7 @@ export default function Home() {
                 <a href={`tel:${businessSettings?.businessPhone || '(641) 638-0756'}`} className="text-gray-300 hover:text-white transition-colors">
                   <Phone className="h-5 w-5" />
                 </a>
-                <a href="mailto:sarasquickiedelivery@gmail.com" className="text-gray-300 hover:text-white transition-colors">
+                <a href={`mailto:${businessSettings?.businessEmail || 'sarasquickiedelivery@gmail.com'}`} className="text-gray-300 hover:text-white transition-colors">
                   <Mail className="h-5 w-5" />
                 </a>
               </div>
@@ -986,10 +991,10 @@ export default function Home() {
                   {businessSettings?.businessPhone || '(641) 638-0756'}
                 </a>
                 <a 
-                  href="mailto:sarasquickiedelivery@gmail.com"
+                  href={`mailto:${businessSettings?.businessEmail || 'sarasquickiedelivery@gmail.com'}`}
                   className="hover:text-white transition-colors block"
                 >
-                  sarasquickiedelivery@gmail.com
+                  {businessSettings?.businessEmail || 'sarasquickiedelivery@gmail.com'}
                 </a>
               </div>
             </div>
