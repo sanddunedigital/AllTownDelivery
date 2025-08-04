@@ -673,6 +673,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Object upload endpoint  
+  app.post("/api/objects/upload", async (req, res) => {
+    try {
+      // For now, we'll use a simple timestamp-based filename
+      // In production, you'd generate a proper presigned URL
+      const timestamp = Date.now();
+      const uploadURL = `/api/objects/upload/${timestamp}`;
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error generating upload URL:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Dispatch routes
   app.use('/api/dispatch', dispatchRoutes);
 

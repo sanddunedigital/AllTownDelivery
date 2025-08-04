@@ -35,6 +35,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCustomerDeliveriesRealtime } from "@/hooks/use-realtime";
 
 interface BusinessSettings {
+  businessPhone?: string;
+  businessEmail?: string;
+  businessHours?: {
+    [key: string]: { open: string; close: string; closed: boolean };
+  };
   features?: {
     loyaltyProgram?: boolean;
   };

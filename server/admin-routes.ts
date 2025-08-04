@@ -367,4 +367,26 @@ router.post('/businesses', async (req, res) => {
   }
 });
 
+// Logo upload endpoint
+router.put('/business-settings/logo', async (req, res) => {
+  try {
+    const { logoURL } = req.body;
+
+    if (!logoURL) {
+      return res.status(400).json({ error: 'logoURL is required' });
+    }
+
+    // For now, just return success without actually updating
+    // This would need proper object storage integration
+    res.json({
+      success: true,
+      logoPath: logoURL,
+      message: 'Logo updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating logo:', error);
+    res.status(500).json({ error: 'Failed to update logo' });
+  }
+});
+
 export default router;

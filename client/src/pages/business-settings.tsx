@@ -35,6 +35,7 @@ import {
   Truck
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import { LogoUpload } from '../components/LogoUpload';
 
 interface BusinessSettings {
   id?: string;
@@ -872,26 +873,31 @@ export default function BusinessSettingsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="logoUrl">Logo URL</Label>
-                    <Input
-                      id="logoUrl"
-                      value={settings.logoUrl || ''}
-                      onChange={(e) => setSettings(prev => ({ ...prev, logoUrl: e.target.value }))}
-                      placeholder="https://example.com/logo.png"
-                    />
-                  </div>
+                  <LogoUpload
+                    currentLogoUrl={settings.logoUrl}
+                    onLogoChange={(logoUrl) => setSettings(prev => ({ ...prev, logoUrl: logoUrl || undefined }))}
+                    businessName={settings.businessName}
+                  />
                   
                   <div className="border rounded-lg p-4 space-y-2">
                     <Label>Preview</Label>
                     <div className="bg-gray-50 p-4 rounded border" style={{ backgroundColor: settings.secondaryColor + '10' }}>
-                      <div 
-                        className="text-lg font-bold mb-2" 
-                        style={{ color: settings.primaryColor }}
-                      >
-                        {settings.businessName}
+                      <div className="flex items-center space-x-3 mb-2">
+                        {settings.logoUrl && (
+                          <img 
+                            src={settings.logoUrl} 
+                            alt="Business Logo" 
+                            className="h-8 w-auto object-contain"
+                          />
+                        )}
+                        <div 
+                          className="text-lg font-bold" 
+                          style={{ color: settings.primaryColor }}
+                        >
+                          {settings.businessName}
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">This is how your brand colors will appear</p>
+                      <p className="text-sm text-muted-foreground">This is how your brand colors and logo will appear</p>
                     </div>
                   </div>
                 </CardContent>
