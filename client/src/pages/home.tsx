@@ -173,13 +173,13 @@ export default function Home() {
                 <img 
                   src={businessSettings.logoUrl} 
                   alt={`${businessSettings.businessName || "Business"} Logo`} 
-                  className="h-10 w-auto"
+                  className="h-14 w-auto"
                 />
               ) : (
                 <img 
                   src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
                   alt="Sara's Quickie Delivery Logo" 
-                  className="h-10 w-auto"
+                  className="h-14 w-auto"
                 />
               )}
               <span className="ml-3 text-xl font-bold text-primary">
@@ -938,12 +938,22 @@ export default function Home() {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="md:col-span-2">
               <div className="flex items-center mb-4">
-                <img 
-                  src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
-                  alt="Sara's Quickie Delivery Logo" 
-                  className="h-8 w-auto"
-                />
-                <span className="ml-3 text-lg font-bold">Sara's Quickie Delivery</span>
+                {businessSettings?.logoUrl ? (
+                  <img 
+                    src={businessSettings.logoUrl} 
+                    alt={`${businessSettings.businessName || "Business"} Logo`} 
+                    className="h-10 w-auto"
+                  />
+                ) : (
+                  <img 
+                    src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
+                    alt="Sara's Quickie Delivery Logo" 
+                    className="h-10 w-auto"
+                  />
+                )}
+                <span className="ml-3 text-lg font-bold">
+                  {businessSettings?.businessName || "Sara's Quickie Delivery"}
+                </span>
               </div>
               <p className="text-gray-300 mb-4 max-w-md">
                 Your trusted local delivery service in Oskaloosa, Iowa. Fast, reliable, and professional delivery solutions for all your needs.
