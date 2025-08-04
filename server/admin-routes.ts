@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { eq, sql, and, gte, lte, desc, count } from 'drizzle-orm';
 import { db } from './db';
 import { userProfiles, deliveryRequests, businesses, businessSettings } from '@shared/schema';
-import { supabaseStorage } from './supabaseStorage';
 
 const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
@@ -370,37 +369,13 @@ router.post('/businesses', async (req, res) => {
   }
 });
 
-// Get Supabase upload URL for logo
-router.post('/logo/upload-url', async (req, res) => {
-  try {
-    await supabaseStorage.initializeBucket();
-    const uploadUrl = await supabaseStorage.getLogoUploadURL();
-    res.json({ uploadURL: uploadUrl });
-  } catch (error) {
-    console.error('Error getting upload URL:', error);
-    res.status(500).json({ error: 'Failed to get upload URL' });
-  }
-});
-
-// Update logo URL in database after successful Supabase upload
+// Update logo URL in database after successful client-side Supabase upload
 router.put('/business-settings/logo', async (req, res) => {
   try {
     const { logoURL } = req.body;
 
     if (!logoURL) {
       return res.status(400).json({ error: 'logoURL is required' });
-    }
-
-    // Get current settings to check for existing logo
-    const [currentSettings] = await db
-      .select()
-      .from(businessSettings)
-      .where(eq(businessSettings.tenantId, DEFAULT_TENANT_ID))
-      .limit(1);
-
-    // Delete old logo if it exists and it's a Supabase URL
-    if (currentSettings?.logoUrl && currentSettings.logoUrl.includes('supabase')) {
-      await supabaseStorage.deleteLogo(currentSettings.logoUrl);
     }
 
     // Store the full Supabase public URL directly

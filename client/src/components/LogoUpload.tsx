@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, X, Image } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface LogoUploadProps {
   currentLogoUrl?: string;
@@ -59,35 +60,62 @@ export function LogoUpload({
     setUploading(true);
 
     try {
-      // Get Supabase upload URL from backend
-      const uploadResponse = await fetch('/api/admin/logo/upload-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // Create a unique filename for the logo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
 
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to get upload URL');
+      // Upload to Supabase Storage directly
+      let uploadData;
+      let uploadError;
+      
+      const { data, error } = await supabase.storage
+        .from('business-assets')
+        .upload(filePath, file);
+
+      uploadData = data;
+      uploadError = error;
+
+      if (uploadError) {
+        // If bucket doesn't exist, try to create it first
+        if (uploadError.message.includes('Bucket not found')) {
+          try {
+            // Try to create the bucket
+            const { error: bucketError } = await supabase.storage
+              .createBucket('business-assets', {
+                public: true,
+                allowedMimeTypes: ['image/*'],
+                fileSizeLimit: 10485760 // 10MB
+              });
+            
+            if (bucketError && !bucketError.message.includes('already exists')) {
+              throw new Error(`Failed to create storage bucket: ${bucketError.message}`);
+            }
+            
+            // Retry upload after creating bucket
+            const { data: retryData, error: retryError } = await supabase.storage
+              .from('business-assets')
+              .upload(filePath, file);
+              
+            if (retryError) {
+              throw retryError;
+            }
+            
+            // Use retry data if successful
+            uploadData = retryData;
+            uploadError = null;
+          } catch (createError: any) {
+            throw new Error(`Storage setup failed: ${createError.message}`);
+          }
+        } else {
+          throw uploadError;
+        }
       }
 
-      const { uploadURL } = await uploadResponse.json();
-
-      // Upload file to Supabase Storage using the signed URL
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const uploadResult = await fetch(uploadURL, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadResult.ok) {
-        throw new Error('Failed to upload file to Supabase Storage');
-      }
-
-      // Extract the public URL from the upload URL (remove query parameters)
-      const publicUrl = uploadURL.split('?')[0];
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('business-assets')
+        .getPublicUrl(filePath);
 
       // Update backend with the public logo URL
       const updateResponse = await fetch('/api/admin/business-settings/logo', {
@@ -101,14 +129,14 @@ export function LogoUpload({
       });
 
       if (!updateResponse.ok) {
-        throw new Error('Failed to update logo');
+        throw new Error('Failed to update logo in database');
       }
 
       const { logoPath } = await updateResponse.json();
       
-      // Use the returned public URL for display
-      setPreview(logoPath);
-      onLogoChange(logoPath);
+      // Use the public URL for preview and callback
+      setPreview(publicUrl);
+      onLogoChange(publicUrl);
 
       toast({
         title: "Logo Uploaded",
