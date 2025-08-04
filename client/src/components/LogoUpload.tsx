@@ -59,10 +59,11 @@ export function LogoUpload({
         const dataUrl = e.target?.result as string;
         setPreview(dataUrl);
         onLogoChange(dataUrl);
+        setUploading(false);
 
         toast({
           title: "Logo Updated",
-          description: "Your business logo has been updated locally. Object storage integration coming soon!",
+          description: "Your business logo has been updated successfully!",
         });
       };
       reader.readAsDataURL(file);

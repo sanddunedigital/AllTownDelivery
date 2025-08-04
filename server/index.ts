@@ -5,8 +5,9 @@ import { runMigrations } from "./migrate";
 import { resolveTenant } from "./tenant";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// Increase body size limits to handle logo uploads (up to 10MB)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 // Add tenant resolution middleware early in the pipeline
 app.use(resolveTenant);
