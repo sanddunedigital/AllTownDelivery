@@ -173,13 +173,13 @@ export default function Home() {
                 <img 
                   src={businessSettings.logoUrl} 
                   alt={`${businessSettings.businessName || "Business"} Logo`} 
-                  className="h-14 w-auto"
+                  className="h-[7.5em] w-auto"
                 />
               ) : (
                 <img 
                   src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
                   alt="Sara's Quickie Delivery Logo" 
-                  className="h-14 w-auto"
+                  className="h-[7.5em] w-auto"
                 />
               )}
               <span className="ml-3 text-xl font-bold text-primary">
@@ -942,7 +942,7 @@ export default function Home() {
                   <img 
                     src={businessSettings.logoUrl} 
                     alt={`${businessSettings.businessName || "Business"} Logo`} 
-                    className="h-14 w-auto"
+                    className="h-[7.5em] w-auto"
                   />
                 ) : (
                   <img 
