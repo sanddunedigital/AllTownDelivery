@@ -52,6 +52,7 @@ interface BusinessSettings {
   logoUrl?: string;
   primaryColor: string;
   secondaryColor: string;
+  accentColor: string;
   currency: string;
   timezone: string;
   businessHours: {
@@ -116,6 +117,7 @@ const defaultSettings: Partial<BusinessSettings> = {
   businessAddress: "Oskaloosa, IA",
   primaryColor: "#0369a1",
   secondaryColor: "#64748b",
+  accentColor: "#ea580c",
   currency: "USD",
   timezone: "America/Chicago",
   businessHours: defaultBusinessHours,
@@ -903,6 +905,23 @@ export default function BusinessSettingsPage() {
                         />
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="accentColor">Accent Color</Label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          id="accentColor"
+                          type="color"
+                          value={settings.accentColor}
+                          onChange={(e) => setSettings(prev => ({ ...prev, accentColor: e.target.value }))}
+                          className="w-20 h-10"
+                        />
+                        <Input
+                          value={settings.accentColor}
+                          onChange={(e) => setSettings(prev => ({ ...prev, accentColor: e.target.value }))}
+                          placeholder="#ea580c"
+                        />
+                      </div>
+                    </div>
                   </div>
                   <LogoUpload
                     currentLogoUrl={settings.logoUrl}
@@ -913,7 +932,7 @@ export default function BusinessSettingsPage() {
                   <div className="border rounded-lg p-4 space-y-2">
                     <Label>Preview</Label>
                     <div className="bg-gray-50 p-4 rounded border" style={{ backgroundColor: settings.secondaryColor + '10' }}>
-                      <div className="flex items-center space-x-3 mb-2">
+                      <div className="flex items-center space-x-3 mb-4">
                         {settings.logoUrl && (
                           <img 
                             src={settings.logoUrl} 
@@ -928,7 +947,27 @@ export default function BusinessSettingsPage() {
                           {settings.businessName}
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">This is how your brand colors and logo will appear</p>
+                      <div className="flex items-center space-x-4 mb-2">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 rounded" style={{ backgroundColor: settings.primaryColor }}></div>
+                          <span className="text-xs">Primary</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 rounded" style={{ backgroundColor: settings.secondaryColor }}></div>
+                          <span className="text-xs">Secondary</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 rounded" style={{ backgroundColor: settings.accentColor }}></div>
+                          <span className="text-xs">Accent</span>
+                        </div>
+                      </div>
+                      <button 
+                        className="px-4 py-2 rounded text-white text-sm"
+                        style={{ backgroundColor: settings.accentColor }}
+                      >
+                        Sample Button
+                      </button>
+                      <p className="text-sm text-muted-foreground mt-2">This is how your brand colors and logo will appear</p>
                     </div>
                   </div>
                 </CardContent>

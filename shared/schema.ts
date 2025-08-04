@@ -113,6 +113,7 @@ export const businessSettings = pgTable("business_settings", {
   websiteUrl: text("website_url"),
   primaryColor: text("primary_color").default("#0369a1"),
   secondaryColor: text("secondary_color").default("#64748b"),
+  accentColor: text("accent_color").default("#ea580c"),
   currency: text("currency").default("USD"),
   timezone: text("timezone").default("America/Chicago"),
   socialMediaLinks: jsonb("social_media_links").$type<{

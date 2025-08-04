@@ -19,6 +19,11 @@
   --secondary-foreground: hsl(0, 0%, 0%);
   --accent: hsl(25, 95%, 53%);
   --accent-foreground: hsl(0, 0%, 100%);
+  /* Orange theme colors that should be dynamic */
+  --orange-500: hsl(25, 95%, 53%);
+  --orange-600: hsl(22, 93%, 44%);
+  --orange-100: hsl(34, 100%, 92%);
+  --orange-50: hsl(34, 100%, 97%);
   --destructive: hsl(0, 84.2%, 60.2%);
   --destructive-foreground: hsl(60, 9.1%, 97.8%);
   --ring: hsl(20, 14.3%, 4.1%);
@@ -44,6 +49,11 @@
   --secondary-foreground: hsl(240, 10%, 3.9%);
   --accent: hsl(25, 95%, 53%);
   --accent-foreground: hsl(0, 0%, 100%);
+  /* Orange theme colors that should be dynamic */
+  --orange-500: hsl(25, 95%, 53%);
+  --orange-600: hsl(22, 93%, 44%);
+  --orange-100: hsl(34, 100%, 92%);
+  --orange-50: hsl(34, 100%, 97%);
   --destructive: hsl(0, 62.8%, 30.6%);
   --destructive-foreground: hsl(0, 0%, 98%);
   --ring: hsl(240, 4.9%, 83.9%);
