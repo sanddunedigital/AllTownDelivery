@@ -65,56 +65,18 @@ export function LogoUpload({
       const fileName = `logo-${Date.now()}.${fileExt}`;
       const filePath = `logos/${fileName}`;
 
-      // Upload to Supabase Storage directly
-      let uploadData;
-      let uploadError;
-      
+      // Upload to Supabase Storage using the existing business-images bucket
       const { data, error } = await supabase.storage
-        .from('business-assets')
+        .from('business-images')
         .upload(filePath, file);
 
-      uploadData = data;
-      uploadError = error;
-
-      if (uploadError) {
-        // If bucket doesn't exist, try to create it first
-        if (uploadError.message.includes('Bucket not found')) {
-          try {
-            // Try to create the bucket
-            const { error: bucketError } = await supabase.storage
-              .createBucket('business-assets', {
-                public: true,
-                allowedMimeTypes: ['image/*'],
-                fileSizeLimit: 10485760 // 10MB
-              });
-            
-            if (bucketError && !bucketError.message.includes('already exists')) {
-              throw new Error(`Failed to create storage bucket: ${bucketError.message}`);
-            }
-            
-            // Retry upload after creating bucket
-            const { data: retryData, error: retryError } = await supabase.storage
-              .from('business-assets')
-              .upload(filePath, file);
-              
-            if (retryError) {
-              throw retryError;
-            }
-            
-            // Use retry data if successful
-            uploadData = retryData;
-            uploadError = null;
-          } catch (createError: any) {
-            throw new Error(`Storage setup failed: ${createError.message}`);
-          }
-        } else {
-          throw uploadError;
-        }
+      if (error) {
+        throw new Error(`Upload failed: ${error.message}`);
       }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('business-assets')
+        .from('business-images')
         .getPublicUrl(filePath);
 
       // Update backend with the public logo URL
@@ -146,9 +108,23 @@ export function LogoUpload({
       setUploading(false);
     } catch (error: any) {
       console.error('Logo upload error:', error);
+      
+      let errorMessage = "Failed to upload logo. Please try again.";
+      
+      // Provide more specific error messages
+      if (error.message) {
+        if (error.message.includes('row-level security policy')) {
+          errorMessage = "Storage permissions error. The bucket might need to be created manually in Supabase.";
+        } else if (error.message.includes('Bucket not found')) {
+          errorMessage = "Storage bucket not found. Please create 'business-assets' bucket in Supabase Storage.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Upload Failed",
-        description: error.message || "Failed to upload logo. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
       setUploading(false);
