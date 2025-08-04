@@ -242,13 +242,13 @@ function AdminDashboard() {
                   <img 
                     src={businessSettings.logoUrl} 
                     alt={`${businessSettings.businessName || "Business"} Logo`} 
-                    className="h-8 w-auto"
+                    className="h-14 w-auto"
                   />
                 ) : (
                   <img 
                     src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
                     alt="Sara's Quickie Delivery Logo" 
-                    className="h-8 w-auto"
+                    className="h-14 w-auto"
                   />
                 )}
                 <span className="ml-3 text-lg font-bold text-primary">
@@ -373,12 +373,22 @@ function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-              <img 
-                src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
-                alt="Sara's Quickie Delivery Logo" 
-                className="h-8 w-auto"
-              />
-              <span className="ml-3 text-lg font-bold text-primary">Sara's Quickie Delivery</span>
+              {businessSettings?.logoUrl ? (
+                <img 
+                  src={businessSettings.logoUrl} 
+                  alt={`${businessSettings.businessName || "Business"} Logo`} 
+                  className="h-14 w-auto"
+                />
+              ) : (
+                <img 
+                  src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
+                  alt="Sara's Quickie Delivery Logo" 
+                  className="h-14 w-auto"
+                />
+              )}
+              <span className="ml-3 text-lg font-bold text-primary">
+                {businessSettings?.businessName || "Sara's Quickie Delivery"}
+              </span>
             </Link>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Admin Dashboard</span>
