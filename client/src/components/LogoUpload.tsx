@@ -52,22 +52,60 @@ export function LogoUpload({
     setUploading(true);
 
     try {
-      // For now, create a data URL preview and store as base64
-      // In production, this would upload to object storage
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setPreview(dataUrl);
-        onLogoChange(dataUrl);
-        setUploading(false);
+      // Get upload URL from backend
+      const uploadResponse = await fetch('/api/objects/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-        toast({
-          title: "Logo Updated",
-          description: "Your business logo has been updated successfully!",
-        });
-      };
-      reader.readAsDataURL(file);
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+
+      const { uploadURL } = await uploadResponse.json();
+
+      // Upload file directly to object storage
+      const uploadResult = await fetch(uploadURL, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      // Update backend with logo URL
+      const updateResponse = await fetch('/api/admin/business-settings/logo', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          logoURL: uploadURL.split('?')[0], // Remove query parameters
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        throw new Error('Failed to update logo');
+      }
+
+      const { logoPath } = await updateResponse.json();
       
+      // Use the returned logo path for display
+      setPreview(logoPath);
+      onLogoChange(logoPath);
+
+      toast({
+        title: "Logo Uploaded",
+        description: "Your business logo has been uploaded successfully!",
+      });
+      
+      setUploading(false);
     } catch (error: any) {
       console.error('Logo upload error:', error);
       toast({
@@ -75,7 +113,6 @@ export function LogoUpload({
         description: error.message || "Failed to upload logo. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setUploading(false);
     }
   };

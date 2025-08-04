@@ -376,11 +376,16 @@ router.put('/business-settings/logo', async (req, res) => {
       return res.status(400).json({ error: 'logoURL is required' });
     }
 
-    // For now, just return success without actually updating
-    // This would need proper object storage integration
+    // Extract the object path from the signed URL for serving via public-objects
+    const urlParts = logoURL.split('/');
+    const logoFilename = urlParts[urlParts.length - 1].split('?')[0]; // Remove query params
+    const logoPath = `/public-objects/logos/${logoFilename}`;
+
+    // Here we would update the business settings in the database with the logo path
+    // For now, just return the public path for serving the logo
     res.json({
       success: true,
-      logoPath: logoURL,
+      logoPath: logoPath,
       message: 'Logo updated successfully'
     });
   } catch (error) {
