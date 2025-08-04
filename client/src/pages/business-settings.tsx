@@ -37,6 +37,11 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { LogoUpload } from '../components/LogoUpload';
 
+interface LogoBusinessSettings {
+  logoUrl?: string;
+  businessName?: string;
+}
+
 interface BusinessSettings {
   id?: string;
   tenantId: string;
@@ -148,6 +153,12 @@ export default function BusinessSettingsPage() {
     isActive: true
   });
 
+  // Fetch logo business settings for header
+  const { data: logoBusinessSettings } = useQuery<LogoBusinessSettings>({
+    queryKey: ['/api/business-settings'],
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
+
   // Fetch business settings
   const { data: businessSettings, isLoading: loadingSettings } = useQuery<BusinessSettings>({
     queryKey: ['/api/admin/business-settings'],
@@ -253,12 +264,22 @@ export default function BusinessSettingsPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-                <img 
-                  src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
-                  alt="Sara's Quickie Delivery Logo" 
-                  className="h-8 w-auto"
-                />
-                <span className="ml-3 text-lg font-bold text-primary">Sara's Quickie Delivery</span>
+                {logoBusinessSettings?.logoUrl ? (
+                  <img 
+                    src={logoBusinessSettings.logoUrl} 
+                    alt={`${logoBusinessSettings.businessName || "Business"} Logo`} 
+                    className="h-8 w-auto"
+                  />
+                ) : (
+                  <img 
+                    src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
+                    alt="Sara's Quickie Delivery Logo" 
+                    className="h-8 w-auto"
+                  />
+                )}
+                <span className="ml-3 text-lg font-bold text-primary">
+                  {logoBusinessSettings?.businessName || "Sara's Quickie Delivery"}
+                </span>
               </Link>
               <Link href="/">
                 <Button variant="outline" size="sm">
@@ -319,12 +340,22 @@ export default function BusinessSettingsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-              <img 
-                src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
-                alt="Sara's Quickie Delivery Logo" 
-                className="h-8 w-auto"
-              />
-              <span className="ml-3 text-lg font-bold text-primary">Sara's Quickie Delivery</span>
+              {logoBusinessSettings?.logoUrl ? (
+                <img 
+                  src={logoBusinessSettings.logoUrl} 
+                  alt={`${logoBusinessSettings.businessName || "Business"} Logo`} 
+                  className="h-8 w-auto"
+                />
+              ) : (
+                <img 
+                  src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
+                  alt="Sara's Quickie Delivery Logo" 
+                  className="h-8 w-auto"
+                />
+              )}
+              <span className="ml-3 text-lg font-bold text-primary">
+                {logoBusinessSettings?.businessName || "Sara's Quickie Delivery"}
+              </span>
             </Link>
             <div className="flex items-center space-x-4">
               <DropdownMenu>

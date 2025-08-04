@@ -13,6 +13,11 @@ import { toast } from '../hooks/use-toast';
 import { apiRequest } from '../lib/queryClient';
 import { useDriverProfileRealtime, useAvailableDeliveriesRealtime, useDriverDeliveriesRealtime } from '../hooks/use-realtime';
 import type { DeliveryRequest, UserProfile } from '@shared/schema';
+
+interface BusinessSettings {
+  logoUrl?: string;
+  businessName?: string;
+}
 import { Truck, Clock, MapPin, Phone, DollarSign, Package, Home, Power, PowerOff, User, ChevronDown, LogOut, Globe, Settings } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
@@ -27,6 +32,12 @@ export default function DriverPortal() {
   const { data: profile } = useQuery<UserProfile>({
     queryKey: [`/api/users/${user?.id}/profile`],
     enabled: !!user?.id
+  });
+
+  // Fetch business settings for branding
+  const { data: businessSettings } = useQuery<BusinessSettings>({
+    queryKey: ['/api/business-settings'],
+    refetchInterval: 300000, // Refresh every 5 minutes
   });
 
   // Set up real-time subscriptions
@@ -205,12 +216,22 @@ export default function DriverPortal() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-              <img 
-                src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
-                alt="Sara's Quickie Delivery Logo" 
-                className="h-8 w-auto"
-              />
-              <span className="ml-3 text-lg font-bold text-primary">Sara's Quickie Delivery</span>
+              {businessSettings?.logoUrl ? (
+                <img 
+                  src={businessSettings.logoUrl} 
+                  alt={`${businessSettings.businessName || "Business"} Logo`} 
+                  className="h-8 w-auto"
+                />
+              ) : (
+                <img 
+                  src="https://www.sarasquickiedelivery.com/uploads/b/355ffb41d51d1587e36487d7e874ef8e616e85c920dc275424910629c86f9cde/D40F3E6C-CFC1-4A36-B60A-A2E3D2E0596F_1678667317.jpeg?width=400" 
+                  alt="Sara's Quickie Delivery Logo" 
+                  className="h-8 w-auto"
+                />
+              )}
+              <span className="ml-3 text-lg font-bold text-primary">
+                {businessSettings?.businessName || "Sara's Quickie Delivery"}
+              </span>
             </Link>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Driver Portal</span>
