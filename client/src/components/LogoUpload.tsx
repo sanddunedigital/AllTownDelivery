@@ -59,8 +59,8 @@ export function LogoUpload({
     setUploading(true);
 
     try {
-      // Get upload URL from backend
-      const uploadResponse = await fetch('/api/objects/upload', {
+      // Get Supabase upload URL from backend
+      const uploadResponse = await fetch('/api/admin/logo/upload-url', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,27 +73,30 @@ export function LogoUpload({
 
       const { uploadURL } = await uploadResponse.json();
 
-      // Upload file directly to object storage
+      // Upload file to Supabase Storage using the signed URL
+      const formData = new FormData();
+      formData.append('file', file);
+
       const uploadResult = await fetch(uploadURL, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type,
-        },
+        method: 'POST',
+        body: formData,
       });
 
       if (!uploadResult.ok) {
-        throw new Error('Failed to upload file');
+        throw new Error('Failed to upload file to Supabase Storage');
       }
 
-      // Update backend with logo URL
+      // Extract the public URL from the upload URL (remove query parameters)
+      const publicUrl = uploadURL.split('?')[0];
+
+      // Update backend with the public logo URL
       const updateResponse = await fetch('/api/admin/business-settings/logo', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          logoURL: uploadURL.split('?')[0], // Remove query parameters
+          logoURL: publicUrl,
         }),
       });
 
@@ -103,7 +106,7 @@ export function LogoUpload({
 
       const { logoPath } = await updateResponse.json();
       
-      // Use the returned logo path for display
+      // Use the returned public URL for display
       setPreview(logoPath);
       onLogoChange(logoPath);
 

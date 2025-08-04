@@ -108,7 +108,14 @@ Preferred communication style: Simple, everyday language.
 - Storage interface allows seamless transition from memory to database
 - Environment variable configuration for database URL
 
-### Recent Changes (August 3, 2025)
+### Recent Changes (August 4, 2025)
+
+- **Supabase Storage Integration**: Migrated logo uploads from Replit object storage to Supabase Storage for unified cloud infrastructure
+- **Enhanced Logo Management**: Added automatic bucket creation, logo deletion on updates, and direct public URL storage
+- **Database Schema Enhancement**: Added logoUrl, businessName, primaryColor, secondaryColor, currency, and timezone fields to business settings
+- **Streamlined Upload Process**: Logo uploads now use Supabase signed URLs with FormData for improved reliability and integration
+
+### Previous Changes (August 3, 2025)
 
 - **Complete Business Settings Fix**: Resolved all field mapping issues - all pricing fields now save and persist correctly to Supabase database
 - **Enhanced Database Schema**: Added missing pricing columns (pricePerMile, minimumOrderValue, rushDeliveryMultiplier) to business_settings table
