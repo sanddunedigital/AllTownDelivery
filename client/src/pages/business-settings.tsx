@@ -68,8 +68,11 @@ interface BusinessSettings {
     basePrice: number;
     pricePerMile: number;
     minimumOrder: number;
-    freeDeliveryThreshold: number;
+    freeDeliveryThreshold: number; // Keep for backward compatibility but will be hidden
     rushDeliveryMultiplier: number;
+  };
+  loyaltyProgram: {
+    deliveriesForFreeDelivery: number;
   };
   notifications: {
     emailNotifications: boolean;
@@ -127,6 +130,9 @@ const defaultSettings: Partial<BusinessSettings> = {
     minimumOrder: 10.00,
     freeDeliveryThreshold: 50.00,
     rushDeliveryMultiplier: 1.5
+  },
+  loyaltyProgram: {
+    deliveriesForFreeDelivery: 10
   },
   notifications: {
     emailNotifications: true,
@@ -663,17 +669,21 @@ export default function BusinessSettingsPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="freeDeliveryThreshold">Free Delivery Threshold ($)</Label>
+                      <Label htmlFor="deliveriesForFree">Deliveries Until Free Delivery</Label>
                       <Input
-                        id="freeDeliveryThreshold"
+                        id="deliveriesForFree"
                         type="number"
-                        step="0.01"
-                        value={settings.deliveryPricing.freeDeliveryThreshold}
+                        step="1"
+                        min="1"
+                        value={settings.loyaltyProgram.deliveriesForFreeDelivery}
                         onChange={(e) => setSettings(prev => ({
                           ...prev,
-                          deliveryPricing: { ...prev.deliveryPricing, freeDeliveryThreshold: parseFloat(e.target.value) || 0 }
+                          loyaltyProgram: { ...prev.loyaltyProgram, deliveriesForFreeDelivery: parseInt(e.target.value) || 10 }
                         }))}
                       />
+                      <p className="text-sm text-gray-600">
+                        After this many paid deliveries, customers earn 1 free delivery credit
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="rushMultiplier">Rush Delivery Multiplier</Label>

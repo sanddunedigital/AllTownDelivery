@@ -521,6 +521,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           freeDeliveryThreshold: parseFloat(dbSettings.freeDeliveryThreshold) || 50.00,
           rushDeliveryMultiplier: parseFloat(dbSettings.rushDeliveryMultiplier) || 1.5
         },
+        loyaltyProgram: {
+          deliveriesForFreeDelivery: dbSettings.pointsForFreeDelivery || 10
+        },
         notifications: {
           emailNotifications: dbSettings.customerNotifications?.email ?? true,
           smsNotifications: dbSettings.customerNotifications?.sms ?? false,
@@ -571,6 +574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (parseFloat(formData.deliveryPricing.basePrice) + 5.00).toString() : 
           "10.00",
         freeDeliveryThreshold: formData.deliveryPricing?.freeDeliveryThreshold?.toString() || "50.00",
+        pointsForFreeDelivery: formData.loyaltyProgram?.deliveriesForFreeDelivery || 10,
         customerNotifications: {
           email: formData.notifications?.emailNotifications ?? true,
           sms: formData.notifications?.smsNotifications ?? false,
@@ -604,6 +608,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           minimumOrder: parseFloat(dbSettings.minimumOrderValue) || 10.00,
           freeDeliveryThreshold: parseFloat(dbSettings.freeDeliveryThreshold) || 50.00,
           rushDeliveryMultiplier: parseFloat(dbSettings.rushDeliveryMultiplier) || 1.5
+        },
+        loyaltyProgram: {
+          deliveriesForFreeDelivery: dbSettings.pointsForFreeDelivery || 10
         },
         notifications: {
           emailNotifications: dbSettings.customerNotifications?.email ?? true,
