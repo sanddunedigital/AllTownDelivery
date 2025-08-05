@@ -17,6 +17,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { ObjectStorageService } from "./objectStorage";
+import { googleMapsService } from "./googleMaps";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant Information Route
@@ -515,7 +516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sunday: { open: '12:00', close: '16:00', closed: true }
         },
         deliveryPricing: {
-          basePrice: parseFloat(dbSettings.baseDeliveryFee) || 5.00,
+          basePrice: parseFloat(dbSettings.baseDeliveryFee) || 3.00,
           pricePerMile: parseFloat(dbSettings.pricePerMile) || 1.50,
           minimumOrder: parseFloat(dbSettings.minimumOrderValue) || 10.00,
           freeDeliveryThreshold: parseFloat(dbSettings.freeDeliveryThreshold) || 50.00,
@@ -523,6 +524,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         loyaltyProgram: {
           deliveriesForFreeDelivery: dbSettings.pointsForFreeDelivery || 10
+        },
+        distanceSettings: {
+          baseFeeRadius: parseFloat(dbSettings.baseFeeRadius) || 10.0
         },
         notifications: {
           emailNotifications: dbSettings.customerNotifications?.email ?? true,
@@ -575,6 +579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "10.00",
         freeDeliveryThreshold: formData.deliveryPricing?.freeDeliveryThreshold?.toString() || "50.00",
         pointsForFreeDelivery: formData.loyaltyProgram?.deliveriesForFreeDelivery || 10,
+        baseFeeRadius: formData.distanceSettings?.baseFeeRadius?.toString() || "10.00",
         customerNotifications: {
           email: formData.notifications?.emailNotifications ?? true,
           sms: formData.notifications?.smsNotifications ?? false,
@@ -603,7 +608,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timezone: dbSettings.timezone || "America/Chicago",
         businessHours: dbSettings.operatingHours || formData.businessHours,
         deliveryPricing: {
-          basePrice: parseFloat(dbSettings.baseDeliveryFee) || 5.00,
+          basePrice: parseFloat(dbSettings.baseDeliveryFee) || 3.00,
           pricePerMile: parseFloat(dbSettings.pricePerMile) || 1.50,
           minimumOrder: parseFloat(dbSettings.minimumOrderValue) || 10.00,
           freeDeliveryThreshold: parseFloat(dbSettings.freeDeliveryThreshold) || 50.00,
@@ -611,6 +616,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         loyaltyProgram: {
           deliveriesForFreeDelivery: dbSettings.pointsForFreeDelivery || 10
+        },
+        distanceSettings: {
+          baseFeeRadius: parseFloat(dbSettings.baseFeeRadius) || 10.0
         },
         notifications: {
           emailNotifications: dbSettings.customerNotifications?.email ?? true,
@@ -632,6 +640,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating business settings:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Google Maps API Routes
+  
+  // Calculate distance between two addresses
+  app.post("/api/maps/calculate-distance", async (req, res) => {
+    try {
+      const { pickup, delivery } = req.body;
+      
+      if (!pickup || !delivery) {
+        return res.status(400).json({ 
+          message: "Both pickup and delivery addresses are required" 
+        });
+      }
+
+      const result = await googleMapsService.calculateDistance(pickup, delivery);
+      res.json(result);
+    } catch (error) {
+      console.error("Error calculating distance:", error);
+      res.status(500).json({ 
+        message: "Failed to calculate distance",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Validate an address
+  app.post("/api/maps/validate-address", async (req, res) => {
+    try {
+      const { address } = req.body;
+      
+      if (!address) {
+        return res.status(400).json({ 
+          message: "Address is required" 
+        });
+      }
+
+      const result = await googleMapsService.validateAddress(address);
+      res.json(result);
+    } catch (error) {
+      console.error("Error validating address:", error);
+      res.status(500).json({ 
+        message: "Failed to validate address",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Calculate delivery fee with distance
+  app.post("/api/maps/calculate-delivery-fee", async (req, res) => {
+    try {
+      const { pickup, delivery, isRush = false } = req.body;
+      
+      if (!pickup || !delivery) {
+        return res.status(400).json({ 
+          message: "Both pickup and delivery addresses are required" 
+        });
+      }
+
+      // Get business settings for pricing
+      const tenantId = getCurrentTenantId(req);
+      const businessSettings = await storage.getBusinessSettings(tenantId);
+      
+      if (!businessSettings) {
+        return res.status(404).json({ message: "Business settings not found" });
+      }
+
+      // Calculate distance
+      const distanceResult = await googleMapsService.calculateDistance(pickup, delivery);
+      
+      if (distanceResult.status !== 'OK') {
+        return res.status(400).json({
+          message: "Could not calculate distance",
+          error: distanceResult.errorMessage
+        });
+      }
+
+      // Calculate delivery fee
+      const deliveryFee = googleMapsService.calculateDeliveryFee(
+        distanceResult.distance,
+        {
+          baseDeliveryFee: parseFloat(businessSettings.baseDeliveryFee) || 3.00,
+          pricePerMile: parseFloat(businessSettings.pricePerMile) || 1.50,
+          baseFeeRadius: parseFloat(businessSettings.baseFeeRadius) || 10.0,
+          rushDeliveryMultiplier: parseFloat(businessSettings.rushDeliveryMultiplier) || 1.5
+        },
+        isRush
+      );
+
+      res.json({
+        distance: distanceResult.distance,
+        duration: distanceResult.duration,
+        deliveryFee: deliveryFee,
+        isWithinBaseRadius: distanceResult.distance <= (parseFloat(businessSettings.baseFeeRadius) || 10.0),
+        pricing: {
+          baseFee: parseFloat(businessSettings.baseDeliveryFee) || 3.00,
+          pricePerMile: parseFloat(businessSettings.pricePerMile) || 1.50,
+          baseFeeRadius: parseFloat(businessSettings.baseFeeRadius) || 10.0,
+          extraMiles: Math.max(0, distanceResult.distance - (parseFloat(businessSettings.baseFeeRadius) || 10.0))
+        }
+      });
+    } catch (error) {
+      console.error("Error calculating delivery fee:", error);
+      res.status(500).json({ 
+        message: "Failed to calculate delivery fee",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

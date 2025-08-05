@@ -18,6 +18,8 @@ import { apiRequest } from '@/lib/queryClient';
 import { insertDeliveryRequestGuestSchema, insertDeliveryRequestAuthenticatedSchema } from '@shared/schema';
 import { Loader2, Gift, User, LogIn, Star, MapPin, Phone, Globe } from 'lucide-react';
 import { z } from 'zod';
+import { AddressInput } from '@/components/AddressInput';
+import { DeliveryPriceCalculator } from '@/components/DeliveryPriceCalculator';
 
 export function EnhancedDeliveryForm() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -371,14 +373,32 @@ export function EnhancedDeliveryForm() {
                   name="deliveryAddress"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Delivery Address *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Where should we deliver your items?" {...field} />
-                      </FormControl>
+                      <AddressInput
+                        label="Delivery Address"
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Where should we deliver your items?"
+                        required
+                        id={field.name}
+                      />
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* Price Calculator */}
+                {selectedBusiness && form.watch('deliveryAddress') && (
+                  <DeliveryPriceCalculator
+                    pickupAddress={selectedBusiness.address || form.watch('pickupAddress')}
+                    deliveryAddress={form.watch('deliveryAddress')}
+                    isRush={false}
+                    onPriceCalculated={(data) => {
+                      // Price is displayed in the component itself
+                      console.log('Delivery fee calculated:', data.deliveryFee);
+                    }}
+                    className="mt-4"
+                  />
+                )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField

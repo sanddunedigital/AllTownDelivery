@@ -82,7 +82,7 @@ export const businessSettings = pgTable("business_settings", {
   tenantId: uuid("tenant_id").default(sql`'00000000-0000-0000-0000-000000000001'::uuid`).notNull(),
   
   // Pricing Configuration
-  baseDeliveryFee: numeric("base_delivery_fee", { precision: 10, scale: 2 }).default("5.00"),
+  baseDeliveryFee: numeric("base_delivery_fee", { precision: 10, scale: 2 }).default("3.00"),
   pricePerMile: numeric("price_per_mile", { precision: 10, scale: 2 }).default("1.50"),
   minimumOrderValue: numeric("minimum_order_value", { precision: 10, scale: 2 }).default("10.00"),
   urgentDeliveryFee: numeric("urgent_delivery_fee", { precision: 10, scale: 2 }).default("10.00"),
@@ -90,6 +90,7 @@ export const businessSettings = pgTable("business_settings", {
   freeDeliveryThreshold: numeric("free_delivery_threshold", { precision: 10, scale: 2 }),
   loyaltyPointsPerDollar: integer("loyalty_points_per_dollar").default(1),
   pointsForFreeDelivery: integer("points_for_free_delivery").default(10),
+  baseFeeRadius: numeric("base_fee_radius_miles", { precision: 10, scale: 2 }).default("10.00"), // Miles within base fee applies
   
   // Service Configuration
   maxDeliveryRadius: integer("max_delivery_radius_miles").default(25),

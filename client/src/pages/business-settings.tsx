@@ -74,6 +74,9 @@ interface BusinessSettings {
   loyaltyProgram: {
     deliveriesForFreeDelivery: number;
   };
+  distanceSettings: {
+    baseFeeRadius: number;
+  };
   notifications: {
     emailNotifications: boolean;
     smsNotifications: boolean;
@@ -125,7 +128,7 @@ const defaultSettings: Partial<BusinessSettings> = {
   timezone: "America/Chicago",
   businessHours: defaultBusinessHours,
   deliveryPricing: {
-    basePrice: 5.00,
+    basePrice: 3.00,
     pricePerMile: 1.50,
     minimumOrder: 10.00,
     freeDeliveryThreshold: 50.00,
@@ -133,6 +136,9 @@ const defaultSettings: Partial<BusinessSettings> = {
   },
   loyaltyProgram: {
     deliveriesForFreeDelivery: 10
+  },
+  distanceSettings: {
+    baseFeeRadius: 10.0
   },
   notifications: {
     emailNotifications: true,
@@ -683,6 +689,23 @@ export default function BusinessSettingsPage() {
                       />
                       <p className="text-sm text-gray-600">
                         After this many paid deliveries, customers earn 1 free delivery credit
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="baseFeeRadius">Base Fee Radius (miles)</Label>
+                      <Input
+                        id="baseFeeRadius"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={settings.distanceSettings.baseFeeRadius}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          distanceSettings: { ...prev.distanceSettings, baseFeeRadius: parseFloat(e.target.value) || 10.0 }
+                        }))}
+                      />
+                      <p className="text-sm text-gray-600">
+                        Deliveries within this distance get base fee only. Beyond this, per-mile charges apply.
                       </p>
                     </div>
                     <div className="space-y-2">
