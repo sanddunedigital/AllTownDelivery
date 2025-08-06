@@ -9,21 +9,18 @@ import { AddressInput } from '@/components/AddressInput';
 import { Link } from 'wouter';
 
 interface BusinessSettings {
-  businessName: string;
-  businessPhone: string;
-  businessAddress: string;
-  deliveryPricing: {
-    basePrice: number;
-    pricePerMile: number;
-    minimumOrder: number;
-    freeDeliveryThreshold: number;
+  businessName?: string;
+  businessPhone?: string;
+  businessAddress?: string;
+  deliveryPricing?: {
+    basePrice?: number;
+    pricePerMile?: number;
+    minimumOrder?: number;
+    freeDeliveryThreshold?: number;
   };
-  distanceSettings: {
-    baseFeeRadius: number;
-  };
-  primaryColor: string;
-  secondaryColor: string;
-  accentColor: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
 }
 
 interface PriceCalculation {
@@ -86,6 +83,13 @@ export default function PricingPage() {
     return <div className="flex justify-center items-center h-64">Loading pricing information...</div>;
   }
 
+  // Provide default values for missing fields
+  const baseFeeRadius = 10; // Default base fee radius
+  const basePrice = businessSettings.deliveryPricing?.basePrice || 3;
+  const pricePerMile = businessSettings.deliveryPricing?.pricePerMile || 1.5;
+  const minimumOrder = businessSettings.deliveryPricing?.minimumOrder || 0;
+  const freeDeliveryThreshold = businessSettings.deliveryPricing?.freeDeliveryThreshold || 25;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -128,18 +132,18 @@ export default function PricingPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <div className="text-2xl font-bold text-blue-600">
-                      ${businessSettings.deliveryPricing.basePrice.toFixed(2)}
+                      ${basePrice.toFixed(2)}
                     </div>
                     <div className="text-sm text-blue-600">
-                      Base Fee (within {businessSettings.distanceSettings.baseFeeRadius} mi)
+                      Base Fee (within {baseFeeRadius} mi)
                     </div>
                   </div>
                   <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                     <div className="text-2xl font-bold text-orange-600">
-                      ${businessSettings.deliveryPricing.pricePerMile.toFixed(2)}
+                      ${pricePerMile.toFixed(2)}
                     </div>
                     <div className="text-sm text-orange-600">
-                      Per Mile (after {businessSettings.distanceSettings.baseFeeRadius} mi)
+                      Per Mile (after {baseFeeRadius} mi)
                     </div>
                   </div>
                 </div>
@@ -149,15 +153,15 @@ export default function PricingPage() {
                   <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                     <li className="flex items-start">
                       <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                      Deliveries within {businessSettings.distanceSettings.baseFeeRadius} miles: flat ${businessSettings.deliveryPricing.basePrice.toFixed(2)} fee
+                      Deliveries within {baseFeeRadius} miles: flat ${basePrice.toFixed(2)} fee
                     </li>
                     <li className="flex items-start">
                       <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                      Beyond {businessSettings.distanceSettings.baseFeeRadius} miles: ${businessSettings.deliveryPricing.basePrice.toFixed(2)} + ${businessSettings.deliveryPricing.pricePerMile.toFixed(2)} per additional mile
+                      Beyond {baseFeeRadius} miles: ${basePrice.toFixed(2)} + ${pricePerMile.toFixed(2)} per additional mile
                     </li>
                     <li className="flex items-start">
                       <span className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                      Free delivery on orders over ${businessSettings.deliveryPricing.freeDeliveryThreshold.toFixed(2)}
+                      Free delivery on orders over ${freeDeliveryThreshold.toFixed(2)}
                     </li>
                   </ul>
                 </div>
@@ -207,7 +211,7 @@ export default function PricingPage() {
                   <Badge variant="secondary">Standard rate</Badge>
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  * Minimum order value: ${businessSettings.deliveryPricing.minimumOrder.toFixed(2)}
+                  * Minimum order value: ${minimumOrder.toFixed(2)}
                 </div>
               </CardContent>
             </Card>
