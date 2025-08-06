@@ -14,6 +14,9 @@ import AdminDashboard from "@/pages/admin";
 import BusinessSettings from "@/pages/business-settings";
 import ResetPassword from "@/pages/reset-password";
 import Auth from "@/pages/auth";
+import { lazy } from "react";
+
+const PricingPage = lazy(() => import("@/pages/pricing"));
 
 function Router() {
   // Initialize theme based on business settings
@@ -24,6 +27,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/auth" component={Auth} />
       <Route path="/profile" component={Profile} />
+      <Route path="/pricing" component={PricingPage} />
       <Route path="/driver" component={DriverPortal} />
       <Route path="/dispatch" component={DispatchCenter} />
       <Route path="/admin" component={AdminDashboard} />

@@ -19,7 +19,7 @@ import { insertDeliveryRequestGuestSchema, insertDeliveryRequestAuthenticatedSch
 import { Loader2, Gift, User, LogIn, Star, MapPin, Phone, Globe } from 'lucide-react';
 import { z } from 'zod';
 import { AddressInput } from '@/components/AddressInput';
-import { DeliveryPriceCalculator } from '@/components/DeliveryPriceCalculator';
+import { SimplePriceDisplay } from '@/components/SimplePriceDisplay';
 
 export function EnhancedDeliveryForm() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -27,6 +27,7 @@ export function EnhancedDeliveryForm() {
   const [submitting, setSubmitting] = useState(false);
   const [loyaltyInfo, setLoyaltyInfo] = useState<any>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
+  const [priceCalculation, setPriceCalculation] = useState<any>(null);
   
   // Fetch businesses
   const { data: businesses, isLoading: businessesLoading } = useQuery({
@@ -82,6 +83,40 @@ export function EnhancedDeliveryForm() {
       form.setValue('businessId', businessId);
     }
   };
+
+  // Calculate delivery price when addresses are available
+  useEffect(() => {
+    const pickupAddress = selectedBusiness?.address || form.watch('pickupAddress');
+    const deliveryAddress = form.watch('deliveryAddress');
+    
+    if (pickupAddress && deliveryAddress) {
+      const calculatePrice = async () => {
+        try {
+          const response = await fetch('/api/maps/calculate-delivery-fee', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              pickup: pickupAddress,
+              delivery: deliveryAddress,
+              isRush: false
+            }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setPriceCalculation(data);
+          }
+        } catch (error) {
+          console.error('Price calculation failed:', error);
+          setPriceCalculation(null);
+        }
+      };
+      
+      calculatePrice();
+    } else {
+      setPriceCalculation(null);
+    }
+  }, [selectedBusiness?.address, form.watch('pickupAddress'), form.watch('deliveryAddress')]);
 
   // Fetch loyalty info for authenticated users (only if loyalty program is enabled)
   useEffect(() => {
@@ -388,14 +423,9 @@ export function EnhancedDeliveryForm() {
 
                 {/* Price Calculator */}
                 {selectedBusiness && form.watch('deliveryAddress') && (
-                  <DeliveryPriceCalculator
-                    pickupAddress={selectedBusiness.address || form.watch('pickupAddress')}
-                    deliveryAddress={form.watch('deliveryAddress')}
+                  <SimplePriceDisplay
+                    result={priceCalculation}
                     isRush={false}
-                    onPriceCalculated={(data) => {
-                      // Price is displayed in the component itself
-                      console.log('Delivery fee calculated:', data.deliveryFee);
-                    }}
                     className="mt-4"
                   />
                 )}

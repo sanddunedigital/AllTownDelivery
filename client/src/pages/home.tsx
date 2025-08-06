@@ -194,6 +194,11 @@ export default function Home() {
               >
                 Services
               </button>
+              <Link href="/pricing">
+                <button className="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                  Pricing
+                </button>
+              </Link>
               <button 
                 onClick={() => scrollToSection('businesses')}
                 className="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
@@ -316,6 +321,11 @@ export default function Home() {
               >
                 Services
               </button>
+              <Link href="/pricing">
+                <button className="block w-full text-left px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md text-base font-medium">
+                  Pricing
+                </button>
+              </Link>
               <button 
                 onClick={() => scrollToSection('businesses')}
                 className="block w-full text-left px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md text-base font-medium"
