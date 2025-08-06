@@ -88,7 +88,6 @@ export default function PricingPage() {
   const basePrice = businessSettings.deliveryPricing?.basePrice || 3;
   const pricePerMile = businessSettings.deliveryPricing?.pricePerMile || 1.5;
   const minimumOrder = businessSettings.deliveryPricing?.minimumOrder || 0;
-  const freeDeliveryThreshold = businessSettings.deliveryPricing?.freeDeliveryThreshold || 25;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -159,10 +158,7 @@ export default function PricingPage() {
                       <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                       Beyond {baseFeeRadius} miles: ${basePrice.toFixed(2)} + ${pricePerMile.toFixed(2)} per additional mile
                     </li>
-                    <li className="flex items-start">
-                      <span className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                      Free delivery on orders over ${freeDeliveryThreshold.toFixed(2)}
-                    </li>
+
                   </ul>
                 </div>
               </CardContent>
@@ -229,8 +225,8 @@ export default function PricingPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Pickup Address</label>
                     <AddressInput
+                      label="Pickup Address"
                       value={pickupAddress}
                       onChange={setPickupAddress}
                       placeholder="Enter pickup address..."
@@ -238,8 +234,8 @@ export default function PricingPage() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-2">Delivery Address</label>
                     <AddressInput
+                      label="Delivery Address"
                       value={deliveryAddress}
                       onChange={setDeliveryAddress}
                       placeholder="Enter delivery address..."
