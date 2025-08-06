@@ -205,12 +205,6 @@ export default function Home() {
               >
                 Businesses
               </button>
-              <button 
-                onClick={() => scrollToSection('testimonials')}
-                className="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Reviews
-              </button>
               <Button 
                 onClick={() => scrollToSection('request-delivery')}
                 className="bg-accent hover:bg-accent/90 text-accent-foreground"
@@ -331,12 +325,6 @@ export default function Home() {
                 className="block w-full text-left px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md text-base font-medium"
               >
                 Businesses
-              </button>
-              <button 
-                onClick={() => scrollToSection('testimonials')}
-                className="block w-full text-left px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md text-base font-medium"
-              >
-                Reviews
               </button>
               <button 
                 onClick={() => scrollToSection('contact')}
