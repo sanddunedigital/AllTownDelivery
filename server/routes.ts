@@ -643,6 +643,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public business settings endpoint (for general app use)
+  app.get("/api/business-settings", async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      const dbSettings = await storage.getBusinessSettings(tenantId);
+      
+      if (!dbSettings) {
+        // Return default settings if none found
+        const defaultSettings = {
+          businessName: "Sara's Quickie Delivery",
+          businessPhone: "(641) 673-0123",
+          businessEmail: "contact@sarasquickiedelivery.com",
+          businessAddress: "1004 A Ave E, Oskaloosa, IA 52577",
+          primaryColor: "#0369a1",
+          secondaryColor: "#64748b",
+          accentColor: "#ea580c",
+          logoUrl: null,
+          features: {
+            loyaltyProgram: true,
+            scheduledDeliveries: false
+          },
+          deliveryPricing: {
+            basePrice: 3.00,
+            pricePerMile: 1.50,
+            minimumOrder: 10.00,
+            freeDeliveryThreshold: 50.00
+          },
+          distanceSettings: {
+            baseFeeRadius: 10.0
+          },
+          businessHours: {
+            monday: { open: '09:00', close: '17:00', closed: false },
+            tuesday: { open: '09:00', close: '17:00', closed: false },
+            wednesday: { open: '09:00', close: '17:00', closed: false },
+            thursday: { open: '09:00', close: '17:00', closed: false },
+            friday: { open: '09:00', close: '17:00', closed: false },
+            saturday: { open: '10:00', close: '16:00', closed: false },
+            sunday: { open: '12:00', close: '16:00', closed: true }
+          }
+        };
+        return res.json(defaultSettings);
+      }
+      
+      // Return public business settings (subset of admin settings)
+      const publicSettings = {
+        businessName: dbSettings.businessName || "Sara's Quickie Delivery",
+        businessPhone: dbSettings.businessPhone || "(641) 673-0123",
+        businessEmail: dbSettings.businessEmail || "contact@sarasquickiedelivery.com",
+        businessAddress: dbSettings.businessAddress || "1004 A Ave E, Oskaloosa, IA 52577",
+        primaryColor: dbSettings.primaryColor || "#0369a1",
+        secondaryColor: dbSettings.secondaryColor || "#64748b",
+        accentColor: dbSettings.accentColor || "#ea580c",
+        logoUrl: dbSettings.logoUrl,
+        features: {
+          loyaltyProgram: dbSettings.enableLoyaltyProgram ?? true,
+          scheduledDeliveries: dbSettings.enableScheduledDeliveries ?? false
+        },
+        deliveryPricing: {
+          basePrice: parseFloat(dbSettings.baseDeliveryFee) || 3.00,
+          pricePerMile: parseFloat(dbSettings.pricePerMile) || 1.50,
+          minimumOrder: parseFloat(dbSettings.minimumOrderValue) || 10.00,
+          freeDeliveryThreshold: parseFloat(dbSettings.freeDeliveryThreshold) || 50.00
+        },
+        distanceSettings: {
+          baseFeeRadius: parseFloat(dbSettings.baseFeeRadius) || 10.0
+        },
+        businessHours: dbSettings.operatingHours || {
+          monday: { open: '09:00', close: '17:00', closed: false },
+          tuesday: { open: '09:00', close: '17:00', closed: false },
+          wednesday: { open: '09:00', close: '17:00', closed: false },
+          thursday: { open: '09:00', close: '17:00', closed: false },
+          friday: { open: '09:00', close: '17:00', closed: false },
+          saturday: { open: '10:00', close: '16:00', closed: false },
+          sunday: { open: '12:00', close: '16:00', closed: true }
+        }
+      };
+      
+      res.json(publicSettings);
+    } catch (error) {
+      console.error("Error fetching public business settings:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Google Maps API Routes
   
   // Calculate distance between two addresses

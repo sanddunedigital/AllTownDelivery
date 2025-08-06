@@ -55,12 +55,52 @@ export class MemStorage implements IStorage {
   private userProfiles: Map<string, UserProfile>;
   private deliveryRequests: Map<string, DeliveryRequest>;
   private businesses: Map<string, Business>;
+  private businessSettings: Map<string, any>;
 
   constructor() {
     this.users = new Map();
     this.userProfiles = new Map();
     this.deliveryRequests = new Map();
     this.businesses = new Map();
+    this.businessSettings = new Map();
+    
+    // Initialize default business settings for Sara's Quickie Delivery
+    this.businessSettings.set('00000000-0000-0000-0000-000000000001', {
+      id: '7381d5ba-eb88-4424-ba12-4952e8a184b5',
+      tenantId: '00000000-0000-0000-0000-000000000001',
+      baseDeliveryFee: '3.00',
+      pricePerMile: '1.50',
+      minimumOrderValue: '10.00',
+      rushDeliveryMultiplier: '1.50',
+      baseFeeRadius: '10.00',
+      freeDeliveryThreshold: '50.00',
+      pointsForFreeDelivery: 10,
+      businessName: "Sara's Quickie Delivery",
+      businessEmail: "contact@sarasquickiedelivery.com",
+      businessPhone: "(641) 673-0123",
+      businessAddress: "1004 A Ave E, Oskaloosa, IA 52577",
+      primaryColor: "#0369a1",
+      secondaryColor: "#64748b",
+      accentColor: "#ea580c",
+      currency: "USD",
+      timezone: "America/Chicago",
+      enableLoyaltyProgram: true,
+      enableRealTimeTracking: true,
+      enableScheduledDeliveries: false,
+      customerNotifications: {
+        email: true,
+        sms: false
+      },
+      operatingHours: {
+        monday: { open: '09:00', close: '17:00', closed: false },
+        tuesday: { open: '09:00', close: '17:00', closed: false },
+        wednesday: { open: '09:00', close: '17:00', closed: false },
+        thursday: { open: '09:00', close: '17:00', closed: false },
+        friday: { open: '09:00', close: '17:00', closed: false },
+        saturday: { open: '10:00', close: '16:00', closed: false },
+        sunday: { open: '12:00', close: '16:00', closed: true }
+      }
+    });
   }
 
   // Legacy user methods
@@ -276,6 +316,7 @@ export class MemStorage implements IStorage {
       tenantId: insertBusiness.tenantId || "00000000-0000-0000-0000-000000000001",
       website: insertBusiness.website || null,
       category: insertBusiness.category || null,
+      imageUrl: insertBusiness.imageUrl || null,
       isActive: insertBusiness.isActive ?? true,
       createdAt: new Date()
     };
@@ -283,13 +324,16 @@ export class MemStorage implements IStorage {
     return business;
   }
 
-  // Business settings methods (memory storage - stubbed)
+  // Business settings methods
   async getBusinessSettings(tenantId: string): Promise<any> {
-    return null; // Memory storage doesn't support business settings
+    return this.businessSettings.get(tenantId) || null;
   }
 
   async updateBusinessSettings(tenantId: string, settings: any): Promise<any> {
-    return settings; // Memory storage doesn't persist business settings
+    const existing = this.businessSettings.get(tenantId) || {};
+    const updated = { ...existing, ...settings, tenantId };
+    this.businessSettings.set(tenantId, updated);
+    return updated;
   }
 
   // Service zones methods (memory storage - stubbed)  
