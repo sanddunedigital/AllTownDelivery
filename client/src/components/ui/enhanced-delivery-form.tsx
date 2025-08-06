@@ -421,14 +421,7 @@ export function EnhancedDeliveryForm() {
                   )}
                 />
 
-                {/* Price Calculator */}
-                {selectedBusiness && form.watch('deliveryAddress') && (
-                  <SimplePriceDisplay
-                    result={priceCalculation}
-                    isRush={false}
-                    className="mt-4"
-                  />
-                )}
+
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
@@ -575,6 +568,15 @@ export function EnhancedDeliveryForm() {
                     )}
                   />
                 </div>
+              )}
+
+              {/* Price Calculator - Total Section */}
+              {selectedBusiness && form.watch('deliveryAddress') && (
+                <SimplePriceDisplay
+                  result={priceCalculation}
+                  isRush={false}
+                  className="mt-4"
+                />
               )}
 
               <Button type="submit" size="lg" className="w-full" disabled={submitting}>
