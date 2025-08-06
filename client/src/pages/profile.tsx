@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChangePasswordForm } from '@/components/ui/change-password-form';
+import { AddressInput } from '@/components/AddressInput';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trophy, Star, Gift, MapPin, Phone, Mail, User, Home } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -223,17 +224,28 @@ function UserProfile({ businessSettings }: { businessSettings?: BusinessSettings
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="delivery">Default Delivery Address</Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="delivery"
+            {editing ? (
+              <AddressInput
+                label="Default Delivery Address"
                 value={formData.defaultDeliveryAddress}
-                onChange={(e) => setFormData({ ...formData, defaultDeliveryAddress: e.target.value })}
-                disabled={!editing}
-                className={`pl-10 ${!editing ? "bg-muted" : ""}`}
+                onChange={(value) => setFormData({ ...formData, defaultDeliveryAddress: value })}
+                placeholder="Enter your default delivery address..."
+                id="delivery"
               />
-            </div>
+            ) : (
+              <>
+                <Label htmlFor="delivery">Default Delivery Address</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="delivery"
+                    value={formData.defaultDeliveryAddress}
+                    disabled
+                    className="pl-10 bg-muted"
+                  />
+                </div>
+              </>
+            )}
           </div>
           
           {editing && (
