@@ -126,39 +126,39 @@ export function DeliveryPriceCalculator({
     <Card className={className}>
       <CardContent className="pt-6">
         <div className="space-y-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
-              ${result.deliveryFee.toFixed(2)}
+          <div className="text-sm space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                {result.isWithinBaseRadius 
+                  ? `Base fee (within ${result.pricing.baseFeeRadius} mi)`
+                  : `Base fee + ${result.pricing.extraMiles.toFixed(1)} extra miles`
+                }
+              </span>
+              <span className="font-medium">${result.deliveryFee.toFixed(2)}</span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {isRush ? 'Rush Delivery Fee' : 'Delivery Fee'}
-            </p>
+            
+            {!result.isWithinBaseRadius && (
+              <div className="text-xs text-muted-foreground pl-4">
+                ${result.pricing.baseFee.toFixed(2)} + ({result.pricing.extraMiles.toFixed(1)} mi × ${result.pricing.pricePerMile.toFixed(2)} per mile after ${result.pricing.baseFeeRadius} mi)
+              </div>
+            )}
+            
+            {isRush && (
+              <div className="flex justify-between">
+                <span className="text-orange-600">Rush delivery (1.5×)</span>
+                <span className="font-medium text-orange-600">+${(result.deliveryFee * 0.5).toFixed(2)}</span>
+              </div>
+            )}
           </div>
 
           <div className="border-t pt-3">
-            <div className="text-sm space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  {result.isWithinBaseRadius 
-                    ? `Base fee (within ${result.pricing.baseFeeRadius} mi)`
-                    : `Base fee + ${result.pricing.extraMiles.toFixed(1)} extra miles`
-                  }
-                </span>
-                <span className="font-medium">${result.deliveryFee.toFixed(2)}</span>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                ${isRush ? (result.deliveryFee * 1.5).toFixed(2) : result.deliveryFee.toFixed(2)}
               </div>
-              
-              {!result.isWithinBaseRadius && (
-                <div className="text-xs text-muted-foreground pl-4">
-                  ${result.pricing.baseFee.toFixed(2)} + ({result.pricing.extraMiles.toFixed(1)} mi × ${result.pricing.pricePerMile.toFixed(2)} per mile after ${result.pricing.baseFeeRadius} mi)
-                </div>
-              )}
-              
-              {isRush && (
-                <div className="flex justify-between">
-                  <span className="text-orange-600">Rush delivery (1.5×)</span>
-                  <span className="font-medium text-orange-600">+${(result.deliveryFee * 0.5).toFixed(2)}</span>
-                </div>
-              )}
+              <p className="text-sm text-muted-foreground">
+                {isRush ? 'Rush Delivery Fee' : 'Delivery Fee'}
+              </p>
             </div>
           </div>
           
