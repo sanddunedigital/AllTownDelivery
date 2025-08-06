@@ -14,7 +14,7 @@ import AdminDashboard from "@/pages/admin";
 import BusinessSettings from "@/pages/business-settings";
 import ResetPassword from "@/pages/reset-password";
 import Auth from "@/pages/auth";
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 
 const PricingPage = lazy(() => import("@/pages/pricing"));
 
@@ -27,7 +27,11 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/auth" component={Auth} />
       <Route path="/profile" component={Profile} />
-      <Route path="/pricing" component={PricingPage} />
+      <Route path="/pricing">
+        <Suspense fallback={<div className="flex justify-center items-center h-64">Loading pricing...</div>}>
+          <PricingPage />
+        </Suspense>
+      </Route>
       <Route path="/driver" component={DriverPortal} />
       <Route path="/dispatch" component={DispatchCenter} />
       <Route path="/admin" component={AdminDashboard} />
