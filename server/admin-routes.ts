@@ -386,7 +386,10 @@ router.put('/business-settings/logo', async (req, res) => {
         updatedAt: new Date()
       })
       .where(eq(businessSettings.tenantId, DEFAULT_TENANT_ID))
-      .returning();
+      .returning({ 
+        id: businessSettings.id,
+        logoUrl: businessSettings.logoUrl 
+      });
 
     if (!result) {
       return res.status(404).json({ error: 'Business settings not found' });
