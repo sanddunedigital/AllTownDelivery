@@ -149,7 +149,7 @@ export function DeliveryPriceCalculator({
               
               {!result.isWithinBaseRadius && (
                 <div className="text-xs text-muted-foreground pl-4">
-                  ${result.pricing.baseFee.toFixed(2)} + ({result.pricing.extraMiles.toFixed(1)} mi × ${result.pricing.pricePerMile.toFixed(2)})
+                  ${result.pricing.baseFee.toFixed(2)} + ({result.pricing.extraMiles.toFixed(1)} mi × ${result.pricing.pricePerMile.toFixed(2)} per mile after ${result.pricing.baseFeeRadius} mi)
                 </div>
               )}
               
