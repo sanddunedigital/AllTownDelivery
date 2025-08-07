@@ -1090,7 +1090,7 @@ export default function BusinessSettingsPage() {
                           <p className="text-sm text-green-700">
                             Reviews will be automatically fetched when enabled and displayed on your customer-facing pages.
                           </p>
-                          {updateMutation.isPending && (
+                          {saveSettingsMutation.isPending && (
                             <div className="mt-3 bg-blue-50 p-3 rounded border border-blue-200">
                               <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
