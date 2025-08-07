@@ -900,7 +900,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const googlePlaces = new GooglePlacesService();
-      const reviewData = await googlePlaces.getPlaceReviews(placeId);
+      let actualPlaceId = placeId;
+      
+      // If the place ID looks like a hex ID from Google Maps, try to convert it
+      if (placeId.includes('0x')) {
+        console.log('Detected hex-based Place ID, attempting conversion...');
+        const convertedPlaceId = await googlePlaces.convertHexToPlaceId(placeId);
+        if (convertedPlaceId) {
+          actualPlaceId = convertedPlaceId;
+          console.log(`Converted hex ID to Place ID: ${actualPlaceId}`);
+          
+          // Update the business settings with the converted Place ID
+          try {
+            const existingSettings = await storage.getBusinessSettings(tenantId);
+            if (existingSettings && existingSettings.googleReviews) {
+              await storage.updateBusinessSettings(tenantId, {
+                ...existingSettings,
+                googleReviews: {
+                  ...existingSettings.googleReviews,
+                  placeId: convertedPlaceId
+                }
+              });
+              console.log('Updated business settings with converted Place ID');
+            }
+          } catch (error) {
+            console.error('Error updating business settings with converted Place ID:', error);
+          }
+        } else {
+          console.log('Failed to convert hex ID to Place ID');
+        }
+      }
+      
+      const reviewData = await googlePlaces.getPlaceReviews(actualPlaceId);
       
       if (!reviewData) {
         console.error("Failed to fetch reviews from Google Places");

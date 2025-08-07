@@ -45,19 +45,24 @@ export function PlaceIdFinder({ onPlaceIdFound }: PlaceIdFinderProps) {
 
   const extractPlaceIdFromUrl = (url: string): string | null => {
     try {
-      // Handle Google Maps URLs
-      const patterns = [
-        /place_id=([^&]+)/,
-        /place\/([^\/\?]+)/,
-        /data=.*!1s([^!]+)/,
-        /0x[a-f0-9]+:0x([a-f0-9]+)/i
-      ];
+      // Handle Google Maps URLs - extract the hex-based ID and convert it
+      const hexMatch = url.match(/0x[a-f0-9]+:0x([a-f0-9]+)/i);
+      if (hexMatch) {
+        // Convert hex ID to ChIJ format using a conversion service or return the hex for now
+        // For now, we'll try the hex ID directly with the Google API
+        return hexMatch[0];
+      }
       
-      for (const pattern of patterns) {
-        const match = url.match(pattern);
-        if (match) {
-          return match[1];
-        }
+      // Look for existing ChIJ format Place IDs
+      const placeIdMatch = url.match(/place_id=([^&]+)/);
+      if (placeIdMatch) {
+        return decodeURIComponent(placeIdMatch[1]);
+      }
+      
+      // Look for Place IDs in the URL path
+      const pathMatch = url.match(/place\/([^\/\?]+)/);
+      if (pathMatch && pathMatch[1].startsWith('ChIJ')) {
+        return decodeURIComponent(pathMatch[1]);
       }
       
       return null;
@@ -70,6 +75,35 @@ export function PlaceIdFinder({ onPlaceIdFound }: PlaceIdFinderProps) {
     const placeId = extractPlaceIdFromUrl(urlPlaceId);
     if (placeId) {
       onPlaceIdFound(placeId);
+    }
+  };
+
+  const testPlaceId = async (placeId: string) => {
+    if (!placeId.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const response = await fetch("/api/admin/google-places/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ placeId }),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setSearchResults([{
+          place_id: placeId,
+          name: data.name || "Business Found",
+          formatted_address: data.address || "Address not available"
+        }]);
+      } else {
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error("Test error:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -190,16 +224,45 @@ export function PlaceIdFinder({ onPlaceIdFound }: PlaceIdFinderProps) {
           </ol>
         </div>
 
+        {/* Test Place ID */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Method 3: Test Your Place ID</Label>
+          <p className="text-sm text-muted-foreground">
+            If you have a Place ID but want to verify it works with your current API:
+          </p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter Place ID to test (ChIJ... format)"
+              value={urlPlaceId}
+              onChange={(e) => setUrlPlaceId(e.target.value)}
+              className="flex-1"
+            />
+            <Button 
+              onClick={() => testPlaceId(urlPlaceId)}
+              disabled={!urlPlaceId.trim() || isSearching}
+              variant="outline"
+            >
+              {isSearching ? "Testing..." : "Test ID"}
+            </Button>
+          </div>
+        </div>
+
         {/* No Reviews Explanation */}
         <div className="p-4 bg-gray-50 border rounded">
           <h4 className="font-medium text-gray-900 mb-2">Don't have a Google Business Profile?</h4>
           <p className="text-sm text-gray-700 mb-2">
             If you can't find your Place ID, your business might not be listed on Google Business Profile yet.
           </p>
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-gray-700 mb-3">
             You'll need to create a Google Business Profile first to get reviews and a Place ID. 
             Visit <a href="https://business.google.com" target="_blank" className="text-blue-600 underline">business.google.com</a> to get started.
           </p>
+          <div className="bg-yellow-50 border border-yellow-200 p-3 rounded mt-3">
+            <p className="text-sm text-yellow-800">
+              <strong>Based on your Google Maps URL:</strong> Your business appears to exist on Google Maps but may not have a Google Business Profile set up yet. 
+              This means you have location data but no reviews to display. Setting up a Google Business Profile will enable customer reviews.
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>

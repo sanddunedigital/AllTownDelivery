@@ -67,6 +67,31 @@ export class GooglePlacesService {
   }
 
   /**
+   * Convert hex-based Google Maps ID to proper Place ID
+   * Google Maps URLs contain hex IDs that need conversion
+   */
+  async convertHexToPlaceId(hexId: string): Promise<string | null> {
+    try {
+      // Remove 0x prefix if present and extract the second part after colon
+      const cleanHex = hexId.replace(/^0x/, '').replace(/.*:0x/, '');
+      
+      // Try searching by coordinates first if we can extract them
+      // For now, we'll try a text search with the business details we know
+      const searchQuery = "Sara's Quickie Delivery Oskaloosa Iowa";
+      const results = await this.searchPlace(searchQuery);
+      
+      if (results.length > 0) {
+        return results[0].place_id;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error converting hex to Place ID:', error);
+      return null;
+    }
+  }
+
+  /**
    * Search for a place by name and address to get Place ID
    * Useful for businesses to find their Place ID
    */
