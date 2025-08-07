@@ -22,6 +22,8 @@ export interface IStorage {
   updateUserProfile(id: string, updates: UpdateUserProfile): Promise<UserProfile>;
   updateLoyaltyPoints(userId: string, points: number, wasFreeDelivery?: boolean): Promise<void>;
   checkLoyaltyEligibility(userId: string): Promise<boolean>;
+  getUserLoyalty(userId: string): Promise<any>;
+  getUserDeliveries(userId: string): Promise<DeliveryRequest[]>;
   
   // Delivery request methods
   createDeliveryRequest(request: InsertDeliveryRequest): Promise<DeliveryRequest>;
@@ -196,6 +198,28 @@ export class MemStorage implements IStorage {
   async checkLoyaltyEligibility(userId: string): Promise<boolean> {
     const profile = this.userProfiles.get(userId);
     return (profile?.freeDeliveryCredits || 0) > 0;
+  }
+
+  async getUserLoyalty(userId: string): Promise<any> {
+    const profile = this.userProfiles.get(userId);
+    if (!profile) {
+      return {
+        loyaltyPoints: 0,
+        freeDeliveryCredits: 0,
+        totalDeliveries: 0,
+        nextFreeAt: 10
+      };
+    }
+    return {
+      loyaltyPoints: profile.loyaltyPoints || 0,
+      freeDeliveryCredits: profile.freeDeliveryCredits || 0,
+      totalDeliveries: profile.totalDeliveries || 0,
+      nextFreeAt: 10 - (profile.loyaltyPoints || 0)
+    };
+  }
+
+  async getUserDeliveries(userId: string): Promise<DeliveryRequest[]> {
+    return Array.from(this.deliveryRequests.values()).filter(r => r.userId === userId);
   }
 
   // Delivery request methods
@@ -480,6 +504,34 @@ export class DatabaseStorage implements IStorage {
   async checkLoyaltyEligibility(userId: string): Promise<boolean> {
     const profile = await this.getUserProfile(userId);
     return (profile?.freeDeliveryCredits || 0) > 0;
+  }
+
+  async getUserLoyalty(userId: string): Promise<any> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const profile = await this.getUserProfile(userId);
+    if (!profile) {
+      return {
+        loyaltyPoints: 0,
+        freeDeliveryCredits: 0,
+        totalDeliveries: 0,
+        nextFreeAt: 10
+      };
+    }
+    return {
+      loyaltyPoints: profile.loyaltyPoints || 0,
+      freeDeliveryCredits: profile.freeDeliveryCredits || 0,
+      totalDeliveries: profile.totalDeliveries || 0,
+      nextFreeAt: 10 - (profile.loyaltyPoints || 0)
+    };
+  }
+
+  async getUserDeliveries(userId: string): Promise<DeliveryRequest[]> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    return await db.select().from(deliveryRequests).where(eq(deliveryRequests.userId, userId));
   }
 
   // Delivery request methods
@@ -785,6 +837,24 @@ class SmartStorage implements IStorage {
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
       return await this.memStorage.checkLoyaltyEligibility(userId);
+    }
+  }
+
+  async getUserLoyalty(userId: string): Promise<any> {
+    try {
+      return await this.dbStorage.getUserLoyalty(userId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getUserLoyalty(userId);
+    }
+  }
+
+  async getUserDeliveries(userId: string): Promise<DeliveryRequest[]> {
+    try {
+      return await this.dbStorage.getUserDeliveries(userId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getUserDeliveries(userId);
     }
   }
 
