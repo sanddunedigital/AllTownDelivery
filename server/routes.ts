@@ -24,7 +24,7 @@ import { GooglePlacesService } from "./googlePlaces";
 import { db } from "./db";
 import { googleReviews, deliveryRequests } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
-import { squareService } from "./squareService";
+import { createSquareService } from "./squareService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant Information Route
@@ -497,7 +497,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         enableRealTimeTracking: formData.features?.realTimeTracking ?? true,
         enableScheduledDeliveries: formData.features?.scheduledDeliveries ?? false,
         googlePlaceId: formData.googleReviews?.placeId,
-        enableGoogleReviews: formData.googleReviews?.enabled ?? false
+        enableGoogleReviews: formData.googleReviews?.enabled ?? false,
+        squareAccessToken: formData.squareSettings?.accessToken,
+        squareApplicationId: formData.squareSettings?.applicationId,
+        squareLocationId: formData.squareSettings?.locationId,
+        squareEnvironment: formData.squareSettings?.environment || 'sandbox'
       };
       
       const dbSettings = await storage.updateBusinessSettings(tenantId, dbData);
@@ -1003,11 +1007,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to get tenant's Square configuration
+  const getTenantSquareConfig = async (tenantId: string) => {
+    const settings = await storage.getBusinessSettings(tenantId);
+    if (!settings?.squareAccessToken || !settings?.squareLocationId) {
+      throw new Error('Square payment configuration not found. Please configure Square settings in business settings.');
+    }
+    
+    return {
+      accessToken: settings.squareAccessToken,
+      applicationId: settings.squareApplicationId || '',
+      locationId: settings.squareLocationId,
+      environment: settings.squareEnvironment || 'sandbox'
+    };
+  };
+
   // Square Payment Routes
   app.post("/api/payments/process", async (req, res) => {
     try {
       const validatedData = processPaymentSchema.parse(req.body);
       const tenantId = getCurrentTenantId(req);
+
+      // Get tenant's Square configuration
+      const squareConfig = await getTenantSquareConfig(tenantId);
+      const squareService = createSquareService(squareConfig);
 
       // Process payment with Square
       const paymentResult = await squareService.processPayment({
@@ -1051,6 +1074,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = createInvoiceSchema.parse(req.body);
       const tenantId = getCurrentTenantId(req);
+
+      // Get tenant's Square configuration
+      const squareConfig = await getTenantSquareConfig(tenantId);
+      const squareService = createSquareService(squareConfig);
 
       // Get delivery request details
       const deliveryRequest = await storage.getDeliveryRequestById(validatedData.deliveryRequestId);
@@ -1125,6 +1152,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/invoices/:invoiceId", async (req, res) => {
     try {
       const { invoiceId } = req.params;
+      const tenantId = getCurrentTenantId(req);
+      const squareConfig = await getTenantSquareConfig(tenantId);
+      const squareService = createSquareService(squareConfig);
       const invoice = await squareService.getInvoice(invoiceId);
       res.json(invoice);
     } catch (error: any) {
@@ -1145,6 +1175,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Valid refund amount is required" });
       }
 
+      const tenantId = getCurrentTenantId(req);
+      const squareConfig = await getTenantSquareConfig(tenantId);
+      const squareService = createSquareService(squareConfig);
+      
       const refund = await squareService.refundPayment(
         paymentId, 
         Math.round(amount * 100), // Convert to cents

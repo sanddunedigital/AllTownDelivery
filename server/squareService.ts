@@ -1,12 +1,7 @@
 import { SquareClient, SquareEnvironment } from 'square';
 import { randomUUID } from 'crypto';
 
-// Initialize Square client
-const isDevelopment = process.env.NODE_ENV === 'development';
-export const squareClient = new SquareClient({
-  accessToken: process.env.SQUARE_ACCESS_TOKEN,
-  environment: isDevelopment ? SquareEnvironment.Sandbox : SquareEnvironment.Production,
-});
+// Note: Square clients are now created per-tenant with their own credentials
 
 export interface PaymentRequest {
   paymentToken: string;
@@ -44,15 +39,34 @@ export interface InvoiceResult {
 }
 
 export class SquareService {
-  private paymentsApi = squareClient.paymentsApi;
-  private customersApi = squareClient.customersApi;
-  private ordersApi = squareClient.ordersApi;
-  private invoicesApi = squareClient.invoicesApi;
-  private locationId = process.env.SQUARE_LOCATION_ID;
+  private squareClient: InstanceType<typeof SquareClient>;
+  private paymentsApi: any;
+  private customersApi: any;
+  private ordersApi: any;
+  private invoicesApi: any;
+  private locationId: string;
 
-  constructor() {
-    // Only require Square config if actually used
-    // Environment variables will be requested from user when needed
+  constructor(config: {
+    accessToken: string;
+    applicationId: string;
+    locationId: string;
+    environment?: 'sandbox' | 'production';
+  }) {
+    if (!config.accessToken || !config.locationId) {
+      throw new Error('Square access token and location ID are required');
+    }
+
+    this.locationId = config.locationId;
+    
+    this.squareClient = new SquareClient({
+      accessToken: config.accessToken,
+      environment: config.environment === 'production' ? SquareEnvironment.Production : SquareEnvironment.Sandbox,
+    });
+
+    this.paymentsApi = this.squareClient.paymentsApi;
+    this.customersApi = this.squareClient.customersApi;
+    this.ordersApi = this.squareClient.ordersApi;
+    this.invoicesApi = this.squareClient.invoicesApi;
   }
 
   /**
@@ -276,7 +290,7 @@ export class SquareService {
         reason: reason || 'Customer requested refund'
       };
 
-      const response = await squareClient.refundsApi.refundPayment(request);
+      const response = await this.squareClient.refundsApi.refundPayment(request);
       return response.result.refund;
     } catch (error: any) {
       console.error('Square refund error:', error);
@@ -285,4 +299,12 @@ export class SquareService {
   }
 }
 
-export const squareService = new SquareService();
+// Factory function to create SquareService with tenant-specific config
+export function createSquareService(config: {
+  accessToken: string;
+  applicationId: string;
+  locationId: string;
+  environment?: 'sandbox' | 'production';
+}) {
+  return new SquareService(config);
+}

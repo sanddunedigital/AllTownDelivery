@@ -144,6 +144,12 @@ export const businessSettings = pgTable("business_settings", {
   acceptedPaymentMethods: text("accepted_payment_methods").array().default(sql`ARRAY['cash', 'credit_card', 'digital_wallet']`),
   requirePaymentUpfront: boolean("require_payment_upfront").default(false),
   
+  // Square Payment Configuration (per tenant)
+  squareAccessToken: text("square_access_token"), // Encrypted tenant's Square access token
+  squareApplicationId: text("square_application_id"), // Tenant's Square application ID
+  squareLocationId: text("square_location_id"), // Tenant's Square location ID
+  squareEnvironment: text("square_environment").default("sandbox"), // sandbox or production
+  
   // Notifications
   customerNotifications: jsonb("customer_notifications").$type<{
     sms: boolean;
