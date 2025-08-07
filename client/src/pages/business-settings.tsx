@@ -20,7 +20,7 @@ import {
   Clock, 
   MapPin, 
   Palette, 
-  Globe, 
+ 
   Phone, 
   Mail,
   Save,
@@ -90,10 +90,7 @@ interface BusinessSettings {
     scheduledDeliveries: boolean;
     multiplePaymentMethods: boolean;
   };
-  googleReviews?: {
-    placeId?: string;
-    enabled: boolean;
-  };
+
   createdAt?: string;
   updatedAt?: string;
 }
@@ -157,10 +154,7 @@ const defaultSettings: Partial<BusinessSettings> = {
     scheduledDeliveries: false,
     multiplePaymentMethods: true
   },
-  googleReviews: {
-    placeId: "",
-    enabled: false
-  }
+
 };
 
 export default function BusinessSettingsPage() {
@@ -463,7 +457,7 @@ export default function BusinessSettingsPage() {
           </div>
         ) : (
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">
                 <Settings className="w-4 h-4 mr-2" />
                 General
@@ -483,10 +477,6 @@ export default function BusinessSettingsPage() {
               <TabsTrigger value="branding">
                 <Palette className="w-4 h-4 mr-2" />
                 Branding
-              </TabsTrigger>
-              <TabsTrigger value="reviews">
-                <Globe className="w-4 h-4 mr-2" />
-                Reviews
               </TabsTrigger>
             </TabsList>
 
@@ -1020,96 +1010,7 @@ export default function BusinessSettingsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="reviews" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Globe className="w-5 h-5" />
-                    Google Reviews Integration
-                    <Badge variant="secondary" className="ml-2">Premium Feature</Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    Display Google Reviews on your website. This premium feature costs $20/month and automatically syncs your Google Business reviews weekly.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
-                    <div className="flex items-center space-x-3">
-                      <Switch
-                        checked={settings.googleReviews?.enabled || false}
-                        onCheckedChange={(checked) => setSettings(prev => ({
-                          ...prev,
-                          googleReviews: { ...prev.googleReviews, enabled: checked }
-                        }))}
-                      />
-                      <div>
-                        <Label className="text-base font-medium">Enable Google Reviews</Label>
-                        <p className="text-sm text-gray-600">
-                          Show Google Reviews on your customer-facing pages
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      $20/month
-                    </Badge>
-                  </div>
 
-                  {settings.googleReviews?.enabled && (
-                    <div className="space-y-4 p-4 border rounded-lg">
-                      <div className="space-y-2">
-                        <Label htmlFor="googlePlaceId">Google Place ID</Label>
-                        <Input
-                          id="googlePlaceId"
-                          value={settings.googleReviews?.placeId || ''}
-                          onChange={(e) => setSettings(prev => ({
-                            ...prev,
-                            googleReviews: { ...prev.googleReviews, placeId: e.target.value }
-                          }))}
-                          placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
-                        />
-                        <p className="text-sm text-gray-600">
-                          Enter your Google Business Place ID. You can find this by searching for your business on Google Maps and copying the ID from the URL.
-                        </p>
-                      </div>
-
-                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <h4 className="font-medium text-blue-900 mb-2">How to find your Google Place ID:</h4>
-                        <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                          <li>Visit <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" className="underline">Google's Place ID Finder</a></li>
-                          <li>Search for your business name and location</li>
-                          <li>Copy the Place ID (starts with "ChIJ...")</li>
-                          <li>Paste it in the field above</li>
-                        </ol>
-                      </div>
-
-                      {settings.googleReviews?.placeId && (
-                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-green-800 font-medium">Google Reviews Configured</span>
-                          </div>
-                          <p className="text-sm text-green-700">
-                            Reviews will be automatically fetched when enabled and displayed on your customer-facing pages.
-                          </p>
-
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
-                    <h4 className="font-medium text-yellow-900 mb-2">Premium Feature Benefits:</h4>
-                    <ul className="text-sm text-yellow-800 space-y-1 list-disc list-inside">
-                      <li>Automatic weekly sync with Google Business Profile</li>
-                      <li>Professional review display on your website</li>
-                      <li>Star ratings and customer testimonials</li>
-                      <li>Builds customer trust and credibility</li>
-                      <li>No API rate limits or manual updates needed</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
         )}
       </div>
