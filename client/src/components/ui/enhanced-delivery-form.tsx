@@ -85,6 +85,13 @@ function ReviewStep({
   };
 
   const total = priceCalculation?.total || 0;
+  
+  // Set default payment method to first available if not selected
+  useEffect(() => {
+    if (!selectedPaymentMethod && businessSettings?.acceptedPaymentMethods?.length > 0) {
+      setSelectedPaymentMethod(businessSettings.acceptedPaymentMethods[0]);
+    }
+  }, [businessSettings, selectedPaymentMethod, setSelectedPaymentMethod]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
@@ -387,6 +394,7 @@ export function EnhancedDeliveryForm() {
         isPaid,
         paymentId: paymentResult?.paymentId,
         paymentStatus: isPaid ? 'completed' : 'pending',
+        totalAmount: priceCalculation?.total || 0,
       };
 
       const result = await apiRequest('/api/delivery-requests', 'POST', requestData);
@@ -411,6 +419,7 @@ export function EnhancedDeliveryForm() {
         form.setValue('deliveryAddress', profile.defaultDeliveryAddress || '');
         form.setValue('preferredDate', new Date().toISOString().split('T')[0]); // Reset to today's date
         form.setValue('preferredTime', '');
+        form.setValue('paymentMethod', profile.preferredPaymentMethod || '');
         form.setValue('specialInstructions', '');
         form.setValue('saveProfile', false);
         form.setValue('useStoredPayment', false);
@@ -749,35 +758,6 @@ export function EnhancedDeliveryForm() {
                 </div>
               </div>
 
-              {/* Service Options */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Service Options</h3>
-                
-                <FormField
-                  control={form.control}
-                  name="paymentMethod"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment Method *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select payment method" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {getAvailablePaymentMethods().map((method: { value: string; label: string }) => (
-                            <SelectItem key={method.value} value={method.value}>
-                              {method.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
 
               {/* Pricing Information */}
 
