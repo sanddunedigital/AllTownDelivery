@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'wouter';
@@ -51,6 +51,7 @@ function ReviewStep({
   submitting,
   user
 }: ReviewStepProps) {
+  const reviewRef = useRef<HTMLDivElement>(null);
   const [showSquarePayment, setShowSquarePayment] = useState(false);
   
   // Get available payment methods from business settings
@@ -93,13 +94,15 @@ function ReviewStep({
     }
   }, [businessSettings, selectedPaymentMethod, setSelectedPaymentMethod]);
 
-  // Scroll to top when review step is shown
+  // Scroll to review form when review step is shown
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (reviewRef.current) {
+      reviewRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+    <div ref={reviewRef} className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto space-y-6">
           <Card>
