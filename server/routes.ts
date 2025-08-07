@@ -13,15 +13,18 @@ import {
   claimDeliverySchema,
   updateDeliveryStatusSchema,
   updateDriverStatusSchema,
-  insertBusinessSchema
+  insertBusinessSchema,
+  processPaymentSchema,
+  createInvoiceSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { ObjectStorageService } from "./objectStorage";
 import { googleMapsService } from "./googleMaps";
 import { GooglePlacesService } from "./googlePlaces";
 import { db } from "./db";
-import { googleReviews } from "@shared/schema";
+import { googleReviews, deliveryRequests } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
+import { squareService } from "./squareService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant Information Route
@@ -997,6 +1000,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error refreshing reviews:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Square Payment Routes
+  app.post("/api/payments/process", async (req, res) => {
+    try {
+      const validatedData = processPaymentSchema.parse(req.body);
+      const tenantId = getCurrentTenantId(req);
+
+      // Process payment with Square
+      const paymentResult = await squareService.processPayment({
+        paymentToken: validatedData.paymentToken,
+        amount: Math.round(validatedData.amount * 100), // Convert to cents
+        currency: validatedData.currency,
+        description: `Delivery payment for request ${validatedData.deliveryRequestId}`
+      });
+
+      if (paymentResult.success) {
+        // Update delivery request with payment information
+        await storage.updateDeliveryRequest(validatedData.deliveryRequestId, {
+          squarePaymentId: paymentResult.paymentId,
+          paymentStatus: 'paid',
+          totalAmount: validatedData.amount.toString()
+        });
+
+        res.json({
+          success: true,
+          paymentId: paymentResult.paymentId,
+          receiptUrl: paymentResult.receiptUrl,
+          status: paymentResult.status
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: paymentResult.error
+        });
+      }
+    } catch (error: any) {
+      console.error("Payment processing error:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || "Payment processing failed" 
+      });
+    }
+  });
+
+  // Square Invoice Routes
+  app.post("/api/invoices/create", async (req, res) => {
+    try {
+      const validatedData = createInvoiceSchema.parse(req.body);
+      const tenantId = getCurrentTenantId(req);
+
+      // Get delivery request details
+      const deliveryRequest = await storage.getDeliveryRequestById(validatedData.deliveryRequestId);
+      if (!deliveryRequest) {
+        return res.status(404).json({ error: "Delivery request not found" });
+      }
+
+      // Create or find Square customer
+      let customerId = validatedData.customerId;
+      if (!customerId && validatedData.customerEmail) {
+        try {
+          const customer = await squareService.createCustomer({
+            email: validatedData.customerEmail,
+            firstName: deliveryRequest.customerName.split(' ')[0],
+            lastName: deliveryRequest.customerName.split(' ').slice(1).join(' '),
+            phone: deliveryRequest.phone
+          });
+          customerId = customer?.id;
+        } catch (error) {
+          console.warn("Failed to create Square customer:", error);
+        }
+      }
+
+      if (!customerId) {
+        return res.status(400).json({ 
+          error: "Customer ID or email is required for invoicing" 
+        });
+      }
+
+      // Create invoice with Square
+      const invoiceResult = await squareService.createInvoice({
+        orderId: validatedData.deliveryRequestId,
+        customerId: customerId,
+        title: validatedData.title,
+        description: validatedData.description,
+        amount: Math.round(validatedData.amount * 100), // Convert to cents
+        dueDate: validatedData.dueDate,
+        autoCharge: validatedData.autoCharge
+      });
+
+      if (invoiceResult.success) {
+        // Update delivery request with invoice information
+        await storage.updateDeliveryRequest(validatedData.deliveryRequestId, {
+          squareInvoiceId: invoiceResult.invoiceId,
+          invoiceUrl: invoiceResult.publicUrl,
+          totalAmount: validatedData.amount.toString(),
+          paymentStatus: validatedData.autoCharge ? 'processing' : 'pending'
+        });
+
+        res.json({
+          success: true,
+          invoiceId: invoiceResult.invoiceId,
+          publicUrl: invoiceResult.publicUrl,
+          status: invoiceResult.status
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: invoiceResult.error
+        });
+      }
+    } catch (error: any) {
+      console.error("Invoice creation error:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || "Invoice creation failed" 
+      });
+    }
+  });
+
+  // Get Square invoice details
+  app.get("/api/invoices/:invoiceId", async (req, res) => {
+    try {
+      const { invoiceId } = req.params;
+      const invoice = await squareService.getInvoice(invoiceId);
+      res.json(invoice);
+    } catch (error: any) {
+      console.error("Get invoice error:", error);
+      res.status(500).json({ 
+        error: error.message || "Failed to get invoice" 
+      });
+    }
+  });
+
+  // Process refund
+  app.post("/api/payments/:paymentId/refund", async (req, res) => {
+    try {
+      const { paymentId } = req.params;
+      const { amount, reason } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Valid refund amount is required" });
+      }
+
+      const refund = await squareService.refundPayment(
+        paymentId, 
+        Math.round(amount * 100), // Convert to cents
+        reason
+      );
+
+      res.json({
+        success: true,
+        refundId: refund?.id,
+        status: refund?.status,
+        amountRefunded: refund?.amountMoney?.amount ? Number(refund.amountMoney.amount) / 100 : 0
+      });
+    } catch (error: any) {
+      console.error("Refund processing error:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || "Refund processing failed" 
+      });
     }
   });
 

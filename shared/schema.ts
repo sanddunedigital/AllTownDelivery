@@ -73,6 +73,12 @@ export const deliveryRequests = pgTable("delivery_requests", {
   claimedByDriver: uuid("claimed_by_driver"), // References user_profiles.id where role = 'driver'
   claimedAt: timestamp("claimed_at"),
   driverNotes: text("driver_notes"),
+  // Payment and billing information
+  squarePaymentId: text("square_payment_id"), // Square payment ID for tracking
+  squareInvoiceId: text("square_invoice_id"), // Square invoice ID for invoicing
+  paymentStatus: text("payment_status").default("pending"), // pending, paid, failed, refunded
+  totalAmount: numeric("total_amount", { precision: 10, scale: 2 }), // Total delivery cost
+  invoiceUrl: text("invoice_url"), // Square invoice public URL
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -291,6 +297,25 @@ export const updateDeliveryStatusSchema = z.object({
 
 export const updateDriverStatusSchema = z.object({
   isOnDuty: z.boolean(),
+});
+
+// Square payment schemas
+export const processPaymentSchema = z.object({
+  deliveryRequestId: z.string(),
+  paymentToken: z.string(),
+  amount: z.number().positive(),
+  currency: z.string().default("USD"),
+});
+
+export const createInvoiceSchema = z.object({
+  deliveryRequestId: z.string(),
+  customerId: z.string().optional(),
+  customerEmail: z.string().email().optional(),
+  title: z.string(),
+  description: z.string(),
+  amount: z.number().positive(),
+  dueDate: z.string().optional(),
+  autoCharge: z.boolean().default(false),
 });
 
 // Legacy user schema (for compatibility)

@@ -28,6 +28,8 @@ export interface IStorage {
   // Delivery request methods
   createDeliveryRequest(request: InsertDeliveryRequest): Promise<DeliveryRequest>;
   getDeliveryRequests(userId?: string): Promise<DeliveryRequest[]>;
+  getDeliveryRequestById(id: string): Promise<DeliveryRequest | undefined>;
+  updateDeliveryRequest(id: string, updates: Partial<DeliveryRequest>): Promise<DeliveryRequest>;
   updateDeliveryStatus(id: string, status: string): Promise<void>;
   
   // Driver methods
@@ -237,6 +239,11 @@ export class MemStorage implements IStorage {
       claimedByDriver: null,
       claimedAt: null,
       driverNotes: null,
+      squarePaymentId: null,
+      squareInvoiceId: null,
+      paymentStatus: "pending",
+      totalAmount: null,
+      invoiceUrl: null,
       id,
       createdAt: new Date()
     };
@@ -255,6 +262,20 @@ export class MemStorage implements IStorage {
       const updated = { ...request, status };
       this.deliveryRequests.set(id, updated);
     }
+  }
+
+  async getDeliveryRequestById(id: string): Promise<DeliveryRequest | undefined> {
+    return this.deliveryRequests.get(id);
+  }
+
+  async updateDeliveryRequest(id: string, updates: Partial<DeliveryRequest>): Promise<DeliveryRequest> {
+    const existing = this.deliveryRequests.get(id);
+    if (!existing) {
+      throw new Error(`Delivery request with id ${id} not found`);
+    }
+    const updated = { ...existing, ...updates };
+    this.deliveryRequests.set(id, updated);
+    return updated;
   }
 
   // Driver methods
