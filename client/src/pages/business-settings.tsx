@@ -196,6 +196,10 @@ export default function BusinessSettingsPage() {
 
   // Initialize payment methods when business settings load
   useEffect(() => {
+    console.log('Business settings changed:', { 
+      hasPaymentMethods: !!businessSettings?.acceptedPaymentMethods,
+      paymentMethods: businessSettings?.acceptedPaymentMethods 
+    });
     if (businessSettings?.acceptedPaymentMethods) {
       setAcceptedPaymentMethods(businessSettings.acceptedPaymentMethods);
     } else {
@@ -225,15 +229,22 @@ export default function BusinessSettingsPage() {
 
   const savePaymentMethods = async () => {
     try {
-      await apiRequest('/api/admin/business-settings', 'PUT', {
+      console.log('Saving payment methods:', acceptedPaymentMethods);
+      const response = await apiRequest('/api/admin/business-settings', 'PUT', {
         acceptedPaymentMethods
       });
+      console.log('Save completed');
       toast({ title: 'Payment methods updated successfully' });
       
-      // Force refetch of business settings
-      await queryClient.invalidateQueries({ queryKey: ['/api/admin/business-settings'] });
-      await queryClient.refetchQueries({ queryKey: ['/api/admin/business-settings'] });
+      // Don't invalidate immediately - let the save response update the state
+      // Instead, just wait a moment and then invalidate to ensure consistency
+      setTimeout(async () => {
+        console.log('Invalidating cache after save...');
+        await queryClient.invalidateQueries({ queryKey: ['/api/admin/business-settings'] });
+      }, 100);
+      
     } catch (error) {
+      console.error('Error saving payment methods:', error);
       toast({ 
         title: 'Error updating payment methods', 
         description: error instanceof Error ? error.message : 'An error occurred',
