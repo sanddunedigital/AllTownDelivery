@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { LogoUpload } from '../components/LogoUpload';
-import { PlaceIdFinder } from '../components/PlaceIdFinder';
+
 
 interface LogoBusinessSettings {
   logoUrl?: string;
@@ -1072,14 +1072,15 @@ export default function BusinessSettingsPage() {
                         </p>
                       </div>
 
-                      <PlaceIdFinder 
-                        onPlaceIdFound={(placeId) => {
-                          setSettings(prev => ({
-                            ...prev,
-                            googleReviews: { ...prev.googleReviews, placeId }
-                          }));
-                        }} 
-                      />
+                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <h4 className="font-medium text-blue-900 mb-2">How to find your Google Place ID:</h4>
+                        <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                          <li>Visit <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" className="underline">Google's Place ID Finder</a></li>
+                          <li>Search for your business name and location</li>
+                          <li>Copy the Place ID (starts with "ChIJ...")</li>
+                          <li>Paste it in the field above</li>
+                        </ol>
+                      </div>
 
                       {settings.googleReviews?.placeId && (
                         <div className="bg-green-50 p-4 rounded-lg border border-green-200">
@@ -1090,17 +1091,7 @@ export default function BusinessSettingsPage() {
                           <p className="text-sm text-green-700">
                             Reviews will be automatically fetched when enabled and displayed on your customer-facing pages.
                           </p>
-                          {saveSettingsMutation.isPending && (
-                            <div className="mt-3 bg-blue-50 p-3 rounded border border-blue-200">
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                                <span className="text-blue-800 text-sm font-medium">Fetching reviews...</span>
-                              </div>
-                              <p className="text-xs text-blue-700 mt-1">
-                                Loading your Google Reviews from the API
-                              </p>
-                            </div>
-                          )}
+
                         </div>
                       )}
                     </div>

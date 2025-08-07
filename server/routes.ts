@@ -499,13 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const dbSettings = await storage.updateBusinessSettings(tenantId, dbData);
       
-      // Auto-fetch reviews when Google Reviews are enabled for the first time
-      if (formData.googleReviews?.enabled && formData.googleReviews?.placeId) {
-        console.log("Google Reviews enabled - auto-fetching reviews...");
-        fetchAndStoreReviews(tenantId, formData.googleReviews.placeId).catch(error => {
-          console.error("Background review fetch failed:", error);
-        });
-      }
+      // Google Reviews configuration saved (simplified - no auto-fetching)
       
       // Return transformed data matching GET endpoint format
       const transformedSettings = {
