@@ -20,6 +20,217 @@ import { Loader2, Gift, User, LogIn, Star, MapPin, Phone, Globe } from 'lucide-r
 import { z } from 'zod';
 import { AddressInput } from '@/components/AddressInput';
 import { SimplePriceDisplay } from '@/components/SimplePriceDisplay';
+import SquarePayment from '@/components/square-payment';
+
+type FormStep = 'form' | 'review';
+
+interface ReviewStepProps {
+  formData: any;
+  selectedBusiness: any;
+  priceCalculation: any;
+  loyaltyInfo: any;
+  businessSettings: any;
+  selectedPaymentMethod: string;
+  setSelectedPaymentMethod: (method: string) => void;
+  onBack: () => void;
+  onSubmit: (isPaid?: boolean, paymentResult?: any) => void;
+  submitting: boolean;
+  user: any;
+}
+
+function ReviewStep({
+  formData,
+  selectedBusiness,
+  priceCalculation,
+  loyaltyInfo,
+  businessSettings,
+  selectedPaymentMethod,
+  setSelectedPaymentMethod,
+  onBack,
+  onSubmit,
+  submitting,
+  user
+}: ReviewStepProps) {
+  const [showSquarePayment, setShowSquarePayment] = useState(false);
+  
+  // Get available payment methods from business settings
+  const getAvailablePaymentMethods = () => {
+    const acceptedMethods = businessSettings?.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery', 'online_payment'];
+    
+    return acceptedMethods.map((method: string) => {
+      const predefined = PREDEFINED_PAYMENT_METHODS.find(p => p.value === method);
+      return {
+        value: method,
+        label: predefined?.label || method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      };
+    });
+  };
+
+  const handlePayNow = () => {
+    if (selectedPaymentMethod === 'online_payment') {
+      setShowSquarePayment(true);
+    } else {
+      onSubmit(false);
+    }
+  };
+
+  const handleSquarePaymentSuccess = (result: any) => {
+    setShowSquarePayment(false);
+    onSubmit(true, result);
+  };
+
+  const handleSquarePaymentError = (error: string) => {
+    setShowSquarePayment(false);
+    console.error('Payment error:', error);
+  };
+
+  const total = priceCalculation?.total || 0;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Review Your Delivery Request</CardTitle>
+              <CardDescription>
+                Please review your details before submitting your request
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              
+              {/* Customer Information */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg">Customer Information</h3>
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  <p><strong>Name:</strong> {formData?.fullName || formData?.customerName}</p>
+                  <p><strong>Phone:</strong> {formData?.phone}</p>
+                  <p><strong>Email:</strong> {formData?.email}</p>
+                </div>
+              </div>
+
+              {/* Business & Delivery Details */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg">Delivery Details</h3>
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  <p><strong>Business:</strong> {selectedBusiness?.name}</p>
+                  <p><strong>Pickup Address:</strong> {formData?.pickupAddress}</p>
+                  <p><strong>Delivery Address:</strong> {formData?.deliveryAddress}</p>
+                  <p><strong>Date:</strong> {formData?.preferredDate}</p>
+                  <p><strong>Time:</strong> {formData?.preferredTime || 'ASAP'}</p>
+                  {formData?.specialInstructions && (
+                    <p><strong>Special Instructions:</strong> {formData.specialInstructions}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Pricing */}
+              {priceCalculation && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Pricing</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <SimplePriceDisplay
+                      result={priceCalculation}
+                      isRush={false}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Method Selection */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Payment Method</h3>
+                <div className="space-y-2">
+                  {getAvailablePaymentMethods().map((method: { value: string; label: string }) => (
+                    <div key={method.value} className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id={method.value}
+                        name="paymentMethod"
+                        value={method.value}
+                        checked={selectedPaymentMethod === method.value}
+                        onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                        className="h-4 w-4"
+                      />
+                      <label htmlFor={method.value} className="text-sm font-medium">
+                        {method.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Payment Actions */}
+              <div className="flex flex-col space-y-3 pt-4 border-t">
+                <div className="flex space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={onBack}
+                    disabled={submitting}
+                    className="flex-1"
+                  >
+                    Back to Edit
+                  </Button>
+                  
+                  {selectedPaymentMethod === 'online_payment' ? (
+                    <Button
+                      onClick={handlePayNow}
+                      disabled={submitting || !selectedPaymentMethod}
+                      className="flex-1"
+                    >
+                      {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Pay Now ${total.toFixed(2)}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => onSubmit(false)}
+                      disabled={submitting || !selectedPaymentMethod}
+                      className="flex-1"
+                    >
+                      {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Submit Request
+                    </Button>
+                  )}
+                </div>
+                
+                {selectedPaymentMethod === 'online_payment' && (
+                  <p className="text-sm text-gray-600 text-center">
+                    You will be charged immediately and your delivery will be prioritized
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Square Payment Modal */}
+          {showSquarePayment && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Complete Payment</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSquarePayment(false)}
+                  >
+                    ×
+                  </Button>
+                </div>
+                <SquarePayment
+                  amount={total}
+                  deliveryRequestId="temp-request-id"
+                  customerName={formData?.fullName || formData?.customerName}
+                  onPaymentSuccess={handleSquarePaymentSuccess}
+                  onPaymentError={handleSquarePaymentError}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function EnhancedDeliveryForm() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -28,6 +239,9 @@ export function EnhancedDeliveryForm() {
   const [loyaltyInfo, setLoyaltyInfo] = useState<any>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [priceCalculation, setPriceCalculation] = useState<any>(null);
+  const [currentStep, setCurrentStep] = useState<FormStep>('form');
+  const [formData, setFormData] = useState<any>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
   
   // Fetch businesses
   const { data: businesses, isLoading: businessesLoading } = useQuery({
@@ -155,22 +369,40 @@ export function EnhancedDeliveryForm() {
     }
   };
 
-  const onSubmit = async (data: any) => {
+  // Step 1: Handle form submission to review
+  const onFormSubmit = async (data: any) => {
+    setFormData(data);
+    setCurrentStep('review');
+  };
+
+  // Step 2: Handle final submission (with or without payment)
+  const onFinalSubmit = async (isPaid: boolean = false, paymentResult?: any) => {
     setSubmitting(true);
     
     try {
       const requestData = {
-        ...data,
+        ...formData,
         userId: user?.id || undefined,
+        paymentMethod: selectedPaymentMethod,
+        isPaid,
+        paymentId: paymentResult?.paymentId,
+        paymentStatus: isPaid ? 'completed' : 'pending',
       };
 
       const result = await apiRequest('/api/delivery-requests', 'POST', requestData);
 
       toast({
         title: "Success!",
-        description: "Your delivery request has been submitted successfully. We'll contact you soon!",
+        description: isPaid ? 
+          "Your delivery request has been submitted and payment processed successfully!" :
+          "Your delivery request has been submitted successfully. We'll contact you soon!",
       });
 
+      // Reset form and return to step 1
+      setCurrentStep('form');
+      setFormData(null);
+      setSelectedPaymentMethod('');
+      
       // Reset only delivery-specific fields, preserve user profile data
       if (user && profile) {
         // Keep profile data, reset only delivery fields
@@ -213,6 +445,25 @@ export function EnhancedDeliveryForm() {
   }
 
 
+
+  // Show review step if in review mode
+  if (currentStep === 'review') {
+    return (
+      <ReviewStep 
+        formData={formData}
+        selectedBusiness={selectedBusiness}
+        priceCalculation={priceCalculation}
+        loyaltyInfo={loyaltyInfo}
+        businessSettings={businessSettings}
+        selectedPaymentMethod={selectedPaymentMethod}
+        setSelectedPaymentMethod={setSelectedPaymentMethod}
+        onBack={() => setCurrentStep('form')}
+        onSubmit={onFinalSubmit}
+        submitting={submitting}
+        user={user}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -280,7 +531,7 @@ export function EnhancedDeliveryForm() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-6">
               {/* Customer Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Customer Information</h3>
@@ -595,7 +846,7 @@ export function EnhancedDeliveryForm() {
 
               <Button type="submit" size="lg" className="w-full" disabled={submitting}>
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Submit Delivery Request
+                Review Delivery Request
               </Button>
             </form>
           </Form>

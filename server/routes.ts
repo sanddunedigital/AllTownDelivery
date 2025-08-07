@@ -210,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create delivery request
   app.post("/api/delivery-requests", async (req, res) => {
     try {
-      const { userId, ...deliveryData } = req.body;
+      const { userId, isPaid, paymentId, paymentStatus, totalAmount, ...deliveryData } = req.body;
       
       let validatedData;
       if (userId) {
@@ -221,7 +221,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData = insertDeliveryRequestGuestSchema.parse(deliveryData);
       }
       
-      const delivery = await storage.createDeliveryRequest(validatedData);
+      // Add payment information if provided
+      const requestData = {
+        ...validatedData,
+        squarePaymentId: paymentId || null,
+        paymentStatus: paymentStatus || 'pending',
+        totalAmount: totalAmount || null,
+        status: isPaid ? 'paid' : 'pending', // Set status to 'paid' for pre-paid requests
+      };
+      
+      const delivery = await storage.createDeliveryRequest(requestData);
       res.json(delivery);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -230,6 +239,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error creating delivery request:", error);
         res.status(500).json({ message: "Internal server error" });
       }
+    }
+  });
+
+  // Check if delivery request can be edited (not paid)
+  app.get("/api/delivery-requests/:id/editable", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const delivery = await storage.getDeliveryRequest(id);
+      
+      if (!delivery) {
+        return res.status(404).json({ message: "Delivery request not found" });
+      }
+      
+      // Can't edit if payment has been processed
+      const canEdit = delivery.paymentStatus !== 'paid' && delivery.squarePaymentId === null;
+      
+      res.json({ canEdit, reason: canEdit ? null : "Cannot edit paid delivery requests" });
+    } catch (error) {
+      console.error("Error checking editability:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
