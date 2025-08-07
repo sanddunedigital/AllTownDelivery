@@ -130,6 +130,10 @@ export const businessSettings = pgTable("business_settings", {
   enableScheduledDeliveries: boolean("enable_scheduled_deliveries").default(false),
   enableMultiStopDeliveries: boolean("enable_multi_stop_deliveries").default(false),
   
+  // Google Reviews Integration
+  googlePlaceId: text("google_place_id"),
+  enableGoogleReviews: boolean("enable_google_reviews").default(false),
+  
   // Payment Options
   acceptedPaymentMethods: text("accepted_payment_methods").array().default(sql`ARRAY['cash', 'credit_card', 'digital_wallet']`),
   requirePaymentUpfront: boolean("require_payment_upfront").default(false),
@@ -143,6 +147,28 @@ export const businessSettings = pgTable("business_settings", {
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Google Reviews cache table
+export const googleReviews = pgTable("google_reviews", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").default(sql`'00000000-0000-0000-0000-000000000001'::uuid`).notNull(),
+  placeId: text("place_id").notNull(),
+  reviewData: jsonb("review_data").$type<{
+    reviews: Array<{
+      author_name: string;
+      author_url?: string;
+      profile_photo_url?: string;
+      rating: number;
+      relative_time_description: string;
+      text: string;
+      time: number;
+    }>;
+    rating: number;
+    user_ratings_total: number;
+  }>().notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Service area zones for delivery pricing
@@ -184,6 +210,13 @@ export const insertServiceZoneSchema = createInsertSchema(serviceZones).omit({
 });
 
 export const updateServiceZoneSchema = insertServiceZoneSchema.partial();
+
+// Google reviews schemas
+export const insertGoogleReviewsSchema = createInsertSchema(googleReviews).omit({
+  id: true,
+  createdAt: true,
+  lastUpdated: true,
+});
 
 // Tenant schemas
 export const insertTenantSchema = createInsertSchema(tenants).omit({
@@ -272,6 +305,9 @@ export type Tenant = typeof tenants.$inferSelect;
 
 export type InsertBusiness = z.infer<typeof insertBusinessSchema>;
 export type Business = typeof businesses.$inferSelect;
+
+export type InsertGoogleReviews = z.infer<typeof insertGoogleReviewsSchema>;
+export type GoogleReviewsData = typeof googleReviews.$inferSelect;
 
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;

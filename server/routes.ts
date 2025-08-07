@@ -18,6 +18,10 @@ import {
 import { z } from "zod";
 import { ObjectStorageService } from "./objectStorage";
 import { googleMapsService } from "./googleMaps";
+import { GooglePlacesService } from "./googlePlaces";
+import { db } from "./db";
+import { googleReviews } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant Information Route
@@ -75,18 +79,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       let profile = await storage.getUserProfile(id);
       
-      // Create profile if it doesn't exist
       if (!profile) {
-        profile = await storage.createUserProfile({
+        // Create default profile
+        const defaultProfile = {
           id,
-          email: '', // Will be updated when user provides email
-          fullName: null,
-          phone: null,
-          defaultPickupAddress: null,
-          defaultDeliveryAddress: null,
-          preferredPaymentMethod: null,
-          marketingConsent: false
-        });
+          name: "New User",
+          email: "",
+          phone: "",
+          address: "",
+          isDriver: false,
+          isOnDuty: false,
+          role: "customer" as const,
+          loyaltyPoints: 0,
+          totalDeliveries: 0,
+          freeDeliveryCredits: 0
+        };
+        profile = await storage.createUserProfile(defaultProfile);
       }
       
       res.json(profile);
@@ -96,11 +104,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create user profile (called after Supabase Auth signup)
-  app.post("/api/users/profile", async (req, res) => {
+  // Create user profile
+  app.post("/api/users/:id/profile", async (req, res) => {
     try {
-      const validatedData = insertUserProfileSchema.parse(req.body);
-      const profile = await storage.createUserProfile(validatedData);
+      const { id } = req.params;
+      const profileData = insertUserProfileSchema.parse({ ...req.body, id });
+      const profile = await storage.createUserProfile(profileData);
       res.json(profile);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -113,11 +122,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update user profile
-  app.patch("/api/users/:id/profile", async (req, res) => {
+  app.put("/api/users/:id/profile", async (req, res) => {
     try {
       const { id } = req.params;
-      const validatedData = updateUserProfileSchema.parse(req.body);
-      const profile = await storage.updateUserProfile(id, validatedData);
+      const updates = updateUserProfileSchema.parse(req.body);
+      const profile = await storage.updateUserProfile(id, updates);
       res.json(profile);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -129,49 +138,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check loyalty eligibility (create profile if needed)
+  // Get user loyalty information
   app.get("/api/users/:id/loyalty", async (req, res) => {
     try {
       const { id } = req.params;
-      let profile = await storage.getUserProfile(id);
-      
-      // Create profile if it doesn't exist
-      if (!profile) {
-        profile = await storage.createUserProfile({
-          id,
-          email: '', // Will be updated when user provides email
-          fullName: null,
-          phone: null,
-          defaultPickupAddress: null,
-          defaultDeliveryAddress: null,
-          preferredPaymentMethod: null,
-          marketingConsent: false
-        });
-      }
-      
-      const eligibleForFree = await storage.checkLoyaltyEligibility(id);
-      const loyaltyPoints = profile.loyaltyPoints || 0;
-      const freeDeliveryCredits = profile.freeDeliveryCredits || 0;
-      
-      // Calculate deliveries until next free based on loyalty points (not total deliveries)
-      const deliveriesUntilNextFree = freeDeliveryCredits > 0 ? 0 : (10 - loyaltyPoints);
-      
-      res.json({
-        loyaltyPoints,
-        totalDeliveries: profile.totalDeliveries || 0,
-        freeDeliveryCredits,
-        eligibleForFreeDelivery: eligibleForFree,
-        deliveriesUntilNextFree
-      });
+      const loyaltyInfo = await storage.getUserLoyalty(id);
+      res.json(loyaltyInfo);
     } catch (error) {
-      console.error("Error checking loyalty status:", error);
+      console.error("Error fetching loyalty info:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get user's delivery history
+  app.get("/api/users/:id/deliveries", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deliveries = await storage.getUserDeliveries(id);
+      res.json(deliveries);
+    } catch (error) {
+      console.error("Error fetching user deliveries:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
   // Business Routes
-
-  // Get all active businesses
+  
+  // Get all businesses
   app.get("/api/businesses", async (req, res) => {
     try {
       const businesses = await storage.getBusinesses();
@@ -182,11 +175,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create new business (admin endpoint)
+  // Create business
   app.post("/api/businesses", async (req, res) => {
     try {
-      const validatedData = insertBusinessSchema.parse(req.body);
-      const business = await storage.createBusiness(validatedData);
+      const businessData = insertBusinessSchema.parse(req.body);
+      const business = await storage.createBusiness(businessData);
       res.json(business);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -198,139 +191,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get business settings for frontend (public endpoint)
-  app.get("/api/business-settings", async (req, res) => {
+  // Delivery Request Routes
+  
+  // Get all delivery requests
+  app.get("/api/delivery-requests", async (req, res) => {
     try {
-      const tenantId = getCurrentTenantId(req);
-      const dbSettings = await storage.getBusinessSettings(tenantId);
-      
-      if (!dbSettings) {
-        return res.status(404).json({ message: "Business settings not found" });
-      }
-      
-      // Transform database fields to public settings (same logic as admin endpoint)
-      const publicSettings = {
-        businessName: dbSettings.businessName,
-        businessPhone: dbSettings.businessPhone,
-        businessAddress: dbSettings.businessAddress,
-        primaryColor: dbSettings.primaryColor,
-        secondaryColor: dbSettings.secondaryColor,
-        accentColor: dbSettings.accentColor,
-        logoUrl: dbSettings.logoUrl,
-        businessHours: dbSettings.operatingHours || {
-          monday: { open: '09:00', close: '17:00', closed: false },
-          tuesday: { open: '09:00', close: '17:00', closed: false },
-          wednesday: { open: '09:00', close: '17:00', closed: false },
-          thursday: { open: '09:00', close: '17:00', closed: false },
-          friday: { open: '09:00', close: '17:00', closed: false },
-          saturday: { open: '10:00', close: '16:00', closed: false },
-          sunday: { open: '12:00', close: '16:00', closed: true }
-        },
-        currency: dbSettings.currency,
-        timezone: dbSettings.timezone,
-        deliveryPricing: {
-          basePrice: parseFloat(dbSettings.baseDeliveryFee) || 5.00,
-          pricePerMile: parseFloat(dbSettings.pricePerMile) || 1.50,
-          minimumOrder: parseFloat(dbSettings.minimumOrderValue) || 10.00,
-          freeDeliveryThreshold: parseFloat(dbSettings.freeDeliveryThreshold) || 50.00,
-          rushDeliveryMultiplier: parseFloat(dbSettings.rushDeliveryMultiplier) || 1.5
-        },
-        features: {
-          loyaltyProgram: dbSettings.enableLoyaltyProgram ?? true,
-          realTimeTracking: dbSettings.enableRealTimeTracking ?? true,
-          scheduledDeliveries: dbSettings.enableScheduledDeliveries ?? false,
-          multiplePaymentMethods: true
-        }
-      };
-      
-      res.json(publicSettings);
+      const deliveries = await storage.getDeliveryRequests();
+      res.json(deliveries);
     } catch (error) {
-      console.error("Error fetching business settings:", error);
+      console.error("Error fetching delivery requests:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  // Delivery Request Routes
-
-  // Create delivery request (supports both guest and authenticated users)
+  // Create delivery request
   app.post("/api/delivery-requests", async (req, res) => {
     try {
-      const { userId, saveProfile, useStoredPayment, ...requestData } = req.body;
+      const { userId, ...deliveryData } = req.body;
       
       let validatedData;
-      let usedFreeDelivery = false;
-      
-      // Get business settings for pricing calculations
-      const tenantId = getCurrentTenantId(req);
-      const businessSettings = await storage.getBusinessSettings(tenantId);
-      
       if (userId) {
         // Authenticated user request
-        validatedData = insertDeliveryRequestAuthenticatedSchema.parse(req.body);
-        
-        // Check if loyalty program is enabled and user has free delivery credits
-        const profile = await storage.getUserProfile(userId);
-        if (businessSettings?.features?.loyaltyProgram && profile?.freeDeliveryCredits && profile.freeDeliveryCredits > 0) {
-          usedFreeDelivery = true;
-          // Reduce free delivery credits by 1
-          await storage.updateUserProfile(userId, {
-            freeDeliveryCredits: profile.freeDeliveryCredits - 1
-          });
-        }
-        
-        // If user wants to save profile data
-        if (saveProfile) {
-          if (profile) {
-            await storage.updateUserProfile(userId, {
-              phone: requestData.phone,
-              defaultPickupAddress: requestData.pickupAddress,
-              defaultDeliveryAddress: requestData.deliveryAddress,
-              preferredPaymentMethod: requestData.paymentMethod,
-            });
-          }
-        }
+        validatedData = insertDeliveryRequestAuthenticatedSchema.parse({ userId, ...deliveryData });
       } else {
-        // Guest user request
-        validatedData = insertDeliveryRequestGuestSchema.parse(requestData);
-      }
-
-      // Calculate delivery fee based on business settings
-      let deliveryFee = businessSettings?.deliveryPricing?.basePrice || 5.00;
-      
-      // Apply distance-based pricing if available
-      if (businessSettings?.deliveryPricing?.pricePerMile && requestData.estimatedDistance) {
-        deliveryFee += businessSettings.deliveryPricing.pricePerMile * requestData.estimatedDistance;
+        // Guest request
+        validatedData = insertDeliveryRequestGuestSchema.parse(deliveryData);
       }
       
-      // Apply rush delivery multiplier if requested
-      if (requestData.isRush && businessSettings?.deliveryPricing?.rushDeliveryMultiplier) {
-        deliveryFee *= businessSettings.deliveryPricing.rushDeliveryMultiplier;
-      }
-      
-      // Check for free delivery threshold
-      if (businessSettings?.deliveryPricing?.freeDeliveryThreshold && 
-          requestData.orderTotal >= businessSettings.deliveryPricing.freeDeliveryThreshold) {
-        deliveryFee = 0;
-      }
-      
-      // Apply free delivery if user used credit
-      if (usedFreeDelivery) {
-        deliveryFee = 0;
-      }
-
-      // Add the calculated delivery fee and free delivery flag to the request
-      const deliveryRequestData = {
-        ...validatedData,
-        deliveryFee,
-        usedFreeDelivery
-      };
-
-      const deliveryRequest = await storage.createDeliveryRequest(deliveryRequestData);
-      
-      res.json(deliveryRequest);
+      const delivery = await storage.createDeliveryRequest(validatedData);
+      res.json(delivery);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+        res.status(400).json({ message: "Invalid delivery data", errors: error.errors });
       } else {
         console.error("Error creating delivery request:", error);
         res.status(500).json({ message: "Internal server error" });
@@ -338,42 +230,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get delivery requests (supports filtering by user)
-  app.get("/api/delivery-requests", async (req, res) => {
-    try {
-      const { userId } = req.query;
-      const requests = await storage.getDeliveryRequests(userId as string);
-      res.json(requests);
-    } catch (error) {
-      console.error("Error fetching delivery requests:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Update delivery status (admin endpoint)
+  // Update delivery status (admin only)
   app.patch("/api/delivery-requests/:id/status", async (req, res) => {
     try {
       const { id } = req.params;
-      const { status } = req.body;
+      const { status, driverNotes } = updateDeliveryStatusSchema.parse(req.body);
       
-      if (!status || typeof status !== 'string') {
-        return res.status(400).json({ message: "Status is required" });
-      }
+      const delivery = await storage.updateDeliveryStatus(id, status, driverNotes);
       
-      // Get delivery before updating to check user ID
-      const requests = await storage.getDeliveryRequests();
-      const delivery = requests.find(r => r.id === id);
-      
-      await storage.updateDeliveryStatus(id, status);
-      
-      // Award loyalty points when delivery is completed (only if loyalty program is enabled)
-      if (status === 'completed' && delivery?.userId) {
-        const tenantId = getCurrentTenantId(req);
-        const businessSettings = await storage.getBusinessSettings(tenantId);
-        
-        if (businessSettings?.features?.loyaltyProgram) {
-          await storage.updateLoyaltyPoints(delivery.userId, 1, delivery.usedFreeDelivery || false); // 1 point per completed delivery
-        }
+      // Award loyalty points when delivery is completed
+      if (status === 'completed' && delivery.userId) {
+        await storage.updateLoyaltyPoints(delivery.userId, 1, delivery.usedFreeDelivery || false); // 1 point per completed delivery
       }
       
       res.json({ message: "Status updated successfully" });
@@ -475,24 +342,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(400).json({ message: "Invalid status data", errors: error.errors });
       } else {
         console.error("Error updating driver status:", error);
-        res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
+        res.status(500).json({ message: "Internal server error" });
       }
     }
   });
 
-  // Business Settings API Routes
+  // Business Settings Routes
   
-  // Get business settings for tenant
+  // Get admin business settings (full access)
   app.get("/api/admin/business-settings", async (req, res) => {
     try {
       const tenantId = getCurrentTenantId(req);
       const dbSettings = await storage.getBusinessSettings(tenantId);
       
       if (!dbSettings) {
-        return res.json(null);
+        // Return default settings for new tenants
+        const defaultSettings = {
+          tenantId,
+          businessName: "Sara's Quickie Delivery",
+          businessEmail: "contact@sarasquickiedelivery.com",
+          businessPhone: "(641) 673-0123",
+          businessAddress: "Oskaloosa, IA",
+          primaryColor: "#0369a1",
+          secondaryColor: "#64748b",
+          accentColor: "#ea580c",
+          currency: "USD",
+          timezone: "America/Chicago",
+          deliveryPricing: {
+            basePrice: 3.00,
+            pricePerMile: 1.50,
+            minimumOrder: 10.00,
+            rushDeliveryMultiplier: 1.5,
+            freeDeliveryThreshold: 50.00
+          },
+          loyaltyProgram: {
+            deliveriesForFreeDelivery: 10
+          },
+          distanceSettings: {
+            baseFeeRadius: 10.0
+          },
+          businessHours: {
+            monday: { open: '09:00', close: '17:00', closed: false },
+            tuesday: { open: '09:00', close: '17:00', closed: false },
+            wednesday: { open: '09:00', close: '17:00', closed: false },
+            thursday: { open: '09:00', close: '17:00', closed: false },
+            friday: { open: '09:00', close: '17:00', closed: false },
+            saturday: { open: '10:00', close: '16:00', closed: false },
+            sunday: { open: '12:00', close: '16:00', closed: true }
+          }
+        };
+        return res.json(defaultSettings);
       }
       
-      // Transform database fields to form schema
       const settings = {
         id: dbSettings.id,
         tenantId: dbSettings.tenantId,
@@ -539,6 +440,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           realTimeTracking: dbSettings.enableRealTimeTracking ?? true,
           scheduledDeliveries: dbSettings.enableScheduledDeliveries ?? false,
           multiplePaymentMethods: true
+        },
+        googleReviews: {
+          placeId: dbSettings.googlePlaceId,
+          enabled: dbSettings.enableGoogleReviews ?? false
         },
         createdAt: dbSettings.createdAt,
         updatedAt: dbSettings.updatedAt
@@ -587,7 +492,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         enableLoyaltyProgram: formData.features?.loyaltyProgram ?? true,
         enableRealTimeTracking: formData.features?.realTimeTracking ?? true,
-        enableScheduledDeliveries: formData.features?.scheduledDeliveries ?? false
+        enableScheduledDeliveries: formData.features?.scheduledDeliveries ?? false,
+        googlePlaceId: formData.googleReviews?.placeId,
+        enableGoogleReviews: formData.googleReviews?.enabled ?? false
       };
       
       const dbSettings = await storage.updateBusinessSettings(tenantId, dbData);
@@ -632,6 +539,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           scheduledDeliveries: dbSettings.enableScheduledDeliveries ?? false,
           multiplePaymentMethods: true
         },
+        googleReviews: {
+          placeId: dbSettings.googlePlaceId,
+          enabled: dbSettings.enableGoogleReviews ?? false
+        },
         createdAt: dbSettings.createdAt,
         updatedAt: dbSettings.updatedAt
       };
@@ -643,14 +554,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public business settings endpoint (for general app use)
+  // Get public business settings (subset of admin settings)
   app.get("/api/business-settings", async (req, res) => {
     try {
       const tenantId = getCurrentTenantId(req);
       const dbSettings = await storage.getBusinessSettings(tenantId);
       
       if (!dbSettings) {
-        // Return default settings if none found
+        // Return default public settings for new tenants
         const defaultSettings = {
           businessName: "Sara's Quickie Delivery",
           businessPhone: "(641) 673-0123",
@@ -659,7 +570,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           primaryColor: "#0369a1",
           secondaryColor: "#64748b",
           accentColor: "#ea580c",
-          logoUrl: null,
           features: {
             loyaltyProgram: true,
             scheduledDeliveries: false
@@ -910,6 +820,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error searching for public object:", error);
       return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Google Reviews Routes
+  
+  // Get cached reviews for current tenant
+  app.get("/api/reviews", async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      
+      const reviewsData = await db.query.googleReviews.findFirst({
+        where: eq(googleReviews.tenantId, tenantId),
+        orderBy: (reviews, { desc }) => [desc(reviews.lastUpdated)]
+      });
+      
+      if (!reviewsData) {
+        return res.json({ reviews: [], rating: 0, user_ratings_total: 0, lastUpdated: null });
+      }
+      
+      res.json({
+        ...reviewsData.reviewData,
+        lastUpdated: reviewsData.lastUpdated,
+        placeId: reviewsData.placeId
+      });
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Search Google Places for Place ID (admin helper)
+  app.post("/api/admin/google-places/search", async (req, res) => {
+    try {
+      const { query } = req.body;
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      const googlePlaces = new GooglePlacesService();
+      const results = await googlePlaces.searchPlace(query);
+      
+      res.json({ results });
+    } catch (error) {
+      console.error("Error searching Google Places:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Manual refresh reviews endpoint (admin helper)
+  app.post("/api/admin/reviews/refresh", async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      
+      // Get business settings to check for Google Place ID
+      const dbSettings = await storage.getBusinessSettings(tenantId);
+      
+      if (!dbSettings?.googlePlaceId || !dbSettings?.enableGoogleReviews) {
+        return res.status(400).json({ 
+          message: "Google Reviews not configured. Please set Place ID and enable in business settings." 
+        });
+      }
+
+      const googlePlaces = new GooglePlacesService();
+      const reviewData = await googlePlaces.getPlaceReviews(dbSettings.googlePlaceId);
+      
+      if (!reviewData) {
+        return res.status(500).json({ message: "Failed to fetch reviews from Google Places" });
+      }
+
+      // Check if we already have reviews for this tenant
+      const existingReviews = await db
+        .select()
+        .from(googleReviews)
+        .where(eq(googleReviews.tenantId, tenantId))
+        .limit(1);
+
+      if (existingReviews.length > 0) {
+        // Update existing reviews
+        await db
+          .update(googleReviews)
+          .set({
+            reviewData: reviewData,
+            lastUpdated: new Date(),
+            placeId: dbSettings.googlePlaceId
+          })
+          .where(eq(googleReviews.tenantId, tenantId));
+      } else {
+        // Insert new reviews
+        await db
+          .insert(googleReviews)
+          .values({
+            tenantId: tenantId,
+            placeId: dbSettings.googlePlaceId,
+            reviewData: reviewData,
+            lastUpdated: new Date()
+          });
+      }
+
+      res.json({ 
+        message: "Reviews updated successfully", 
+        reviewCount: reviewData.reviews.length,
+        rating: reviewData.rating 
+      });
+    } catch (error) {
+      console.error("Error refreshing reviews:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
