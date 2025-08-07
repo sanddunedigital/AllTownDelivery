@@ -627,6 +627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           distanceSettings: {
             baseFeeRadius: 10.0
           },
+          acceptedPaymentMethods: ['cash_on_delivery', 'card_on_delivery', 'online_payment'],
           businessHours: {
             monday: { open: '09:00', close: '17:00', closed: false },
             tuesday: { open: '09:00', close: '17:00', closed: false },
@@ -663,6 +664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         distanceSettings: {
           baseFeeRadius: parseFloat(dbSettings.baseFeeRadius) || 10.0
         },
+        acceptedPaymentMethods: dbSettings.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery', 'online_payment'],
         businessHours: dbSettings.operatingHours || {
           monday: { open: '09:00', close: '17:00', closed: false },
           tuesday: { open: '09:00', close: '17:00', closed: false },
