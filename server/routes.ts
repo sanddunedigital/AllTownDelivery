@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, SmartStorage } from "./storage";
 import dispatchRoutes from "./dispatch-routes";
 import adminRoutes from "./admin-routes";
 import { getCurrentTenant, getCurrentTenantId } from "./tenant";
@@ -558,10 +558,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/business-settings", async (req, res) => {
     try {
       const tenantId = getCurrentTenantId(req);
-      const dbSettings = await storage.getBusinessSettings(tenantId);
+      
+      // Force database connection - don't fall back to memory storage for business settings
+      let dbSettings;
+      try {
+        if (storage instanceof SmartStorage) {
+          dbSettings = await storage.dbStorage.getBusinessSettings(tenantId);
+        } else {
+          dbSettings = await storage.getBusinessSettings(tenantId);
+        }
+      } catch (error) {
+        console.error("Database connection failed for business settings:", error);
+        // If database fails, return a temporary error instead of wrong defaults
+        return res.status(503).json({ 
+          message: "Service temporarily unavailable",
+          error: "Database connection issue"
+        });
+      }
       
       if (!dbSettings) {
-        // Return default public settings for new tenants
+        // This should only happen for truly new tenants - not database connection issues
+        console.log("No business settings found for tenant:", tenantId);
         const defaultSettings = {
           businessName: "Sara's Quickie Delivery",
           businessPhone: "(641) 673-0123",
@@ -840,9 +857,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json({
-        ...reviewsData.reviewData,
-        lastUpdated: reviewsData.lastUpdated,
-        placeId: reviewsData.placeId
+        ...reviewsData[0].reviewData,
+        lastUpdated: reviewsData[0].lastUpdated,
+        placeId: reviewsData[0].placeId
       });
     } catch (error) {
       console.error("Error fetching reviews:", error);
