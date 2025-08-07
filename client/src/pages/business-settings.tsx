@@ -1088,8 +1088,19 @@ export default function BusinessSettingsPage() {
                             <span className="text-green-800 font-medium">Google Reviews Configured</span>
                           </div>
                           <p className="text-sm text-green-700">
-                            Reviews will be automatically updated weekly and displayed on your customer-facing pages.
+                            Reviews will be automatically fetched when enabled and displayed on your customer-facing pages.
                           </p>
+                          {updateMutation.isPending && (
+                            <div className="mt-3 bg-blue-50 p-3 rounded border border-blue-200">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                <span className="text-blue-800 text-sm font-medium">Fetching reviews...</span>
+                              </div>
+                              <p className="text-xs text-blue-700 mt-1">
+                                Loading your Google Reviews from the API
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

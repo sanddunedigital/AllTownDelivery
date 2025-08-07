@@ -499,6 +499,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const dbSettings = await storage.updateBusinessSettings(tenantId, dbData);
       
+      // Auto-fetch reviews when Google Reviews are enabled for the first time
+      if (formData.googleReviews?.enabled && formData.googleReviews?.placeId) {
+        console.log("Google Reviews enabled - auto-fetching reviews...");
+        fetchAndStoreReviews(tenantId, formData.googleReviews.placeId).catch(error => {
+          console.error("Background review fetch failed:", error);
+        });
+      }
+      
       // Return transformed data matching GET endpoint format
       const transformedSettings = {
         id: dbSettings.id,
@@ -856,10 +864,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ reviews: [], rating: 0, user_ratings_total: 0, lastUpdated: null });
       }
       
+      const firstReview = reviewsData[0];
       res.json({
-        ...reviewsData[0].reviewData,
-        lastUpdated: reviewsData[0].lastUpdated,
-        placeId: reviewsData[0].placeId
+        ...firstReview.reviewData,
+        lastUpdated: firstReview.lastUpdated,
+        placeId: firstReview.placeId
       });
     } catch (error) {
       console.error("Error fetching reviews:", error);
@@ -885,25 +894,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Manual refresh reviews endpoint (admin helper)
-  app.post("/api/admin/reviews/refresh", async (req, res) => {
+  // Fetch reviews automatically when enabling Google Reviews feature
+  async function fetchAndStoreReviews(tenantId: string, placeId: string) {
+    console.log(`Auto-fetching Google Reviews for tenant ${tenantId}, place ID: ${placeId}`);
+    
     try {
-      const tenantId = getCurrentTenantId(req);
-      
-      // Get business settings to check for Google Place ID
-      const dbSettings = await storage.getBusinessSettings(tenantId);
-      
-      if (!dbSettings?.googlePlaceId || !dbSettings?.enableGoogleReviews) {
-        return res.status(400).json({ 
-          message: "Google Reviews not configured. Please set Place ID and enable in business settings." 
-        });
-      }
-
       const googlePlaces = new GooglePlacesService();
-      const reviewData = await googlePlaces.getPlaceReviews(dbSettings.googlePlaceId);
+      const reviewData = await googlePlaces.getPlaceReviews(placeId);
       
       if (!reviewData) {
-        return res.status(500).json({ message: "Failed to fetch reviews from Google Places" });
+        console.error("Failed to fetch reviews from Google Places");
+        return null;
       }
 
       // Check if we already have reviews for this tenant
@@ -920,7 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .set({
             reviewData: reviewData,
             lastUpdated: new Date(),
-            placeId: dbSettings.googlePlaceId
+            placeId: placeId
           })
           .where(eq(googleReviews.tenantId, tenantId));
       } else {
@@ -929,10 +930,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .insert(googleReviews)
           .values({
             tenantId: tenantId,
-            placeId: dbSettings.googlePlaceId,
+            placeId: placeId,
             reviewData: reviewData,
             lastUpdated: new Date()
           });
+      }
+
+      console.log(`Successfully stored ${reviewData.reviews.length} reviews with ${reviewData.rating} average rating`);
+      return reviewData;
+    } catch (error) {
+      console.error("Error auto-fetching reviews:", error);
+      return null;
+    }
+  }
+
+  // Manual refresh reviews endpoint (admin helper)
+  app.post("/api/admin/reviews/refresh", async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      
+      // Get business settings to check for Google Place ID
+      const dbSettings = await storage.getBusinessSettings(tenantId);
+      
+      if (!dbSettings?.googlePlaceId || !dbSettings?.enableGoogleReviews) {
+        return res.status(400).json({ 
+          message: "Google Reviews not configured. Please set Place ID and enable in business settings." 
+        });
+      }
+
+      const reviewData = await fetchAndStoreReviews(tenantId, dbSettings.googlePlaceId);
+      
+      if (!reviewData) {
+        return res.status(500).json({ message: "Failed to fetch reviews from Google Places" });
       }
 
       res.json({ 
