@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { LogoUpload } from '../components/LogoUpload';
+import { PlaceIdFinder } from '../components/PlaceIdFinder';
 
 interface LogoBusinessSettings {
   logoUrl?: string;
@@ -1071,15 +1072,14 @@ export default function BusinessSettingsPage() {
                         </p>
                       </div>
 
-                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <h4 className="font-medium text-blue-900 mb-2">How to find your Google Place ID:</h4>
-                        <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                          <li>Search for your business on Google Maps</li>
-                          <li>Click on your business listing</li>
-                          <li>Copy the long ID from the URL (after "place/") </li>
-                          <li>Paste it in the field above</li>
-                        </ol>
-                      </div>
+                      <PlaceIdFinder 
+                        onPlaceIdFound={(placeId) => {
+                          setSettings(prev => ({
+                            ...prev,
+                            googleReviews: { ...prev.googleReviews, placeId }
+                          }));
+                        }} 
+                      />
 
                       {settings.googleReviews?.placeId && (
                         <div className="bg-green-50 p-4 rounded-lg border border-green-200">
