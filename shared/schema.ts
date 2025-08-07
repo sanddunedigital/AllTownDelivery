@@ -141,7 +141,7 @@ export const businessSettings = pgTable("business_settings", {
   enableGoogleReviews: boolean("enable_google_reviews").default(false),
   
   // Payment Options
-  acceptedPaymentMethods: text("accepted_payment_methods").array().default(sql`ARRAY['cash', 'credit_card', 'digital_wallet']`),
+  acceptedPaymentMethods: text("accepted_payment_methods").array().default(sql`ARRAY['cash_on_delivery', 'card_on_delivery', 'online_payment']`),
   requirePaymentUpfront: boolean("require_payment_upfront").default(false),
   
   // Square Payment Configuration (per tenant)
@@ -304,6 +304,20 @@ export const updateDeliveryStatusSchema = z.object({
 export const updateDriverStatusSchema = z.object({
   isOnDuty: z.boolean(),
 });
+
+// Payment method constants
+export const PREDEFINED_PAYMENT_METHODS = [
+  { value: 'cash_on_delivery', label: 'Cash on Delivery' },
+  { value: 'card_on_delivery', label: 'Card on Delivery' },
+  { value: 'online_payment', label: 'Online Payment (Pre-paid)' },
+  { value: 'square_invoice', label: 'Square Invoice' },
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'venmo', label: 'Venmo' },
+  { value: 'paypal', label: 'PayPal' },
+  { value: 'apple_pay', label: 'Apple Pay' },
+  { value: 'google_pay', label: 'Google Pay' },
+  { value: 'zelle', label: 'Zelle' },
+] as const;
 
 // Square payment schemas
 export const processPaymentSchema = z.object({

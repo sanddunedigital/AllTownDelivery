@@ -32,10 +32,12 @@ import {
   User,
   ChevronDown,
   LogOut,
-  Truck
+  Truck,
+  X
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { LogoUpload } from '../components/LogoUpload';
+import { PREDEFINED_PAYMENT_METHODS } from '@shared/schema';
 
 
 interface LogoBusinessSettings {
@@ -97,6 +99,7 @@ interface BusinessSettings {
     environment?: string;
     configured?: boolean;
   };
+  acceptedPaymentMethods?: string[];
 
   createdAt?: string;
   updatedAt?: string;
@@ -176,6 +179,8 @@ export default function BusinessSettingsPage() {
     estimatedTime: '30-45 minutes',
     isActive: true
   });
+  const [customPaymentMethod, setCustomPaymentMethod] = useState('');
+  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<string[]>([]);
 
   // Fetch logo business settings for header
   const { data: logoBusinessSettings } = useQuery<LogoBusinessSettings>({
@@ -188,6 +193,54 @@ export default function BusinessSettingsPage() {
     queryKey: ['/api/admin/business-settings'],
     enabled: !!user && profile?.role === 'admin'
   });
+
+  // Initialize payment methods when business settings load
+  useEffect(() => {
+    if (businessSettings?.acceptedPaymentMethods) {
+      setAcceptedPaymentMethods(businessSettings.acceptedPaymentMethods);
+    } else {
+      setAcceptedPaymentMethods(['cash_on_delivery', 'card_on_delivery', 'online_payment']);
+    }
+  }, [businessSettings]);
+
+  // Payment method handlers
+  const togglePaymentMethod = (method: string) => {
+    setAcceptedPaymentMethods(prev => 
+      prev.includes(method) 
+        ? prev.filter(m => m !== method)
+        : [...prev, method]
+    );
+  };
+
+  const addCustomPaymentMethod = () => {
+    if (customPaymentMethod.trim() && !acceptedPaymentMethods.includes(customPaymentMethod.trim())) {
+      setAcceptedPaymentMethods(prev => [...prev, customPaymentMethod.trim()]);
+      setCustomPaymentMethod('');
+    }
+  };
+
+  const removePaymentMethod = (method: string) => {
+    setAcceptedPaymentMethods(prev => prev.filter(m => m !== method));
+  };
+
+  const savePaymentMethods = async () => {
+    try {
+      await apiRequest('/api/admin/business-settings', {
+        method: 'PUT',
+        body: {
+          acceptedPaymentMethods
+        }
+      });
+      toast({ title: 'Payment methods updated successfully' });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/business-settings'] });
+    } catch (error) {
+      toast({ 
+        title: 'Error updating payment methods', 
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive' 
+      });
+    }
+  };
 
   // Fetch service zones
   const { data: serviceZones = [], isLoading: loadingZones } = useQuery<ServiceZone[]>({
@@ -1016,6 +1069,115 @@ export default function BusinessSettingsPage() {
                       </ol>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment Options Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Accepted Payment Methods</CardTitle>
+                  <CardDescription>
+                    Choose which payment methods your business accepts for deliveries
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Predefined Payment Methods */}
+                  <div>
+                    <Label className="text-sm font-medium mb-3 block">Standard Payment Options</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {PREDEFINED_PAYMENT_METHODS.map((method) => (
+                        <div key={method.value} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={method.value}
+                            checked={acceptedPaymentMethods.includes(method.value)}
+                            onChange={() => togglePaymentMethod(method.value)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <Label htmlFor={method.value} className="text-sm">
+                            {method.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Custom Payment Methods */}
+                  <div>
+                    <Label className="text-sm font-medium mb-3 block">Custom Payment Methods</Label>
+                    
+                    {/* Add Custom Method */}
+                    <div className="flex gap-2 mb-3">
+                      <Input
+                        placeholder="Enter custom payment method (e.g., Bitcoin, Check)"
+                        value={customPaymentMethod}
+                        onChange={(e) => setCustomPaymentMethod(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && addCustomPaymentMethod()}
+                      />
+                      <Button 
+                        type="button" 
+                        onClick={addCustomPaymentMethod}
+                        disabled={!customPaymentMethod.trim()}
+                        size="sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    {/* Display Custom Methods */}
+                    {acceptedPaymentMethods.filter(method => 
+                      !PREDEFINED_PAYMENT_METHODS.some(predefined => predefined.value === method)
+                    ).length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-600">Custom methods:</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {acceptedPaymentMethods
+                            .filter(method => !PREDEFINED_PAYMENT_METHODS.some(predefined => predefined.value === method))
+                            .map((method) => (
+                              <Badge key={method} variant="secondary" className="flex items-center gap-1">
+                                {method}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-0 w-4 h-4 hover:bg-transparent"
+                                  onClick={() => removePaymentMethod(method)}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </Badge>
+                            ))
+                          }
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={savePaymentMethods} disabled={acceptedPaymentMethods.length === 0}>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Payment Methods
+                    </Button>
+                  </div>
+
+                  {/* Preview Selected Methods */}
+                  {acceptedPaymentMethods.length > 0 && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <Label className="text-xs text-gray-600 mb-2 block">Selected methods (as customers will see them):</Label>
+                      <div className="flex flex-wrap gap-1">
+                        {acceptedPaymentMethods.map((method) => {
+                          const predefined = PREDEFINED_PAYMENT_METHODS.find(p => p.value === method);
+                          return (
+                            <Badge key={method} variant="outline" className="text-xs">
+                              {predefined?.label || method}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
