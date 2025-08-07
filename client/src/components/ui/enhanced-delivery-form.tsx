@@ -84,7 +84,7 @@ function ReviewStep({
     console.error('Payment error:', error);
   };
 
-  const total = priceCalculation?.total || 0;
+  const total = priceCalculation?.deliveryFee || 0;
   
   // Set default payment method to first available if not selected
   useEffect(() => {
@@ -92,6 +92,11 @@ function ReviewStep({
       setSelectedPaymentMethod(businessSettings.acceptedPaymentMethods[0]);
     }
   }, [businessSettings, selectedPaymentMethod, setSelectedPaymentMethod]);
+
+  // Scroll to top when review step is shown
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
@@ -394,7 +399,7 @@ export function EnhancedDeliveryForm() {
         isPaid,
         paymentId: paymentResult?.paymentId,
         paymentStatus: isPaid ? 'completed' : 'pending',
-        totalAmount: priceCalculation?.total || 0,
+        totalAmount: priceCalculation?.deliveryFee || 0,
       };
 
       const result = await apiRequest('/api/delivery-requests', 'POST', requestData);
