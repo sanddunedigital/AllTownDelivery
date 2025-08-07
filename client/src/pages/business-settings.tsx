@@ -225,11 +225,8 @@ export default function BusinessSettingsPage() {
 
   const savePaymentMethods = async () => {
     try {
-      await apiRequest('/api/admin/business-settings', {
-        method: 'PUT',
-        body: {
-          acceptedPaymentMethods
-        }
+      await apiRequest('/api/admin/business-settings', 'PUT', {
+        acceptedPaymentMethods
       });
       toast({ title: 'Payment methods updated successfully' });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/business-settings'] });
