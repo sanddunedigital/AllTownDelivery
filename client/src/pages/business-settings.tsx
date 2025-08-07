@@ -229,7 +229,10 @@ export default function BusinessSettingsPage() {
         acceptedPaymentMethods
       });
       toast({ title: 'Payment methods updated successfully' });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/business-settings'] });
+      
+      // Force refetch of business settings
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/business-settings'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/admin/business-settings'] });
     } catch (error) {
       toast({ 
         title: 'Error updating payment methods', 

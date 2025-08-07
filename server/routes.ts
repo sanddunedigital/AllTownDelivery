@@ -392,7 +392,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             friday: { open: '09:00', close: '17:00', closed: false },
             saturday: { open: '10:00', close: '16:00', closed: false },
             sunday: { open: '12:00', close: '16:00', closed: true }
-          }
+          },
+          acceptedPaymentMethods: ['cash_on_delivery', 'card_on_delivery', 'online_payment']
         };
         return res.json(defaultSettings);
       }
@@ -448,6 +449,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           placeId: dbSettings.googlePlaceId,
           enabled: dbSettings.enableGoogleReviews ?? false
         },
+        squareSettings: {
+          accessToken: dbSettings.squareAccessToken ? '***' : undefined,
+          applicationId: dbSettings.squareApplicationId,
+          locationId: dbSettings.squareLocationId,
+          environment: dbSettings.squareEnvironment || 'sandbox',
+          configured: !!(dbSettings.squareAccessToken && dbSettings.squareApplicationId && dbSettings.squareLocationId)
+        },
+        acceptedPaymentMethods: dbSettings.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery', 'online_payment'],
         createdAt: dbSettings.createdAt,
         updatedAt: dbSettings.updatedAt
       };
@@ -501,7 +510,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         squareAccessToken: formData.squareSettings?.accessToken,
         squareApplicationId: formData.squareSettings?.applicationId,
         squareLocationId: formData.squareSettings?.locationId,
-        squareEnvironment: formData.squareSettings?.environment || 'sandbox'
+        squareEnvironment: formData.squareSettings?.environment || 'sandbox',
+        acceptedPaymentMethods: formData.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery', 'online_payment']
       };
       
       const dbSettings = await storage.updateBusinessSettings(tenantId, dbData);
@@ -552,6 +562,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           placeId: dbSettings.googlePlaceId,
           enabled: dbSettings.enableGoogleReviews ?? false
         },
+        squareSettings: {
+          accessToken: dbSettings.squareAccessToken ? '***' : undefined,
+          applicationId: dbSettings.squareApplicationId,
+          locationId: dbSettings.squareLocationId,
+          environment: dbSettings.squareEnvironment || 'sandbox',
+          configured: !!(dbSettings.squareAccessToken && dbSettings.squareApplicationId && dbSettings.squareLocationId)
+        },
+        acceptedPaymentMethods: dbSettings.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery', 'online_payment'],
         createdAt: dbSettings.createdAt,
         updatedAt: dbSettings.updatedAt
       };
