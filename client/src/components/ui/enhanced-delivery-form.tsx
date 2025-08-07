@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { insertDeliveryRequestGuestSchema, insertDeliveryRequestAuthenticatedSchema } from '@shared/schema';
+import { insertDeliveryRequestGuestSchema, insertDeliveryRequestAuthenticatedSchema, PREDEFINED_PAYMENT_METHODS } from '@shared/schema';
 import { Loader2, Gift, User, LogIn, Star, MapPin, Phone, Globe } from 'lucide-react';
 import { z } from 'zod';
 import { AddressInput } from '@/components/AddressInput';
@@ -35,11 +35,24 @@ export function EnhancedDeliveryForm() {
     refetchInterval: 60000, // Refresh every minute
   });
 
-  // Fetch business settings for pricing display
+  // Fetch business settings for pricing display and payment methods
   const { data: businessSettings } = useQuery<any>({
     queryKey: ['/api/business-settings'],
     refetchInterval: 300000, // Refresh every 5 minutes
   });
+
+  // Get available payment methods from business settings
+  const getAvailablePaymentMethods = () => {
+    const acceptedMethods = businessSettings?.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery', 'online_payment'];
+    
+    return acceptedMethods.map((method: string) => {
+      const predefined = PREDEFINED_PAYMENT_METHODS.find(p => p.value === method);
+      return {
+        value: method,
+        label: predefined?.label || method
+      };
+    });
+  };
   
   const schema = user ? insertDeliveryRequestAuthenticatedSchema : insertDeliveryRequestGuestSchema;
   
@@ -502,10 +515,11 @@ export function EnhancedDeliveryForm() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="card">Credit/Debit Card</SelectItem>
-                          <SelectItem value="venmo">Venmo</SelectItem>
-                          <SelectItem value="paypal">PayPal</SelectItem>
+                          {getAvailablePaymentMethods().map((method: { value: string; label: string }) => (
+                            <SelectItem key={method.value} value={method.value}>
+                              {method.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
