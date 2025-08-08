@@ -594,6 +594,30 @@ export class DatabaseStorage implements IStorage {
       .where(eq(deliveryRequests.id, id));
   }
 
+  async getDeliveryRequestById(id: string): Promise<DeliveryRequest | undefined> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.select().from(deliveryRequests).where(eq(deliveryRequests.id, id)).limit(1);
+    return result[0];
+  }
+
+  async updateDeliveryRequest(id: string, updates: Partial<DeliveryRequest>): Promise<DeliveryRequest> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db
+      .update(deliveryRequests)
+      .set(updates)
+      .where(eq(deliveryRequests.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error(`Delivery request with id ${id} not found`);
+    }
+    return result[0];
+  }
+
   // Driver methods
   async getAvailableDeliveries(): Promise<DeliveryRequest[]> {
     if (!(await this.testConnection())) {
@@ -910,6 +934,24 @@ class SmartStorage implements IStorage {
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
       await this.memStorage.updateDeliveryStatus(id, status);
+    }
+  }
+
+  async getDeliveryRequestById(id: string): Promise<DeliveryRequest | undefined> {
+    try {
+      return await this.dbStorage.getDeliveryRequestById(id);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getDeliveryRequestById(id);
+    }
+  }
+
+  async updateDeliveryRequest(id: string, updates: Partial<DeliveryRequest>): Promise<DeliveryRequest> {
+    try {
+      return await this.dbStorage.updateDeliveryRequest(id, updates);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.updateDeliveryRequest(id, updates);
     }
   }
 
