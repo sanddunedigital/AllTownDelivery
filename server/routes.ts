@@ -1083,20 +1083,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Square Payment Routes
   app.post("/api/payments/process", async (req, res) => {
+    console.log('=== PAYMENT ROUTE STARTED ===');
     try {
+      console.log('Parsing request body...');
       const validatedData = processPaymentSchema.parse(req.body);
+      console.log('Getting tenant ID...');
       const tenantId = getCurrentTenantId(req);
-      
-      console.log('DEBUG: Processing payment for tenant:', tenantId);
+      console.log('Tenant ID:', tenantId);
 
       // Get tenant's Square configuration
+      console.log('Getting Square config...');
       const squareConfig = await getTenantSquareConfig(tenantId);
-      console.log('DEBUG: Got Square config:', {
-        hasAccessToken: !!squareConfig.accessToken,
-        tokenLength: squareConfig.accessToken?.length,
-        locationId: squareConfig.locationId,
-        environment: squareConfig.environment
-      });
+      console.log('Square config retrieved');
       const squareService = createSquareService(squareConfig);
 
       // Process payment with Square
