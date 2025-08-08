@@ -557,7 +557,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         acceptedPaymentMethods: formData.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery', 'online_payment']
       };
       
+      console.log("About to save to database. Square access token going to DB:", dbData.squareAccessToken ? `[${dbData.squareAccessToken.length} chars]` : 'undefined');
+      
       const dbSettings = await storage.updateBusinessSettings(tenantId, dbData);
+      
+      console.log("Saved to database. Retrieved Square access token:", dbSettings.squareAccessToken ? `[${dbSettings.squareAccessToken.length} chars]` : 'undefined');
       
       // Google Reviews configuration saved (simplified - no auto-fetching)
       
