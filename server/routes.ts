@@ -1059,17 +1059,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to get tenant's Square configuration
   const getTenantSquareConfig = async (tenantId: string) => {
     const settings = await storage.getBusinessSettings(tenantId);
-    const squareSettings = settings?.squareSettings;
     
-    if (!squareSettings?.accessToken || !squareSettings?.locationId) {
+    console.log('Debug - Raw settings:', {
+      hasSettings: !!settings,
+      hasAccessToken: !!settings?.squareAccessToken,
+      accessTokenLength: settings?.squareAccessToken?.length,
+      accessTokenStart: settings?.squareAccessToken?.substring(0, 10),
+      locationId: settings?.squareLocationId,
+      environment: settings?.squareEnvironment
+    });
+    
+    if (!settings?.squareAccessToken || !settings?.squareLocationId) {
       throw new Error('Square payment not configured. Please add your Square API credentials in Admin Settings > Square Payment Setup to enable payment processing.');
     }
     
     return {
-      accessToken: squareSettings.accessToken,
-      applicationId: squareSettings.applicationId || '',
-      locationId: squareSettings.locationId,
-      environment: squareSettings.environment || 'sandbox'
+      accessToken: settings.squareAccessToken,
+      applicationId: settings.squareApplicationId || '',
+      locationId: settings.squareLocationId,
+      environment: settings.squareEnvironment || 'sandbox'
     };
   };
 
