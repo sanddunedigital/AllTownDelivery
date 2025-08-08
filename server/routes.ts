@@ -499,22 +499,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Update business settings
   app.put("/api/admin/business-settings", async (req, res) => {
-    console.log("🔥 BUSINESS SETTINGS ENDPOINT HIT!");
     try {
       const tenantId = getCurrentTenantId(req);
       
-      // Debug logging for the entire request
-      console.log("=== BUSINESS SETTINGS DEBUG ===");
-      console.log("Full request body keys:", Object.keys(req.body));
-      console.log("Square settings in request:", JSON.stringify(req.body.squareSettings, null, 2));
-      console.log("Raw Square fields from form:")
-      console.log("- formData.squareSettings:", JSON.stringify(req.body.squareSettings, null, 2));
-      if (req.body.squareSettings?.accessToken) {
-        console.log("Access token received:", `[${req.body.squareSettings.accessToken.length} chars]`);
-        console.log("Access token preview:", req.body.squareSettings.accessToken.substring(0, 10) + "...");
-      } else {
-        console.log("❌ No access token in request");
-      }
       
       // Transform form schema to database fields
       const formData = req.body;
@@ -550,19 +537,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         enableScheduledDeliveries: formData.features?.scheduledDeliveries ?? false,
         googlePlaceId: formData.googleReviews?.placeId,
         enableGoogleReviews: formData.googleReviews?.enabled ?? false,
-        squareAccessToken: formData.squareSettings?.accessToken,
+        squareAccessToken: formData.squareSettings?.accessToken === '***' ? undefined : formData.squareSettings?.accessToken,
         squareApplicationId: formData.squareSettings?.applicationId,
         squareLocationId: formData.squareSettings?.locationId,
         squareEnvironment: formData.squareSettings?.environment || 'sandbox',
         acceptedPaymentMethods: formData.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery', 'online_payment']
       };
       
-      console.log("🔵 dbData created successfully");
-      console.log("🟡 BEFORE DATABASE SAVE - Square access token:", dbData.squareAccessToken ? `[${dbData.squareAccessToken.length} chars] = ${dbData.squareAccessToken.substring(0, 10)}...` : 'undefined');
-      
       const dbSettings = await storage.updateBusinessSettings(tenantId, dbData);
-      
-      console.log("🟢 AFTER DATABASE SAVE - Retrieved Square access token:", dbSettings.squareAccessToken ? `[${dbSettings.squareAccessToken.length} chars] = ${dbSettings.squareAccessToken.substring(0, 10)}...` : 'undefined');
       
       // Google Reviews configuration saved (simplified - no auto-fetching)
       
