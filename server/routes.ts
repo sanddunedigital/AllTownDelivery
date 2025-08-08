@@ -610,6 +610,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Square Settings Endpoint
+  app.post("/api/admin/square-settings", async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      
+      // Validate the Square settings data
+      const { squareAccessToken, squareApplicationId, squareLocationId, squareEnvironment } = req.body;
+      
+      if (!squareAccessToken || !squareApplicationId || !squareLocationId) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "All Square fields are required: access token, application ID, and location ID" 
+        });
+      }
+
+      // Update only the Square-related fields in business settings
+      const updateData = {
+        squareAccessToken,
+        squareApplicationId,  
+        squareLocationId,
+        squareEnvironment: squareEnvironment || 'sandbox'
+      };
+      
+      const dbSettings = await storage.updateBusinessSettings(tenantId, updateData);
+      
+      res.json({
+        success: true,
+        message: "Square settings updated successfully",
+        settings: {
+          squareApplicationId: dbSettings.squareApplicationId,
+          squareLocationId: dbSettings.squareLocationId,
+          squareEnvironment: dbSettings.squareEnvironment,
+          accessTokenSaved: !!dbSettings.squareAccessToken
+        }
+      });
+    } catch (error) {
+      console.error("Error updating Square settings:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to update Square settings" 
+      });
+    }
+  });
+
   // Get public business settings (subset of admin settings)
   app.get("/api/business-settings", async (req, res) => {
     try {
