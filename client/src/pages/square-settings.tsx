@@ -37,21 +37,16 @@ export default function SquareSettings() {
   const onSubmit = async (data: SquareSettingsForm) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/admin/square-settings', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await apiRequest('/api/admin/square-settings', 'POST', data);
+      const result = await response.json();
 
-      if (response.success) {
+      if (result.success) {
         toast({
           title: 'Square Settings Updated',
           description: 'Your Square payment configuration has been saved successfully.',
         });
       } else {
-        throw new Error(response.error || 'Failed to update Square settings');
+        throw new Error(result.error || 'Failed to update Square settings');
       }
     } catch (error: any) {
       console.error('Square settings error:', error);

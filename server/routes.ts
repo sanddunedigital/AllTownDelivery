@@ -615,6 +615,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tenantId = getCurrentTenantId(req);
       
+      // Debug logging
+      console.log("=== SQUARE SETTINGS DEBUG ===");
+      console.log("Request body:", JSON.stringify(req.body, null, 2));
+      console.log("Access token received:", req.body.squareAccessToken ? `[${req.body.squareAccessToken.length} chars]` : 'undefined');
+      
       // Validate the Square settings data
       const { squareAccessToken, squareApplicationId, squareLocationId, squareEnvironment } = req.body;
       
