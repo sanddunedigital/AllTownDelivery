@@ -1060,7 +1060,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const getTenantSquareConfig = async (tenantId: string) => {
     const settings = await storage.getBusinessSettings(tenantId);
     if (!settings?.squareAccessToken || !settings?.squareLocationId) {
-      throw new Error('Square payment configuration not found. Please configure Square settings in business settings.');
+      throw new Error('Square payment not configured. Please add your Square API credentials in Admin Settings > Square Payment Setup to enable payment processing.');
     }
     
     return {
@@ -1111,10 +1111,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error: any) {
       console.error("Payment processing error:", error);
-      res.status(500).json({ 
-        success: false, 
-        error: error.message || "Payment processing failed" 
-      });
+      
+      // Handle configuration errors more gracefully
+      if (error.message?.includes('Square payment not configured')) {
+        res.status(400).json({ 
+          success: false, 
+          error: error.message,
+          configurationRequired: true
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: error.message || "Payment processing failed" 
+        });
+      }
     }
   });
 
@@ -1190,10 +1200,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error: any) {
       console.error("Invoice creation error:", error);
-      res.status(500).json({ 
-        success: false, 
-        error: error.message || "Invoice creation failed" 
-      });
+      
+      // Handle configuration errors more gracefully
+      if (error.message?.includes('Square payment not configured')) {
+        res.status(400).json({ 
+          success: false, 
+          error: error.message,
+          configurationRequired: true
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: error.message || "Invoice creation failed" 
+        });
+      }
     }
   });
 

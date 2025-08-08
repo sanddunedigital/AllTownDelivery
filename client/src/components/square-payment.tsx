@@ -42,33 +42,35 @@ export function SquarePayment({
       // to tokenize the card and get a payment token
       const mockPaymentToken = 'mock-payment-token-for-demo';
       
-      const response = await apiRequest('/api/payments/process', {
-        method: 'POST',
-        body: JSON.stringify({
-          deliveryRequestId,
-          paymentToken: mockPaymentToken,
-          amount,
-          currency: 'USD'
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      const response = await apiRequest('/api/payments/process', 'POST', {
+        deliveryRequestId,
+        paymentToken: mockPaymentToken,
+        amount,
+        currency: 'USD'
       });
+      
+      const responseData = await response.json();
 
-      if (response.success) {
+      if (responseData.success) {
         toast({
           title: "Payment Successful",
           description: `Payment of $${amount.toFixed(2)} processed successfully.`
         });
-        onPaymentSuccess?.(response);
+        onPaymentSuccess?.(responseData);
       } else {
-        throw new Error(response.error || 'Payment failed');
+        throw new Error(responseData.error || 'Payment failed');
       }
     } catch (error: any) {
       console.error('Payment error:', error);
-      const errorMessage = error.message || 'Payment processing failed';
+      let errorMessage = error.message || 'Payment processing failed';
+      
+      // Check if this is a configuration error
+      if (error.message?.includes('Square payment not configured')) {
+        errorMessage = 'Square payment not set up yet. Please contact the business to enable online payments.';
+      }
+      
       toast({
-        title: "Payment Failed",
+        title: "Payment Not Available",
         description: errorMessage,
         variant: "destructive"
       });
@@ -82,42 +84,44 @@ export function SquarePayment({
     setIsProcessing(true);
     
     try {
-      const response = await apiRequest('/api/invoices/create', {
-        method: 'POST',
-        body: JSON.stringify({
-          deliveryRequestId,
-          customerEmail: 'customer@example.com', // Would get from form
-          title: `Delivery Service - ${customerName}`,
-          description: `Delivery service fee for ${customerName}`,
-          amount,
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
-          autoCharge: false
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      const response = await apiRequest('/api/invoices/create', 'POST', {
+        deliveryRequestId,
+        customerEmail: 'customer@example.com', // Would get from form
+        title: `Delivery Service - ${customerName}`,
+        description: `Delivery service fee for ${customerName}`,
+        amount,
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+        autoCharge: false
       });
+      
+      const responseData = await response.json();
 
-      if (response.success) {
+      if (responseData.success) {
         toast({
           title: "Invoice Created",
           description: "Invoice has been sent to the customer.",
         });
         
         // Open the invoice URL in a new tab
-        if (response.publicUrl) {
-          window.open(response.publicUrl, '_blank');
+        if (responseData.publicUrl) {
+          window.open(responseData.publicUrl, '_blank');
         }
         
-        onPaymentSuccess?.(response);
+        onPaymentSuccess?.(responseData);
       } else {
-        throw new Error(response.error || 'Invoice creation failed');
+        throw new Error(responseData.error || 'Invoice creation failed');
       }
     } catch (error: any) {
       console.error('Invoice error:', error);
-      const errorMessage = error.message || 'Invoice creation failed';
+      let errorMessage = error.message || 'Invoice creation failed';
+      
+      // Check if this is a configuration error
+      if (error.message?.includes('Square payment not configured')) {
+        errorMessage = 'Square payment not set up yet. Please contact the business to enable invoicing.';
+      }
+      
       toast({
-        title: "Invoice Failed",
+        title: "Invoice Not Available",
         description: errorMessage,
         variant: "destructive"
       });
