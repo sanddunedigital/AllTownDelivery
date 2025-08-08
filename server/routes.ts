@@ -499,6 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Update business settings
   app.put("/api/admin/business-settings", async (req, res) => {
+    console.log("🔥 BUSINESS SETTINGS ENDPOINT HIT!");
     try {
       const tenantId = getCurrentTenantId(req);
       
