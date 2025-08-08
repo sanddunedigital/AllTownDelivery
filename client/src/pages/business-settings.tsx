@@ -1031,8 +1031,8 @@ export default function BusinessSettingsPage() {
                       <Input
                         id="squareAccessToken"
                         type="password"
-                        placeholder={settings.squareSettings?.accessToken ? "••••••••••••••••" : "Enter Square access token"}
-                        value={settings.squareSettings?.accessToken === '***' ? '' : settings.squareSettings?.accessToken || ''}
+                        placeholder="Enter Square access token"
+                        value={settings.squareSettings?.accessToken || ''}
                         onChange={(e) => setSettings(prev => ({
                           ...prev,
                           squareSettings: { ...prev.squareSettings, accessToken: e.target.value }
