@@ -59,14 +59,14 @@ export class SquareService {
     this.locationId = config.locationId;
     
     this.squareClient = new SquareClient({
-      accessToken: config.accessToken,
       environment: config.environment === 'production' ? SquareEnvironment.Production : SquareEnvironment.Sandbox,
+      accessToken: config.accessToken
     });
 
-    this.paymentsApi = this.squareClient.paymentsApi;
-    this.customersApi = this.squareClient.customersApi;
-    this.ordersApi = this.squareClient.ordersApi;
-    this.invoicesApi = this.squareClient.invoicesApi;
+    this.paymentsApi = this.squareClient.payments;
+    this.customersApi = this.squareClient.customers;
+    this.ordersApi = this.squareClient.orders;
+    this.invoicesApi = this.squareClient.invoices;
   }
 
   /**
@@ -284,14 +284,14 @@ export class SquareService {
         idempotencyKey: randomUUID(),
         amountMoney: {
           amount: BigInt(refundAmount),
-          currency: 'USD'
+          currency: 'USD' as const
         },
         paymentId: paymentId,
         reason: reason || 'Customer requested refund'
       };
 
-      const response = await this.squareClient.refundsApi.refundPayment(request);
-      return response.result.refund;
+      const response = await this.squareClient.refunds.refundPayment(request);
+      return response.refund;
     } catch (error: any) {
       console.error('Square refund error:', error);
       throw new Error(`Refund failed: ${error.message}`);
