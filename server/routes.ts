@@ -557,6 +557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         acceptedPaymentMethods: formData.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery', 'online_payment']
       };
       
+      console.log("🔵 dbData created successfully");
       console.log("🟡 BEFORE DATABASE SAVE - Square access token:", dbData.squareAccessToken ? `[${dbData.squareAccessToken.length} chars] = ${dbData.squareAccessToken.substring(0, 10)}...` : 'undefined');
       
       const dbSettings = await storage.updateBusinessSettings(tenantId, dbData);
