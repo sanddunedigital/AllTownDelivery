@@ -39,11 +39,7 @@ export interface InvoiceResult {
 }
 
 export class SquareService {
-  private squareClient: InstanceType<typeof SquareClient>;
-  private paymentsApi: any;
-  private customersApi: any;
-  private ordersApi: any;
-  private invoicesApi: any;
+  private client: InstanceType<typeof SquareClient>;
   private locationId: string;
 
   constructor(config: {
@@ -58,16 +54,10 @@ export class SquareService {
 
     this.locationId = config.locationId;
     
-    this.squareClient = new SquareClient({
-      environment: config.environment === 'production' ? SquareEnvironment.Production : SquareEnvironment.Sandbox,
-      // @ts-ignore - TypeScript definitions might be outdated
-      accessToken: config.accessToken
+    this.client = new SquareClient({
+      token: config.accessToken,
+      environment: config.environment === 'production' ? SquareEnvironment.Production : SquareEnvironment.Sandbox
     });
-
-    this.paymentsApi = this.squareClient.payments;
-    this.customersApi = this.squareClient.customers;
-    this.ordersApi = this.squareClient.orders;
-    this.invoicesApi = this.squareClient.invoices;
   }
 
   /**
@@ -85,18 +75,22 @@ export class SquareService {
         locationId: this.locationId!,
         autocomplete: true,
         note: request.description || 'Delivery payment processed via Square',
-        orderId: request.orderId,
-        buyerEmailAddress: request.customerId ? undefined : undefined, // Will be filled from customer data if available
+        ...(request.orderId && { orderId: request.orderId })
       };
 
-      const response = await this.paymentsApi.createPayment(paymentRequest);
+      const response = await this.client.payments.create(paymentRequest);
 
-      if (response.result.payment) {
+      if (response.payment) {
+        // Handle BigInt serialization
+        const payment = JSON.parse(JSON.stringify(response.payment, (key, value) => {
+          return typeof value === "bigint" ? Number(value) : value;
+        }));
+        
         return {
           success: true,
-          paymentId: response.result.payment.id,
-          status: response.result.payment.status,
-          receiptUrl: response.result.payment.receiptUrl
+          paymentId: payment.id,
+          status: payment.status,
+          receiptUrl: payment.receiptUrl
         };
       } else {
         return {
@@ -124,14 +118,18 @@ export class SquareService {
   }) {
     try {
       const request = {
-        givenName: customerData.firstName,
-        familyName: customerData.lastName,
-        emailAddress: customerData.email,
-        phoneNumber: customerData.phone
+        ...(customerData.firstName && { givenName: customerData.firstName }),
+        ...(customerData.lastName && { familyName: customerData.lastName }),
+        ...(customerData.email && { emailAddress: customerData.email }),
+        ...(customerData.phone && { phoneNumber: customerData.phone })
       };
 
-      const response = await this.customersApi.createCustomer(request);
-      return response.result.customer;
+      const response = await this.client.customers.create(request);
+      // Handle BigInt serialization
+      const customer = JSON.parse(JSON.stringify(response.customer, (key, value) => {
+        return typeof value === "bigint" ? Number(value) : value;
+      }));
+      return customer;
     } catch (error: any) {
       console.error('Square customer creation error:', error);
       throw new Error(`Customer creation failed: ${error.message}`);
@@ -151,16 +149,20 @@ export class SquareService {
   }) {
     try {
       const request = {
+        idempotencyKey: randomUUID(),
         order: {
           locationId: this.locationId!,
           lineItems: orderData.lineItems,
-          customerId: orderData.customerId,
-        },
-        idempotencyKey: randomUUID()
+          ...(orderData.customerId && { customerId: orderData.customerId })
+        }
       };
 
-      const response = await this.ordersApi.createOrder(request);
-      return response.result.order;
+      const response = await this.client.orders.create(request);
+      // Handle BigInt serialization
+      const order = JSON.parse(JSON.stringify(response.order, (key, value) => {
+        return typeof value === "bigint" ? Number(value) : value;
+      }));
+      return order;
     } catch (error: any) {
       console.error('Square order creation error:', error);
       throw new Error(`Order creation failed: ${error.message}`);
@@ -196,6 +198,7 @@ export class SquareService {
       const dueDate = request.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       
       const invoiceRequest = {
+        idempotencyKey: randomUUID(),
         invoice: {
           locationId: this.locationId!,
           orderId: order.id,
@@ -209,6 +212,7 @@ export class SquareService {
             tippingEnabled: false,
             automaticPaymentSource: request.autoCharge ? 'CARD_ON_FILE' : 'NONE'
           }],
+          invoiceNumber: request.title,
           title: request.title,
           description: request.description,
           acceptedPaymentMethods: {
@@ -218,35 +222,34 @@ export class SquareService {
             buyNowPayLater: false,
             cashAppPay: true
           }
-        },
-        idempotencyKey: randomUUID()
+        }
       };
 
-      const invoiceResponse = await this.invoicesApi.createInvoice(invoiceRequest);
+      const invoiceResponse = await this.client.invoices.create(invoiceRequest);
 
-      if (!invoiceResponse.result.invoice?.id) {
+      if (!invoiceResponse.invoice?.id) {
         return {
           success: false,
           error: 'Failed to create invoice'
         };
       }
 
-      const invoiceId = invoiceResponse.result.invoice.id;
+      const invoiceId = invoiceResponse.invoice!.id;
 
       // Publish the invoice to send it to the customer
       const publishRequest = {
-        version: invoiceResponse.result.invoice.version || 0,
-        idempotencyKey: randomUUID()
+        idempotencyKey: randomUUID(),
+        version: invoiceResponse.invoice?.version || 0
       };
 
-      const publishResponse = await this.invoicesApi.publishInvoice(invoiceId, publishRequest);
+      const publishResponse = await this.client.invoices.publish({ invoiceId, body: publishRequest });
 
-      if (publishResponse.result.invoice) {
+      if (publishResponse.invoice) {
         return {
           success: true,
           invoiceId: invoiceId,
-          publicUrl: publishResponse.result.invoice.publicUrl,
-          status: publishResponse.result.invoice.status
+          publicUrl: publishResponse.invoice?.publicUrl,
+          status: publishResponse.invoice?.status
         };
       } else {
         return {
@@ -268,8 +271,12 @@ export class SquareService {
    */
   async getInvoice(invoiceId: string) {
     try {
-      const response = await this.invoicesApi.getInvoice(invoiceId);
-      return response.result.invoice;
+      const response = await this.client.invoices.get({ invoiceId });
+      // Handle BigInt serialization
+      const invoice = JSON.parse(JSON.stringify(response.invoice, (key, value) => {
+        return typeof value === "bigint" ? Number(value) : value;
+      }));
+      return invoice;
     } catch (error: any) {
       console.error('Square get invoice error:', error);
       throw new Error(`Failed to get invoice: ${error.message}`);
@@ -291,8 +298,12 @@ export class SquareService {
         reason: reason || 'Customer requested refund'
       };
 
-      const response = await this.squareClient.refunds.refundPayment(request);
-      return response.refund;
+      const response = await this.client.refunds.refundPayment(request);
+      // Handle BigInt serialization
+      const refund = JSON.parse(JSON.stringify(response.refund, (key, value) => {
+        return typeof value === "bigint" ? Number(value) : value;
+      }));
+      return refund;
     } catch (error: any) {
       console.error('Square refund error:', error);
       throw new Error(`Refund failed: ${error.message}`);
