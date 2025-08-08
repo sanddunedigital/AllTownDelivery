@@ -246,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/delivery-requests/:id/editable", async (req, res) => {
     try {
       const { id } = req.params;
-      const delivery = await storage.getDeliveryRequest(id);
+      const delivery = await storage.getDeliveryRequestById(id);
       
       if (!delivery) {
         return res.status(404).json({ message: "Delivery request not found" });

@@ -70,7 +70,7 @@ export class SquareService {
         idempotencyKey: randomUUID(),
         amountMoney: {
           amount: BigInt(request.amount),
-          currency: request.currency || 'USD'
+          currency: (request.currency || 'USD') as 'USD'
         },
         locationId: this.locationId!,
         autocomplete: true,
@@ -182,7 +182,7 @@ export class SquareService {
           quantity: '1',
           basePriceMoney: {
             amount: BigInt(request.amount),
-            currency: 'USD'
+            currency: 'USD' as 'USD'
           }
         }]
       });
@@ -205,12 +205,12 @@ export class SquareService {
           primaryRecipient: {
             customerId: request.customerId
           },
-          deliveryMethod: 'EMAIL',
+          deliveryMethod: 'EMAIL' as 'EMAIL',
           paymentRequests: [{
-            requestType: 'BALANCE',
+            requestType: 'BALANCE' as 'BALANCE',
             dueDate: dueDate,
             tippingEnabled: false,
-            automaticPaymentSource: request.autoCharge ? 'CARD_ON_FILE' : 'NONE'
+            automaticPaymentSource: (request.autoCharge ? 'CARD_ON_FILE' : 'NONE') as any
           }],
           invoiceNumber: request.title,
           title: request.title,
@@ -242,7 +242,7 @@ export class SquareService {
         version: invoiceResponse.invoice?.version || 0
       };
 
-      const publishResponse = await this.client.invoices.publish({ invoiceId, body: publishRequest });
+      const publishResponse = await this.client.invoices.publish({ invoiceId, ...publishRequest });
 
       if (publishResponse.invoice) {
         return {
@@ -292,7 +292,7 @@ export class SquareService {
         idempotencyKey: randomUUID(),
         amountMoney: {
           amount: BigInt(refundAmount),
-          currency: 'USD' as const
+          currency: 'USD' as 'USD'
         },
         paymentId: paymentId,
         reason: reason || 'Customer requested refund'
