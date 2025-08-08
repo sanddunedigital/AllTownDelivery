@@ -502,13 +502,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tenantId = getCurrentTenantId(req);
       
-      // Debug logging for Square fields
-      console.log("=== BUSINESS SETTINGS SQUARE DEBUG ===");
+      // Debug logging for the entire request
+      console.log("=== BUSINESS SETTINGS DEBUG ===");
+      console.log("Full request body keys:", Object.keys(req.body));
       console.log("Square settings in request:", JSON.stringify(req.body.squareSettings, null, 2));
+      console.log("Raw Square fields from form:")
+      console.log("- formData.squareSettings:", JSON.stringify(req.body.squareSettings, null, 2));
       if (req.body.squareSettings?.accessToken) {
         console.log("Access token received:", `[${req.body.squareSettings.accessToken.length} chars]`);
+        console.log("Access token preview:", req.body.squareSettings.accessToken.substring(0, 10) + "...");
       } else {
-        console.log("No access token in request");
+        console.log("❌ No access token in request");
       }
       
       // Transform form schema to database fields
