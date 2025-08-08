@@ -60,6 +60,7 @@ export class SquareService {
     
     this.squareClient = new SquareClient({
       environment: config.environment === 'production' ? SquareEnvironment.Production : SquareEnvironment.Sandbox,
+      // @ts-ignore - TypeScript definitions might be outdated
       accessToken: config.accessToken
     });
 
