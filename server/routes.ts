@@ -1086,9 +1086,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = processPaymentSchema.parse(req.body);
       const tenantId = getCurrentTenantId(req);
+      
+      console.log('DEBUG: Processing payment for tenant:', tenantId);
 
       // Get tenant's Square configuration
       const squareConfig = await getTenantSquareConfig(tenantId);
+      console.log('DEBUG: Got Square config:', {
+        hasAccessToken: !!squareConfig.accessToken,
+        tokenLength: squareConfig.accessToken?.length,
+        locationId: squareConfig.locationId,
+        environment: squareConfig.environment
+      });
       const squareService = createSquareService(squareConfig);
 
       // Process payment with Square
