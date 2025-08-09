@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +37,7 @@ export function SquarePayment({
   const [cardButton, setCardButton] = useState<any>(null);
   const [payments, setPayments] = useState<any>(null);
   const cardContainerRef = useRef<HTMLDivElement>(null);
+  const [containerReady, setContainerReady] = useState(false);
   const { toast } = useToast();
 
   // Get Square configuration from backend
@@ -45,14 +46,24 @@ export function SquarePayment({
     retry: false
   });
 
+  // Effect to initialize Square when both config and container are ready
   useEffect(() => {
-    if (squareConfig?.applicationId && squareConfig?.environment) {
-      // Add a small delay to ensure DOM is ready
-      setTimeout(() => {
-        loadSquareSDK();
-      }, 100);
+    if (squareConfig?.applicationId && squareConfig?.environment && containerReady) {
+      console.log('Both config and container ready, initializing Square...');
+      loadSquareSDK();
     }
-  }, [squareConfig]);
+  }, [squareConfig, containerReady]);
+
+  // Callback ref to detect when container is mounted
+  const containerCallbackRef = useCallback((node: HTMLDivElement | null) => {
+    cardContainerRef.current = node;
+    if (node) {
+      console.log('Container element mounted');
+      setContainerReady(true);
+    } else {
+      setContainerReady(false);
+    }
+  }, []);
 
   const loadSquareSDK = async () => {
     try {
@@ -313,7 +324,7 @@ export function SquarePayment({
             <div className="p-4 border rounded-lg">
               <h4 className="font-medium mb-3">Card Information</h4>
               <div 
-                ref={cardContainerRef} 
+                ref={containerCallbackRef} 
                 id="card-container"
                 className="min-h-[120px] p-3 border rounded bg-white"
               />
