@@ -56,14 +56,32 @@ export function SquarePayment({
 
   const loadSquareSDK = async () => {
     try {
+      console.log('Loading Square SDK...');
+      console.log('Square config:', squareConfig);
+      
       // Load Square Web Payments SDK if not already loaded
       if (!window.Square) {
+        console.log('Square SDK not found, loading script...');
         const script = document.createElement('script');
-        script.src = 'https://sandbox.web.squarecdn.com/v1/square.js'; // Use production URL for production
+        
+        // Use the correct URL based on environment
+        const sdkUrl = squareConfig?.environment === 'production' 
+          ? 'https://web.squarecdn.com/v1/square.js'
+          : 'https://sandbox.web.squarecdn.com/v1/square.js';
+        
+        script.src = sdkUrl;
         script.async = true;
-        script.onload = () => initializeSquarePayments();
+        script.onload = () => {
+          console.log('Square SDK loaded successfully');
+          initializeSquarePayments();
+        };
+        script.onerror = (error) => {
+          console.error('Failed to load Square SDK:', error);
+          onPaymentError?.('Failed to load payment system');
+        };
         document.head.appendChild(script);
       } else {
+        console.log('Square SDK already loaded, initializing...');
         initializeSquarePayments();
       }
     } catch (error) {
@@ -74,6 +92,11 @@ export function SquarePayment({
 
   const initializeSquarePayments = async () => {
     try {
+      console.log('Initializing Square payments...');
+      console.log('window.Square available:', !!window.Square);
+      console.log('cardContainerRef.current:', cardContainerRef.current);
+      console.log('squareConfig for initialization:', squareConfig);
+
       if (!window.Square) {
         throw new Error('Square SDK not loaded');
       }
@@ -82,14 +105,25 @@ export function SquarePayment({
         throw new Error('Card container not ready');
       }
 
+      if (!squareConfig?.applicationId || !squareConfig?.locationId) {
+        throw new Error('Missing Square configuration: applicationId or locationId');
+      }
+
+      console.log('Creating Square payments instance with:', {
+        applicationId: squareConfig.applicationId,
+        locationId: squareConfig.locationId
+      });
+
       const paymentsInstance = window.Square.payments(
-        squareConfig!.applicationId,
-        squareConfig!.locationId
+        squareConfig.applicationId,
+        squareConfig.locationId
       );
       
+      console.log('Payments instance created:', paymentsInstance);
       setPayments(paymentsInstance);
 
       // Initialize card payment form with proper error handling
+      console.log('Creating card element...');
       const card = await paymentsInstance.card({
         style: {
           '.input-container': {
@@ -105,9 +139,12 @@ export function SquarePayment({
         }
       });
       
+      console.log('Card element created, attaching to container...');
+      
       // Ensure the container is available before attaching
       if (cardContainerRef.current) {
         await card.attach(cardContainerRef.current);
+        console.log('Card attached successfully');
         setCardButton(card);
         setIsSquareLoaded(true);
       } else {
@@ -115,6 +152,13 @@ export function SquarePayment({
       }
     } catch (error) {
       console.error('Error initializing Square:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        squareConfig,
+        hasWindow: typeof window !== 'undefined',
+        hasSquare: !!window.Square
+      });
       onPaymentError?.('Failed to initialize payment form');
     }
   };
