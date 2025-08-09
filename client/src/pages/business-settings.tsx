@@ -92,13 +92,7 @@ interface BusinessSettings {
     scheduledDeliveries: boolean;
     multiplePaymentMethods: boolean;
   };
-  squareSettings?: {
-    accessToken?: string;
-    applicationId?: string;
-    locationId?: string;
-    environment?: string;
-    configured?: boolean;
-  };
+
   acceptedPaymentMethods?: string[];
 
   createdAt?: string;
@@ -203,7 +197,7 @@ export default function BusinessSettingsPage() {
     if (businessSettings?.acceptedPaymentMethods) {
       setAcceptedPaymentMethods(businessSettings.acceptedPaymentMethods);
     } else {
-      setAcceptedPaymentMethods(['cash_on_delivery', 'card_on_delivery', 'online_payment']);
+      setAcceptedPaymentMethods(['cash_on_delivery', 'card_on_delivery']);
     }
   }, [businessSettings]);
 
@@ -975,110 +969,21 @@ export default function BusinessSettingsPage() {
             </TabsContent>
 
             <TabsContent value="payments" className="space-y-6">
+              {/* Online Payment Integration Coming Soon */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Square Payment Settings</CardTitle>
-                  <CardDescription>Configure Square payment processing for your delivery service</CardDescription>
+                  <CardTitle>Online Payment Integration</CardTitle>
+                  <CardDescription>Secure online payment processing for your delivery service</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {settings.squareSettings?.configured ? (
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-md">
-                      <div className="flex items-center gap-2 text-green-700">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="font-medium">Square payments configured</span>
-                      </div>
-                      <p className="text-sm text-green-600 mt-1">
-                        Your Square payment processing is set up and ready to accept payments.
-                      </p>
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex items-center gap-2 text-blue-700">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="font-medium">Online Payment Coming Soon!</span>
                     </div>
-                  ) : (
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                      <div className="flex items-center gap-2 text-yellow-700">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                        <span className="font-medium">Square payments not configured</span>
-                      </div>
-                      <p className="text-sm text-yellow-600 mt-1">
-                        Configure Square to accept credit card payments for deliveries.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="squareEnvironment">Environment</Label>
-                      <Select 
-                        value={settings.squareSettings?.environment || 'sandbox'}
-                        onValueChange={(value) => setSettings(prev => ({
-                          ...prev,
-                          squareSettings: { ...prev.squareSettings, environment: value }
-                        }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select environment" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sandbox">Sandbox (Testing)</SelectItem>
-                          <SelectItem value="production">Production (Live)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-sm text-muted-foreground">
-                        Use sandbox for testing, production for live payments
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="squareAccessToken">Access Token</Label>
-                      <Input
-                        id="squareAccessToken"
-                        type="password"
-                        placeholder="Enter Square access token"
-                        value={settings.squareSettings?.accessToken || ''}
-                        onChange={(e) => setSettings(prev => ({
-                          ...prev,
-                          squareSettings: { ...prev.squareSettings, accessToken: e.target.value }
-                        }))}
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Your Square access token from developer.squareup.com
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="squareApplicationId">Application ID</Label>
-                      <Input
-                        id="squareApplicationId"
-                        placeholder="Enter Square application ID"
-                        value={settings.squareSettings?.applicationId || ''}
-                        onChange={(e) => setSettings(prev => ({
-                          ...prev,
-                          squareSettings: { ...prev.squareSettings, applicationId: e.target.value }
-                        }))}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="squareLocationId">Location ID</Label>
-                      <Input
-                        id="squareLocationId"
-                        placeholder="Enter Square location ID"
-                        value={settings.squareSettings?.locationId || ''}
-                        onChange={(e) => setSettings(prev => ({
-                          ...prev,
-                          squareSettings: { ...prev.squareSettings, locationId: e.target.value }
-                        }))}
-                      />
-                    </div>
-
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-                      <h4 className="font-medium text-blue-900 mb-2">Setup Instructions</h4>
-                      <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-                        <li>Visit <a href="https://developer.squareup.com" target="_blank" rel="noopener noreferrer" className="underline">developer.squareup.com</a></li>
-                        <li>Create or sign in to your Square Developer account</li>
-                        <li>Create a new application or use an existing one</li>
-                        <li>Copy your Application ID, Access Token, and Location ID</li>
-                        <li>Paste the credentials above and save your settings</li>
-                      </ol>
-                    </div>
+                    <p className="text-sm text-blue-600 mt-1">
+                      We're working on integrating Stripe for secure online payment processing. Until then, all deliveries are handled as cash or card on delivery.
+                    </p>
                   </div>
                 </CardContent>
               </Card>

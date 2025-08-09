@@ -56,9 +56,12 @@ function ReviewStep({
   
   // Get available payment methods from business settings
   const getAvailablePaymentMethods = () => {
-    const acceptedMethods = businessSettings?.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery', 'online_payment'];
+    const acceptedMethods = businessSettings?.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery'];
     
-    return acceptedMethods.map((method: string) => {
+    // Filter out online_payment temporarily until Stripe integration is added
+    const filteredMethods = acceptedMethods.filter((method: string) => method !== 'online_payment');
+    
+    return filteredMethods.map((method: string) => {
       const predefined = PREDEFINED_PAYMENT_METHODS.find(p => p.value === method);
       return {
         value: method,
@@ -198,11 +201,7 @@ function ReviewStep({
                   )}
                 </div>
                 
-                {selectedPaymentMethod === 'online_payment' && (
-                  <p className="text-sm text-amber-600 text-center">
-                    Online payment coming soon! For now, we'll process this as cash/card on delivery.
-                  </p>
-                )}
+
               </div>
             </CardContent>
           </Card>
