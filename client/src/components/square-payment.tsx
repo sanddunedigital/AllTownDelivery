@@ -47,7 +47,10 @@ export function SquarePayment({
 
   useEffect(() => {
     if (squareConfig?.applicationId && squareConfig?.environment) {
-      loadSquareSDK();
+      // Add a small delay to ensure DOM is ready
+      setTimeout(() => {
+        loadSquareSDK();
+      }, 100);
     }
   }, [squareConfig]);
 
@@ -75,6 +78,10 @@ export function SquarePayment({
         throw new Error('Square SDK not loaded');
       }
 
+      if (!cardContainerRef.current) {
+        throw new Error('Card container not ready');
+      }
+
       const paymentsInstance = window.Square.payments(
         squareConfig!.applicationId,
         squareConfig!.locationId
@@ -82,12 +89,30 @@ export function SquarePayment({
       
       setPayments(paymentsInstance);
 
-      // Initialize card payment form
-      const card = await paymentsInstance.card();
-      await card.attach(cardContainerRef.current);
+      // Initialize card payment form with proper error handling
+      const card = await paymentsInstance.card({
+        style: {
+          '.input-container': {
+            borderColor: '#E5E5E5',
+            borderRadius: '6px'
+          },
+          '.input-container.is-focus': {
+            borderColor: '#3B82F6'
+          },
+          '.input-container.is-error': {
+            borderColor: '#EF4444'
+          }
+        }
+      });
       
-      setCardButton(card);
-      setIsSquareLoaded(true);
+      // Ensure the container is available before attaching
+      if (cardContainerRef.current) {
+        await card.attach(cardContainerRef.current);
+        setCardButton(card);
+        setIsSquareLoaded(true);
+      } else {
+        throw new Error('Card container element not found');
+      }
     } catch (error) {
       console.error('Error initializing Square:', error);
       onPaymentError?.('Failed to initialize payment form');
@@ -108,10 +133,13 @@ export function SquarePayment({
     
     try {
       // Tokenize the card
+      console.log('Attempting to tokenize card...');
       const result = await cardButton.tokenize();
+      console.log('Tokenization result:', result);
       
       if (result.status === 'OK') {
         const paymentToken = result.token;
+        console.log('Payment token received, processing payment...');
         
         const response = await apiRequest('/api/payments/process', 'POST', {
           deliveryRequestId,
@@ -132,14 +160,22 @@ export function SquarePayment({
           throw new Error(responseData.error || 'Payment failed');
         }
       } else {
-        throw new Error(result.errors?.[0]?.message || 'Card tokenization failed');
+        const errorMessages = result.errors?.map(e => e.message).join(', ') || 'Card tokenization failed';
+        console.error('Tokenization failed:', result.errors);
+        throw new Error(errorMessages);
       }
     } catch (error: any) {
       console.error('Payment error:', error);
       let errorMessage = error.message || 'Payment processing failed';
       
-      // Check if this is a configuration error
-      if (error.message?.includes('Square payment not configured')) {
+      // Handle specific Square errors
+      if (errorMessage.includes('CVV_FAILURE')) {
+        errorMessage = 'Invalid CVV. Please check your card security code.';
+      } else if (errorMessage.includes('ADDRESS_VERIFICATION_FAILURE')) {
+        errorMessage = 'Address verification failed. Please check your billing address.';
+      } else if (errorMessage.includes('EXPIRATION_FAILURE')) {
+        errorMessage = 'Invalid expiration date. Please check your card details.';
+      } else if (error.message?.includes('Square payment not configured')) {
         errorMessage = 'Square payment not set up yet. Please contact the business to enable online payments.';
       }
       
