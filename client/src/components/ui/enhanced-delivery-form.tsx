@@ -20,7 +20,7 @@ import { Loader2, Gift, User, LogIn, Star, MapPin, Phone, Globe } from 'lucide-r
 import { z } from 'zod';
 import { AddressInput } from '@/components/AddressInput';
 import { SimplePriceDisplay } from '@/components/SimplePriceDisplay';
-import SquarePayment from '@/components/square-payment';
+import SimplePayment from '@/components/simple-payment';
 
 type FormStep = 'form' | 'review';
 
@@ -52,7 +52,7 @@ function ReviewStep({
   user
 }: ReviewStepProps) {
   const reviewRef = useRef<HTMLDivElement>(null);
-  const [showSquarePayment, setShowSquarePayment] = useState(false);
+  const [showSimplePayment, setShowSimplePayment] = useState(false);
   
   // Get available payment methods from business settings
   const getAvailablePaymentMethods = () => {
@@ -69,19 +69,19 @@ function ReviewStep({
 
   const handlePayNow = () => {
     if (selectedPaymentMethod === 'online_payment') {
-      setShowSquarePayment(true);
+      setShowSimplePayment(true);
     } else {
       onSubmit(false);
     }
   };
 
-  const handleSquarePaymentSuccess = (result: any) => {
-    setShowSquarePayment(false);
+  const handleSimplePaymentSuccess = (result: any) => {
+    setShowSimplePayment(false);
     onSubmit(true, result);
   };
 
-  const handleSquarePaymentError = (error: string) => {
-    setShowSquarePayment(false);
+  const handleSimplePaymentError = (error: string) => {
+    setShowSimplePayment(false);
     console.error('Payment error:', error);
   };
 
@@ -218,7 +218,7 @@ function ReviewStep({
           </Card>
 
           {/* Square Payment Modal */}
-          {showSquarePayment && (
+          {showSimplePayment && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
                 <div className="flex justify-between items-center mb-4">
@@ -226,17 +226,17 @@ function ReviewStep({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setShowSquarePayment(false)}
+                    onClick={() => setShowSimplePayment(false)}
                   >
                     ×
                   </Button>
                 </div>
-                <SquarePayment
-                  amount={total}
+                <SimplePayment
+                  amount={priceCalculation?.total || 0}
                   deliveryRequestId="temp-request-id"
                   customerName={formData?.fullName || formData?.customerName}
-                  onPaymentSuccess={handleSquarePaymentSuccess}
-                  onPaymentError={handleSquarePaymentError}
+                  onPaymentSuccess={handleSimplePaymentSuccess}
+                  onPaymentError={handleSimplePaymentError}
                 />
               </div>
             </div>

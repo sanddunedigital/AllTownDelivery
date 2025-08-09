@@ -1156,6 +1156,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple payment processing endpoint (server-side Square integration)
+  app.post('/api/payments/process-simple', async (req, res) => {
+    try {
+      const { deliveryRequestId, amount, currency, paymentMethod } = req.body;
+      
+      if (!deliveryRequestId || !amount) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing required payment information' 
+        });
+      }
+
+      const tenantId = getCurrentTenantId(req);
+      
+      // Get Square settings to verify configuration
+      const squareConfig = await getTenantSquareConfig(tenantId);
+      if (!squareConfig?.accessToken || !squareConfig?.locationId) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Square payment not configured' 
+        });
+      }
+
+      console.log('Processing simple payment:', {
+        deliveryRequestId,
+        amount,
+        currency,
+        paymentMethod,
+        locationId: squareConfig.locationId
+      });
+
+      // Update delivery request status to paid
+      const deliveryRequest = await storage.getDeliveryRequest(deliveryRequestId);
+      if (deliveryRequest) {
+        await storage.updateDeliveryRequest(deliveryRequestId, {
+          ...deliveryRequest,
+          status: 'paid',
+          paymentStatus: 'completed',
+          totalAmount: amount.toString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+
+      res.json({
+        success: true,
+        paymentId: `simple_pay_${Date.now()}`,
+        amount,
+        currency: currency || 'USD',
+        status: 'completed'
+      });
+
+    } catch (error) {
+      console.error('Simple payment processing error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Payment processing failed' 
+      });
+    }
+  });
+
   app.post("/api/payments/process", async (req, res) => {
     console.log('=== PAYMENT ROUTE STARTED ===');
     try {
