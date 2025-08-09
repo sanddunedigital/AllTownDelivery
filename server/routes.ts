@@ -761,6 +761,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current tenant information
+  app.get("/api/tenant", async (req, res) => {
+    try {
+      const tenant = getCurrentTenant(req);
+      const isMainSite = (req as any).isMainSite || false;
+      
+      res.json({
+        ...tenant,
+        isMainSite
+      });
+    } catch (error) {
+      console.error('Error fetching tenant info:', error);
+      res.status(500).json({ message: "Error fetching tenant information" });
+    }
+  });
+
   // Google Maps API Routes
   
   // Calculate distance between two addresses

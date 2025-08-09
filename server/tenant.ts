@@ -16,6 +16,7 @@ export interface TenantContext {
   logoUrl?: string;
   primaryColor: string;
   planType: string;
+  isMainSite?: boolean; // Flag to indicate this is the main marketing site
 }
 
 // In-memory tenant cache for performance
@@ -163,31 +164,50 @@ export async function getDefaultTenant(): Promise<TenantContext> {
 // Middleware to resolve tenant from request
 export async function resolveTenant(req: Request, res: Response, next: NextFunction) {
   let tenant: TenantContext | null = null;
+  let isMainSite = false;
 
   try {
     // Extract host information
     const host = req.headers.host || '';
     const hostParts = host.split('.');
 
-    // 1. Try custom domain first (e.g., sarasquickiedelivery.com)
-    if (hostParts.length >= 2) {
-      const domain = host.toLowerCase();
-      tenant = await getTenantByCustomDomain(domain);
-    }
+    // Check if this is the main AllTownDelivery.com domain (no subdomain)
+    const isMainDomain = host.toLowerCase() === 'alltowndelivery.com' || 
+                        host.toLowerCase() === 'www.alltowndelivery.com' ||
+                        (hostParts.length === 2 && !hostParts[0].includes('-')); // No subdomain detected
 
-    // 2. Try subdomain if no custom domain match (e.g., saras.yoursaas.com)
-    if (!tenant && hostParts.length >= 3) {
-      const subdomain = hostParts[0].toLowerCase();
-      tenant = await getTenantBySubdomain(subdomain);
-    }
+    if (isMainDomain) {
+      // This is the main marketing site
+      isMainSite = true;
+      tenant = {
+        id: 'main-site',
+        companyName: 'AllTownDelivery',
+        primaryColor: '#0369a1',
+        planType: 'platform',
+        isMainSite: true,
+      };
+    } else {
+      // 1. Try custom domain first (e.g., sarasquickiedelivery.com)
+      if (hostParts.length >= 2) {
+        const domain = host.toLowerCase();
+        tenant = await getTenantByCustomDomain(domain);
+      }
 
-    // 3. Fallback to default tenant (Sara's Quickie)
-    if (!tenant) {
-      tenant = await getDefaultTenant();
+      // 2. Try subdomain if no custom domain match (e.g., saras.alltowndelivery.com)
+      if (!tenant && hostParts.length >= 3) {
+        const subdomain = hostParts[0].toLowerCase();
+        tenant = await getTenantBySubdomain(subdomain);
+      }
+
+      // 3. Fallback to default tenant (Sara's Quickie) for development
+      if (!tenant) {
+        tenant = await getDefaultTenant();
+      }
     }
 
     // Add tenant to request context
     (req as any).tenant = tenant;
+    (req as any).isMainSite = isMainSite;
     
     // Set tenant context for database queries (for future RLS)
     // For now, this is just stored but not used since RLS is disabled
@@ -200,6 +220,7 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
     // Fallback to default tenant on error
     tenant = await getDefaultTenant();
     (req as any).tenant = tenant;
+    (req as any).isMainSite = false;
     (req as any).tenantId = tenant.id;
     
     next();

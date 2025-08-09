@@ -34,6 +34,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { EnhancedDeliveryForm } from "@/components/ui/enhanced-delivery-form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCustomerDeliveriesRealtime } from "@/hooks/use-realtime";
+import MarketingSite from "@/components/MarketingSite";
 
 interface BusinessSettings {
   businessPhone?: string;
@@ -56,6 +57,18 @@ interface LoyaltyInfo {
   deliveriesUntilNextFree: number;
 }
 
+interface TenantInfo {
+  id: string;
+  companyName: string;
+  subdomain?: string;
+  customDomain?: string;
+  slug?: string;
+  logoUrl?: string;
+  primaryColor: string;
+  planType: string;
+  isMainSite?: boolean;
+}
+
 // Helper function to format time from 24-hour to 12-hour format
 const formatTime = (time: string) => {
   if (!time) return '';
@@ -71,6 +84,17 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const { user, profile, signOut, loading } = useAuth();
   const [, navigate] = useLocation();
+
+  // Fetch tenant information to determine if this is the main site
+  const { data: tenantInfo } = useQuery<TenantInfo>({
+    queryKey: ['/api/tenant'],
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
+
+  // If this is the main marketing site, render the marketing page
+  if (tenantInfo?.isMainSite) {
+    return <MarketingSite />;
+  }
 
   // Set up real-time subscriptions for customer deliveries
   useCustomerDeliveriesRealtime(user?.id);
