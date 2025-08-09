@@ -309,7 +309,7 @@ export const updateDriverStatusSchema = z.object({
 export const PREDEFINED_PAYMENT_METHODS = [
   { value: 'cash_on_delivery', label: 'Cash on Delivery' },
   { value: 'card_on_delivery', label: 'Card on Delivery' },
-  { value: 'online_payment', label: 'Online Payment (Pre-paid)' },
+  // { value: 'online_payment', label: 'Online Payment (Pre-paid)' }, // Temporarily disabled - Stripe integration coming soon
   { value: 'square_invoice', label: 'Square Invoice' },
   { value: 'bank_transfer', label: 'Bank Transfer' },
   { value: 'venmo', label: 'Venmo' },

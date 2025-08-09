@@ -20,7 +20,7 @@ import { Loader2, Gift, User, LogIn, Star, MapPin, Phone, Globe } from 'lucide-r
 import { z } from 'zod';
 import { AddressInput } from '@/components/AddressInput';
 import { SimplePriceDisplay } from '@/components/SimplePriceDisplay';
-import SimplePayment from '@/components/simple-payment';
+
 
 type FormStep = 'form' | 'review';
 
@@ -52,7 +52,7 @@ function ReviewStep({
   user
 }: ReviewStepProps) {
   const reviewRef = useRef<HTMLDivElement>(null);
-  const [showSimplePayment, setShowSimplePayment] = useState(false);
+
   
   // Get available payment methods from business settings
   const getAvailablePaymentMethods = () => {
@@ -68,23 +68,12 @@ function ReviewStep({
   };
 
   const handlePayNow = () => {
-    if (selectedPaymentMethod === 'online_payment') {
-      console.log('Opening payment modal with total:', total, 'priceCalculation:', priceCalculation);
-      setShowSimplePayment(true);
-    } else {
-      onSubmit(false);
-    }
+    // For now, all payments are handled as cash/card on delivery
+    // Online payment integration will be added in future enhancement
+    onSubmit(false);
   };
 
-  const handleSimplePaymentSuccess = (result: any) => {
-    setShowSimplePayment(false);
-    onSubmit(true, result);
-  };
 
-  const handleSimplePaymentError = (error: string) => {
-    setShowSimplePayment(false);
-    console.error('Payment error:', error);
-  };
 
   const total = priceCalculation?.deliveryFee || 0;
   
@@ -210,38 +199,15 @@ function ReviewStep({
                 </div>
                 
                 {selectedPaymentMethod === 'online_payment' && (
-                  <p className="text-sm text-gray-600 text-center">
-                    You will be charged immediately and your delivery will be prioritized
+                  <p className="text-sm text-amber-600 text-center">
+                    Online payment coming soon! For now, we'll process this as cash/card on delivery.
                   </p>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Square Payment Modal */}
-          {showSimplePayment && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Complete Payment</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowSimplePayment(false)}
-                  >
-                    ×
-                  </Button>
-                </div>
-                <SimplePayment
-                  amount={total}
-                  deliveryRequestId="temp-request-id"
-                  customerName={formData?.fullName || formData?.customerName}
-                  onPaymentSuccess={handleSimplePaymentSuccess}
-                  onPaymentError={handleSimplePaymentError}
-                />
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
     </div>

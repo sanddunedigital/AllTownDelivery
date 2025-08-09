@@ -1,7 +1,11 @@
 # Sara's Quickie Delivery Website
 
 ## Overview
-This project is a modern static website for Sara's Quickie Delivery, a local delivery service. Its purpose is to provide a professional online presence, featuring company information, service details, customer testimonials, and a Supabase-integrated delivery request form. The website aims to streamline delivery requests and enhance customer engagement. The system is designed with a multi-tenant architecture, ready for SaaS expansion, and includes robust features like real-time delivery tracking, loyalty programs, and comprehensive admin analytics.
+This project is a modern delivery management platform for Sara's Quickie Delivery, a local delivery service. Its purpose is to provide a comprehensive online presence with advanced features including company information, service details, customer testimonials, real-time delivery tracking, and loyalty programs. The website streamlines delivery requests and enhances customer engagement. The system is designed with a multi-tenant architecture, ready for SaaS expansion, and includes robust features like comprehensive admin analytics, dispatch management, and role-based access control.
+
+## Recent Changes
+- **Payment Integration Status**: Removed problematic Square payment integration due to persistent Web Payments SDK issues (DOM timing, container readiness problems). Online payment functionality is temporarily disabled with a user-friendly message indicating "Online payment coming soon!" All payment methods now default to cash/card on delivery.
+- **Future Enhancement**: Stripe payment integration planned as a cleaner, more reliable alternative to Square.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
