@@ -1119,7 +1119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       environment: settings?.squareEnvironment
     });
     
-    if (!settings?.squareAccessToken || !settings?.squareLocationId) {
+    if (!settings?.squareAccessToken || !settings?.squareLocationId || !settings?.squareApplicationId) {
       throw new Error('Square payment not configured. Please add your Square API credentials in Admin Settings > Square Payment Setup to enable payment processing.');
     }
     
@@ -1132,6 +1132,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   // Square Payment Routes
+  // Get Square configuration for Web Payments SDK
+  app.get('/api/square/config', async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      const squareConfig = await getTenantSquareConfig(tenantId);
+      
+      if (!squareConfig?.accessToken || !squareConfig?.locationId || !squareConfig?.applicationId) {
+        return res.status(404).json({ 
+          error: 'Square payment not configured' 
+        });
+      }
+
+      // Return only the public configuration needed for Web Payments SDK
+      res.json({
+        applicationId: squareConfig.applicationId,
+        locationId: squareConfig.locationId,
+        environment: squareConfig.environment || 'sandbox'
+      });
+    } catch (error) {
+      console.error('Error getting Square config:', error);
+      res.status(500).json({ error: 'Failed to get Square configuration' });
+    }
+  });
+
   app.post("/api/payments/process", async (req, res) => {
     console.log('=== PAYMENT ROUTE STARTED ===');
     try {
