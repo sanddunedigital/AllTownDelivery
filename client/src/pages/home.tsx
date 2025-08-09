@@ -91,8 +91,15 @@ export default function Home() {
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 
-  // If this is the main marketing site, render the marketing page
-  if (tenantInfo?.isMainSite) {
+  // For testing: Add a URL parameter to force marketing site view
+  const urlParams = new URLSearchParams(window.location.search);
+  const forceMarketing = urlParams.get('marketing') === 'true';
+  
+  // TEMPORARY: Force marketing site for testing (remove this line when done testing)
+  // const alwaysShowMarketing = true;
+
+  // If this is the main marketing site or testing mode, render the marketing page
+  if (tenantInfo?.isMainSite || forceMarketing) {
     return <MarketingSite />;
   }
 
