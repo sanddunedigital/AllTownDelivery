@@ -86,7 +86,7 @@ function ReviewStep({
     console.error('Payment error:', error);
   };
 
-  const total = priceCalculation?.total || 0;
+  const total = priceCalculation?.deliveryFee || 0;
   
   // Set default payment method to first available if not selected
   useEffect(() => {
