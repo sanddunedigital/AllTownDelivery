@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -22,9 +23,9 @@ import { AddressInput } from '@/components/AddressInput';
 import { SimplePriceDisplay } from '@/components/SimplePriceDisplay';
 
 
-type FormStep = 'form' | 'review';
-
-interface ReviewStepProps {
+interface ReviewModalProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
   formData: any;
   selectedBusiness: any;
   priceCalculation: any;
@@ -32,13 +33,14 @@ interface ReviewStepProps {
   businessSettings: any;
   selectedPaymentMethod: string;
   setSelectedPaymentMethod: (method: string) => void;
-  onBack: () => void;
   onSubmit: (isPaid?: boolean, paymentResult?: any) => void;
   submitting: boolean;
   user: any;
 }
 
-function ReviewStep({
+function ReviewModal({
+  isOpen,
+  onOpenChange,
   formData,
   selectedBusiness,
   priceCalculation,
@@ -46,12 +48,10 @@ function ReviewStep({
   businessSettings,
   selectedPaymentMethod,
   setSelectedPaymentMethod,
-  onBack,
   onSubmit,
   submitting,
   user
-}: ReviewStepProps) {
-  const reviewRef = useRef<HTMLDivElement>(null);
+}: ReviewModalProps) {
 
   
   // Get available payment methods from business settings
@@ -87,129 +87,112 @@ function ReviewStep({
     }
   }, [businessSettings, selectedPaymentMethod, setSelectedPaymentMethod]);
 
-  // Scroll to review form when review step is shown
-  useEffect(() => {
-    if (reviewRef.current) {
-      reviewRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, []);
+  const handleSubmit = () => {
+    onSubmit(false);
+    onOpenChange(false);
+  };
+
+  const handleBack = () => {
+    onOpenChange(false);
+  };
 
   return (
-    <div ref={reviewRef} className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Review Your Delivery Request</CardTitle>
-              <CardDescription>
-                Please review your details before submitting your request
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Review Your Delivery Request</DialogTitle>
+          <DialogDescription>
+            Please review your details before submitting your request
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-6">
               
-              {/* Customer Information */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg">Customer Information</h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                  <p><strong>Name:</strong> {formData?.fullName || formData?.customerName}</p>
-                  <p><strong>Phone:</strong> {formData?.phone}</p>
-                  <p><strong>Email:</strong> {formData?.email}</p>
-                </div>
-              </div>
+          {/* Customer Information */}
+          <div className="space-y-2">
+            <h3 className="font-semibold text-lg">Customer Information</h3>
+            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+              <p><strong>Name:</strong> {formData?.fullName || formData?.customerName}</p>
+              <p><strong>Phone:</strong> {formData?.phone}</p>
+              <p><strong>Email:</strong> {formData?.email}</p>
+            </div>
+          </div>
 
-              {/* Business & Delivery Details */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg">Delivery Details</h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                  <p><strong>Business:</strong> {selectedBusiness?.name}</p>
-                  <p><strong>Pickup Address:</strong> {formData?.pickupAddress}</p>
-                  <p><strong>Delivery Address:</strong> {formData?.deliveryAddress}</p>
-                  <p><strong>Date:</strong> {formData?.preferredDate}</p>
-                  <p><strong>Time:</strong> {formData?.preferredTime || 'ASAP'}</p>
-                  {formData?.specialInstructions && (
-                    <p><strong>Special Instructions:</strong> {formData.specialInstructions}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Pricing */}
-              {priceCalculation && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Pricing</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <SimplePriceDisplay
-                      result={priceCalculation}
-                      isRush={false}
-                    />
-                  </div>
-                </div>
+          {/* Business & Delivery Details */}
+          <div className="space-y-2">
+            <h3 className="font-semibold text-lg">Delivery Details</h3>
+            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+              <p><strong>Business:</strong> {selectedBusiness?.name}</p>
+              <p><strong>Pickup Address:</strong> {formData?.pickupAddress}</p>
+              <p><strong>Delivery Address:</strong> {formData?.deliveryAddress}</p>
+              <p><strong>Date:</strong> {formData?.preferredDate}</p>
+              <p><strong>Time:</strong> {formData?.preferredTime || 'ASAP'}</p>
+              {formData?.specialInstructions && (
+                <p><strong>Special Instructions:</strong> {formData.specialInstructions}</p>
               )}
+            </div>
+          </div>
 
-              {/* Payment Method Selection */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Payment Method</h3>
-                <div className="space-y-2">
-                  {getAvailablePaymentMethods().map((method: { value: string; label: string }) => (
-                    <div key={method.value} className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id={method.value}
-                        name="paymentMethod"
-                        value={method.value}
-                        checked={selectedPaymentMethod === method.value}
-                        onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                        className="h-4 w-4"
-                      />
-                      <label htmlFor={method.value} className="text-sm font-medium">
-                        {method.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
+          {/* Pricing */}
+          {priceCalculation && (
+            <div className="space-y-2">
+              <h3 className="font-semibold text-lg">Pricing</h3>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <SimplePriceDisplay
+                  result={priceCalculation}
+                  isRush={false}
+                />
               </div>
+            </div>
+          )}
 
-              {/* Payment Actions */}
-              <div className="flex flex-col space-y-3 pt-4 border-t">
-                <div className="flex space-x-3">
-                  <Button
-                    variant="outline"
-                    onClick={onBack}
-                    disabled={submitting}
-                    className="flex-1"
-                  >
-                    Back to Edit
-                  </Button>
-                  
-                  {selectedPaymentMethod === 'online_payment' ? (
-                    <Button
-                      onClick={handlePayNow}
-                      disabled={submitting || !selectedPaymentMethod}
-                      className="flex-1"
-                    >
-                      {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Pay Now ${total.toFixed(2)}
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => onSubmit(false)}
-                      disabled={submitting || !selectedPaymentMethod}
-                      className="flex-1"
-                    >
-                      {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Submit Request
-                    </Button>
-                  )}
+          {/* Payment Method Selection */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Payment Method</h3>
+            <div className="space-y-2">
+              {getAvailablePaymentMethods().map((method: { value: string; label: string }) => (
+                <div key={method.value} className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id={method.value}
+                    name="paymentMethod"
+                    value={method.value}
+                    checked={selectedPaymentMethod === method.value}
+                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                    className="h-4 w-4"
+                  />
+                  <label htmlFor={method.value} className="text-sm font-medium">
+                    {method.label}
+                  </label>
                 </div>
-                
-
-              </div>
-            </CardContent>
-          </Card>
-
-
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+
+        <DialogFooter className="flex flex-col space-y-3 pt-4 border-t">
+          <div className="flex space-x-3">
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              disabled={submitting}
+              className="flex-1"
+            >
+              Back to Edit
+            </Button>
+            
+            <Button
+              onClick={handleSubmit}
+              disabled={submitting || !selectedPaymentMethod}
+              className="flex-1"
+            >
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Submit Request
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -220,7 +203,7 @@ export function EnhancedDeliveryForm() {
   const [loyaltyInfo, setLoyaltyInfo] = useState<any>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [priceCalculation, setPriceCalculation] = useState<any>(null);
-  const [currentStep, setCurrentStep] = useState<FormStep>('form');
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [formData, setFormData] = useState<any>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
   
@@ -236,18 +219,7 @@ export function EnhancedDeliveryForm() {
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 
-  // Get available payment methods from business settings
-  const getAvailablePaymentMethods = () => {
-    const acceptedMethods = businessSettings?.acceptedPaymentMethods || ['cash_on_delivery', 'card_on_delivery', 'online_payment'];
-    
-    return acceptedMethods.map((method: string) => {
-      const predefined = PREDEFINED_PAYMENT_METHODS.find(p => p.value === method);
-      return {
-        value: method,
-        label: predefined?.label || method
-      };
-    });
-  };
+
   
   const schema = user ? insertDeliveryRequestAuthenticatedSchema : insertDeliveryRequestGuestSchema;
   
@@ -350,10 +322,10 @@ export function EnhancedDeliveryForm() {
     }
   };
 
-  // Step 1: Handle form submission to review
+  // Handle form submission to show review modal
   const onFormSubmit = async (data: any) => {
     setFormData(data);
-    setCurrentStep('review');
+    setReviewModalOpen(true);
   };
 
   // Step 2: Handle final submission (with or without payment)
@@ -380,8 +352,8 @@ export function EnhancedDeliveryForm() {
           "Your delivery request has been submitted successfully. We'll contact you soon!",
       });
 
-      // Reset form and return to step 1
-      setCurrentStep('form');
+      // Reset form and close modal
+      setReviewModalOpen(false);
       setFormData(null);
       setSelectedPaymentMethod('');
       
@@ -429,24 +401,7 @@ export function EnhancedDeliveryForm() {
 
 
 
-  // Show review step if in review mode
-  if (currentStep === 'review') {
-    return (
-      <ReviewStep 
-        formData={formData}
-        selectedBusiness={selectedBusiness}
-        priceCalculation={priceCalculation}
-        loyaltyInfo={loyaltyInfo}
-        businessSettings={businessSettings}
-        selectedPaymentMethod={selectedPaymentMethod}
-        setSelectedPaymentMethod={setSelectedPaymentMethod}
-        onBack={() => setCurrentStep('form')}
-        onSubmit={onFinalSubmit}
-        submitting={submitting}
-        user={user}
-      />
-    );
-  }
+
 
   return (
     <div className="space-y-6">
@@ -806,6 +761,22 @@ export function EnhancedDeliveryForm() {
           </Form>
         </CardContent>
       </Card>
+
+      {/* Review Modal */}
+      <ReviewModal
+        isOpen={reviewModalOpen}
+        onOpenChange={setReviewModalOpen}
+        formData={formData}
+        selectedBusiness={selectedBusiness}
+        priceCalculation={priceCalculation}
+        loyaltyInfo={loyaltyInfo}
+        businessSettings={businessSettings}
+        selectedPaymentMethod={selectedPaymentMethod}
+        setSelectedPaymentMethod={setSelectedPaymentMethod}
+        onSubmit={onFinalSubmit}
+        submitting={submitting}
+        user={user}
+      />
     </div>
   );
 }
