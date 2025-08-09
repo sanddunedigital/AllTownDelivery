@@ -69,6 +69,7 @@ function ReviewStep({
 
   const handlePayNow = () => {
     if (selectedPaymentMethod === 'online_payment') {
+      console.log('Opening payment modal with total:', total, 'priceCalculation:', priceCalculation);
       setShowSimplePayment(true);
     } else {
       onSubmit(false);
@@ -85,7 +86,7 @@ function ReviewStep({
     console.error('Payment error:', error);
   };
 
-  const total = priceCalculation?.deliveryFee || 0;
+  const total = priceCalculation?.total || 0;
   
   // Set default payment method to first available if not selected
   useEffect(() => {
@@ -232,7 +233,7 @@ function ReviewStep({
                   </Button>
                 </div>
                 <SimplePayment
-                  amount={priceCalculation?.total || 0}
+                  amount={total}
                   deliveryRequestId="temp-request-id"
                   customerName={formData?.fullName || formData?.customerName}
                   onPaymentSuccess={handleSimplePaymentSuccess}
