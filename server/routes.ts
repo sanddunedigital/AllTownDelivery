@@ -37,6 +37,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Tenant Signup Routes
+  app.post("/api/tenants/check-subdomain", async (req, res) => {
+    try {
+      const { subdomain } = req.body;
+      
+      if (!subdomain) {
+        return res.status(400).json({ message: "Subdomain is required" });
+      }
+
+      // Check if subdomain already exists
+      const existingTenant = await storage.getTenantBySubdomain(subdomain);
+      
+      res.json({ 
+        available: !existingTenant,
+        subdomain 
+      });
+    } catch (error) {
+      console.error("Error checking subdomain:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/tenants/signup", async (req, res) => {
+    try {
+      // Validate the request body
+      const {
+        businessName,
+        ownerName,
+        email,
+        phone,
+        businessAddress,
+        city,
+        state,
+        zipCode,
+        businessType,
+        currentDeliveryVolume,
+        subdomain,
+        primaryColor,
+        description
+      } = req.body;
+      
+      // Validate required fields
+      if (!businessName || !ownerName || !email || !phone || !businessAddress || !city || !state || !zipCode || !businessType || !currentDeliveryVolume || !subdomain) {
+        return res.status(400).json({ message: "All required fields must be provided" });
+      }
+      
+      // Check subdomain availability again
+      const existingTenant = await storage.getTenantBySubdomain(subdomain);
+      if (existingTenant) {
+        return res.status(400).json({ message: "Subdomain is already taken" });
+      }
+
+      // Set trial dates
+      const trialStartDate = new Date();
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialStartDate.getDate() + 30); // 30-day trial
+
+      // Create tenant
+      const tenantData = {
+        companyName: businessName,
+        ownerName,
+        email,
+        phone,
+        businessAddress,
+        city,
+        state,
+        zipCode,
+        businessType,
+        currentDeliveryVolume,
+        subdomain,
+        primaryColor: primaryColor || "#0369a1",
+        description,
+        isActive: true,
+        planType: 'trial' as const,
+        trialStartDate,
+        trialEndDate,
+        billingStatus: 'trial' as const
+      };
+
+      const newTenant = await storage.createTenant(tenantData);
+      
+      // Create default business settings for this tenant
+      const defaultBusinessSettings = {
+        tenantId: newTenant.id,
+        businessName: businessName,
+        businessPhone: phone,
+        businessEmail: email,
+        businessAddress: `${businessAddress}, ${city}, ${state} ${zipCode}`,
+        primaryColor: primaryColor || "#0369a1",
+        secondaryColor: "#64748b",
+        accentColor: "#ea580c",
+        deliveryPricing: {
+          basePrice: 3.00,
+          pricePerMile: 1.50,
+          minimumOrder: 10.00,
+          freeDeliveryThreshold: 50.00
+        },
+        distanceSettings: {
+          baseFeeRadius: 10.0
+        },
+        features: {
+          loyaltyProgram: true,
+          realTimeTracking: true,
+          scheduledDeliveries: false,
+          multiplePaymentMethods: true
+        },
+        acceptedPaymentMethods: ['cash_on_delivery', 'card_on_delivery'],
+        businessHours: {
+          monday: { open: '09:00', close: '17:00', closed: false },
+          tuesday: { open: '09:00', close: '17:00', closed: false },
+          wednesday: { open: '09:00', close: '17:00', closed: false },
+          thursday: { open: '09:00', close: '17:00', closed: false },
+          friday: { open: '09:00', close: '17:00', closed: false },
+          saturday: { open: '10:00', close: '16:00', closed: false },
+          sunday: { open: '12:00', close: '16:00', closed: true }
+        }
+      };
+
+      await storage.createBusinessSettings(defaultBusinessSettings);
+
+      res.json({
+        success: true,
+        message: "Account created successfully!",
+        tenant: newTenant,
+        subdomain: newTenant.subdomain
+      });
+    } catch (error: any) {
+      console.error("Error creating tenant:", error);
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Tenant testing routes (development only)
   if (process.env.NODE_ENV === 'development') {
     const { createTestTenantData, testTenantIsolation, cleanupTestTenantData } = await import('./tenant-test');
