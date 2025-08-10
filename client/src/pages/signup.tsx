@@ -79,10 +79,11 @@ export default function TenantSignup() {
       // Generate a secure password for the user
       const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
       
-      // Create Supabase auth account
+      // Create Supabase auth account (disable email confirmation for smoother flow)
       const { data: authData, error: authError } = await auth.signUp(
         formData.email, 
-        tempPassword
+        tempPassword,
+        { emailRedirectTo: undefined } // Disable email confirmation redirect
       );
       
       if (authError) {

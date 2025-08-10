@@ -118,9 +118,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailVerified
       } = req.body;
 
-      if (!emailVerified || !userId) {
+      if (!userId) {
         return res.status(400).json({ 
-          message: "Email verification required. Please verify your email first." 
+          message: "User ID is required." 
         });
       }
 
