@@ -53,6 +53,14 @@ interface BusinessSettings {
   businessPhone: string;
   businessAddress: string;
   logoUrl?: string;
+  // Profile fields
+  businessDescription?: string;
+  tagline?: string;
+  serviceAreas?: string;
+  specialties?: string;
+  welcomeMessage?: string;
+  whyChooseUs?: string;
+  // Existing fields
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
@@ -522,17 +530,21 @@ export default function BusinessSettingsPage() {
           </div>
         ) : (
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="general">
                 <Settings className="w-4 h-4 mr-2" />
                 General
+              </TabsTrigger>
+              <TabsTrigger value="profile">
+                <User className="w-4 h-4 mr-2" />
+                Profile
               </TabsTrigger>
               <TabsTrigger value="pricing">
                 <DollarSign className="w-4 h-4 mr-2" />
                 Pricing
               </TabsTrigger>
               <TabsTrigger value="payments">
-                <DollarSign className="w-4 h-4 mr-2" />
+                <Globe className="w-4 h-4 mr-2" />
                 Payments
               </TabsTrigger>
               <TabsTrigger value="hours">
@@ -694,6 +706,107 @@ export default function BusinessSettingsPage() {
                         />
                       </div>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="profile" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Business Profile</CardTitle>
+                  <CardDescription>Manage your public business profile and homepage content</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="businessDescription">Business Description</Label>
+                    <Textarea
+                      id="businessDescription"
+                      placeholder="Tell customers about your delivery service, specialties, and what makes you unique..."
+                      rows={4}
+                      value={settings.businessDescription || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, businessDescription: e.target.value }))}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      This appears on your business profile page and in search results.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tagline">Business Tagline</Label>
+                    <Input
+                      id="tagline"
+                      placeholder="e.g., 'Fast, Reliable Delivery for All Your Needs'"
+                      value={settings.tagline || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, tagline: e.target.value }))}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Short catchy phrase that appears on your homepage.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="serviceAreas">Service Areas</Label>
+                    <Textarea
+                      id="serviceAreas"
+                      placeholder="e.g., 'Oskaloosa, Pella, Knoxville, and surrounding areas'"
+                      rows={2}
+                      value={settings.serviceAreas || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, serviceAreas: e.target.value }))}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      List the cities and areas you deliver to.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="specialties">Delivery Specialties</Label>
+                    <Textarea
+                      id="specialties"
+                      placeholder="e.g., 'Groceries, Pharmacy Items, Restaurant Orders, Auto Parts'"
+                      rows={2}
+                      value={settings.specialties || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, specialties: e.target.value }))}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      What types of items do you specialize in delivering?
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Homepage Content</CardTitle>
+                  <CardDescription>Customize what customers see on your website homepage</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="welcomeMessage">Welcome Message</Label>
+                    <Textarea
+                      id="welcomeMessage"
+                      placeholder="Welcome! We provide fast, reliable delivery service throughout central Iowa..."
+                      rows={3}
+                      value={settings.welcomeMessage || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, welcomeMessage: e.target.value }))}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      First message customers see on your homepage.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="whyChooseUs">Why Choose Us Section</Label>
+                    <Textarea
+                      id="whyChooseUs"
+                      placeholder="• Fast delivery times\n• Reliable service\n• Competitive pricing\n• Local business..."
+                      rows={4}
+                      value={settings.whyChooseUs || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, whyChooseUs: e.target.value }))}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Highlight your key advantages and benefits.
+                    </p>
                   </div>
                 </CardContent>
               </Card>

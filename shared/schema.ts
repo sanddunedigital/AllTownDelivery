@@ -139,6 +139,13 @@ export const businessSettings = pgTable("business_settings", {
   businessAddress: text("business_address"),
   logoUrl: text("logo_url"),
   websiteUrl: text("website_url"),
+  // Profile content
+  businessDescription: text("business_description"),
+  tagline: text("tagline"),
+  serviceAreas: text("service_areas"),
+  specialties: text("specialties"),
+  welcomeMessage: text("welcome_message"),
+  whyChooseUs: text("why_choose_us"),
   primaryColor: text("primary_color").default("#0369a1"),
   secondaryColor: text("secondary_color").default("#64748b"),
   accentColor: text("accent_color").default("#ea580c"),

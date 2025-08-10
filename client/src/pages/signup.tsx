@@ -451,23 +451,7 @@ export default function TenantSignup() {
                         )}
                       </div>
 
-                      <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Business Description (Optional)</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Tell customers about your delivery service..."
-                                rows={3}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+
 
                       <FormField
                         control={form.control}
