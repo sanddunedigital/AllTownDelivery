@@ -44,7 +44,19 @@ export default function TenantSignup() {
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
+      businessName: 'Delivery Service 1',
+      ownerName: 'Nick Houser',
+      email: 'mynameisnick421@gmail.com',
+      phone: '6416700468',
+      businessAddress: '123 Main Street',
+      city: 'Oskaloosa',
+      state: 'IA',
+      zipCode: '52577',
+      businessType: 'Local Delivery Service',
+      currentDeliveryVolume: '11-25 deliveries per day',
+      subdomain: 'delivery-service-1',
       primaryColor: '#0369a1',
+      description: '',
     },
   });
 
@@ -91,9 +103,34 @@ export default function TenantSignup() {
   };
 
   const onSubmit = (data: SignupFormData) => {
+    console.log('Form submission attempt:', { step, data });
+    
+    // Validate current step fields
+    if (step === 1) {
+      const step1Fields = ['businessName', 'ownerName', 'email', 'phone'];
+      const errors = step1Fields.filter(field => !data[field as keyof SignupFormData]);
+      if (errors.length > 0) {
+        console.log('Step 1 validation errors:', errors);
+        return;
+      }
+    } else if (step === 2) {
+      const step2Fields = ['businessAddress', 'city', 'state', 'zipCode', 'businessType', 'currentDeliveryVolume'];
+      const errors = step2Fields.filter(field => !data[field as keyof SignupFormData]);
+      if (errors.length > 0) {
+        console.log('Step 2 validation errors:', errors);
+        return;
+      }
+    } else if (step === 3) {
+      if (!data.subdomain) {
+        console.log('Step 3 validation error: subdomain required');
+        return;
+      }
+    }
+
     if (step < 3) {
       setStep(step + 1);
     } else {
+      console.log('Submitting final form data:', data);
       signupMutation.mutate(data);
     }
   };
@@ -473,6 +510,11 @@ export default function TenantSignup() {
                       type="submit"
                       disabled={signupMutation.isPending}
                       className={step === 1 ? 'ml-auto' : ''}
+                      onClick={(e) => {
+                        console.log('Button clicked, current step:', step);
+                        console.log('Form valid:', form.formState.isValid);
+                        console.log('Form errors:', form.formState.errors);
+                      }}
                     >
                       {step === 3
                         ? signupMutation.isPending
