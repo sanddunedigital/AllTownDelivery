@@ -198,21 +198,24 @@ export default function TenantSignup() {
               <h2 className="text-2xl font-bold text-gray-900">Welcome to AllTownDelivery!</h2>
               <p className="text-gray-600">
                 Your account has been created and your 30-day free trial has started. 
-                Please verify your email ({userEmail}) to complete setup.
+                Your delivery service is ready to configure!
               </p>
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm font-medium text-blue-900">
-                  Your delivery service is now live at:
+                  Your reserved subdomain:
                 </p>
                 <p className="text-blue-600 font-bold">
                   {form.getValues('subdomain')}.alltowndelivery.com
                 </p>
+                <p className="text-xs text-blue-700 mt-1">
+                  (Available after deployment setup)
+                </p>
               </div>
               <Button 
-                onClick={() => window.location.href = `https://${form.getValues('subdomain')}.alltowndelivery.com`}
+                onClick={() => window.location.href = `/`}
                 className="w-full"
               >
-                Go to Your Dashboard
+                Continue to Dashboard
               </Button>
             </div>
           </CardContent>
