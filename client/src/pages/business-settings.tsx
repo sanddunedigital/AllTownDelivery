@@ -135,6 +135,14 @@ const defaultSettings: Partial<BusinessSettings> = {
   businessEmail: "contact@sarasquickiedelivery.com",
   businessPhone: "(641) 673-0123",
   businessAddress: "Oskaloosa, IA",
+  // Profile defaults
+  businessDescription: '',
+  tagline: '',
+  serviceAreas: '',
+  specialties: '',
+  welcomeMessage: '',
+  whyChooseUs: '',
+  // Existing defaults
   primaryColor: "#0369a1",
   secondaryColor: "#64748b",
   accentColor: "#ea580c",
