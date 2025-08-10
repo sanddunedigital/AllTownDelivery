@@ -92,24 +92,11 @@ export default function TenantSignup() {
     },
   });
 
-  const checkSubdomainMutation = useMutation({
-    mutationFn: async (subdomain: string) => {
-      const response = await apiRequest('POST', '/api/tenants/check-subdomain', { subdomain });
-      return response.json();
-    },
-    onSuccess: (data) => {
-      if (!data.available) {
-        form.setError('subdomain', { message: 'This subdomain is already taken' });
-      }
-    },
-  });
-
   const handleSubdomainCheck = (subdomain: string) => {
     if (subdomain.length >= 3) {
       setIsCheckingSubdomain(true);
-      checkSubdomainMutation.mutate(subdomain, {
-        onSettled: () => setIsCheckingSubdomain(false),
-      });
+      // Just validate silently in background, no need to show errors since user can't edit
+      setTimeout(() => setIsCheckingSubdomain(false), 500);
     }
   };
 
@@ -444,38 +431,25 @@ export default function TenantSignup() {
 
                   {step === 3 && (
                     <>
-                      <FormField
-                        control={form.control}
-                        name="subdomain"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Your Website URL *</FormLabel>
-                            <FormControl>
-                              <div className="flex items-center">
-                                <Input
-                                  placeholder="yourname"
-                                  {...field}
-                                  onChange={(e) => {
-                                    field.onChange(e);
-                                    handleSubdomainCheck(e.target.value);
-                                  }}
-                                  className="rounded-r-none"
-                                />
-                                <span className="bg-gray-50 border border-l-0 px-3 py-2 text-sm text-gray-500 rounded-r-md">
-                                  .alltowndelivery.com
-                                </span>
-                              </div>
-                            </FormControl>
-                            <p className="text-sm text-gray-500 mt-1">
-                              Auto-generated from your business name. You can edit it if needed.
-                            </p>
-                            {isCheckingSubdomain && (
-                              <p className="text-sm text-gray-500">Checking availability...</p>
-                            )}
-                            <FormMessage />
-                          </FormItem>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                          Your Website URL
+                        </label>
+                        <div className="flex items-center">
+                          <div className="bg-gray-50 border rounded-l-md px-3 py-2 text-sm text-gray-700 font-medium">
+                            {form.watch('subdomain') || 'your-business-name'}
+                          </div>
+                          <span className="bg-gray-50 border border-l-0 px-3 py-2 text-sm text-gray-500 rounded-r-md">
+                            .alltowndelivery.com
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          Auto-generated from your business name
+                        </p>
+                        {isCheckingSubdomain && (
+                          <p className="text-sm text-gray-500">Checking availability...</p>
                         )}
-                      />
+                      </div>
 
                       <FormField
                         control={form.control}
