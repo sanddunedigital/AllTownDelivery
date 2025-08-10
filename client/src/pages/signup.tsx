@@ -60,6 +60,17 @@ export default function TenantSignup() {
     },
   });
 
+  // Function to generate subdomain from business name
+  const generateSubdomain = (businessName: string): string => {
+    return businessName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  };
+
   const signupMutation = useMutation({
     mutationFn: async (data: SignupFormData) => {
       const response = await apiRequest('POST', '/api/tenants/signup', data);
@@ -254,7 +265,19 @@ export default function TenantSignup() {
                           <FormItem>
                             <FormLabel>Business Name *</FormLabel>
                             <FormControl>
-                              <Input placeholder="Sara's Quickie Delivery" {...field} />
+                              <Input 
+                                placeholder="Sara's Quickie Delivery" 
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  // Auto-generate subdomain from business name
+                                  if (e.target.value) {
+                                    const suggestedSubdomain = generateSubdomain(e.target.value);
+                                    form.setValue('subdomain', suggestedSubdomain);
+                                    handleSubdomainCheck(suggestedSubdomain);
+                                  }
+                                }}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -426,7 +449,7 @@ export default function TenantSignup() {
                         name="subdomain"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Choose Your Website URL *</FormLabel>
+                            <FormLabel>Your Website URL *</FormLabel>
                             <FormControl>
                               <div className="flex items-center">
                                 <Input
@@ -443,6 +466,9 @@ export default function TenantSignup() {
                                 </span>
                               </div>
                             </FormControl>
+                            <p className="text-sm text-gray-500 mt-1">
+                              Auto-generated from your business name. You can edit it if needed.
+                            </p>
                             {isCheckingSubdomain && (
                               <p className="text-sm text-gray-500">Checking availability...</p>
                             )}

@@ -1049,6 +1049,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate subdomain suggestion from business name
+  app.post("/api/tenants/suggest-subdomain", async (req, res) => {
+    try {
+      const { businessName } = req.body;
+      
+      if (!businessName) {
+        return res.status(400).json({ error: "Business name is required" });
+      }
+
+      // Generate base subdomain from business name
+      const generateSubdomain = (name: string): string => {
+        return name
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+          .replace(/\s+/g, '-') // Replace spaces with hyphens
+          .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+          .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+      };
+
+      let suggestedSubdomain = generateSubdomain(businessName);
+      let counter = 1;
+      let isAvailable = false;
+
+      // Check availability and add number if needed
+      while (!isAvailable && counter <= 10) {
+        const testSubdomain = counter === 1 ? suggestedSubdomain : `${suggestedSubdomain}-${counter}`;
+        
+        if (testSubdomain.length >= 3 && testSubdomain.length <= 20) {
+          const existingTenant = await storage.getTenantBySubdomain(testSubdomain);
+          
+          if (!existingTenant) {
+            suggestedSubdomain = testSubdomain;
+            isAvailable = true;
+          }
+        }
+        
+        counter++;
+      }
+
+      res.json({
+        suggested: suggestedSubdomain,
+        available: isAvailable
+      });
+    } catch (error) {
+      console.error("Error generating subdomain suggestion:", error);
+      res.status(500).json({ error: "Error generating subdomain" });
+    }
+  });
+
   // Check subdomain availability
   app.post("/api/tenants/check-subdomain", async (req, res) => {
     try {
