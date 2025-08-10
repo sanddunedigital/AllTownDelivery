@@ -11,9 +11,30 @@ export const tenants = pgTable("tenants", {
   customDomain: text("custom_domain").unique(), // for custom domains
   slug: text("slug").unique(), // for path-based routing
   logoUrl: text("logo_url"),
-  primaryColor: text("primary_color").default("#f97316"), // Default orange
+  primaryColor: text("primary_color").default("#0369a1"),
   isActive: boolean("is_active").default(true).notNull(),
-  planType: text("plan_type").default("basic").notNull(), // basic, premium, enterprise
+  planType: text("plan_type").default("trial").notNull(), // trial, basic, premium, enterprise
+  
+  // Contact & Business Info
+  ownerName: text("owner_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  businessAddress: text("business_address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  zipCode: text("zip_code").notNull(),
+  businessType: text("business_type").notNull(),
+  currentDeliveryVolume: text("current_delivery_volume").notNull(),
+  description: text("description"),
+  
+  // Trial & Billing
+  trialStartDate: timestamp("trial_start_date").defaultNow(),
+  trialEndDate: timestamp("trial_end_date"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  billingStatus: text("billing_status").default("trial").notNull(), // trial, active, past_due, cancelled
+  nextBillingDate: timestamp("next_billing_date"),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -223,21 +244,37 @@ export const insertServiceZoneSchema = createInsertSchema(serviceZones).omit({
 
 export const updateServiceZoneSchema = insertServiceZoneSchema.partial();
 
+// Tenant schemas
+export const insertTenantSchema = createInsertSchema(tenants).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  trialStartDate: true,
+  trialEndDate: true,
+  stripeCustomerId: true,
+  stripeSubscriptionId: true,
+  billingStatus: true,
+  nextBillingDate: true,
+});
+
+export const updateTenantSchema = insertTenantSchema.partial();
+
+// Main Types
+export type Tenant = typeof tenants.$inferSelect;
+export type InsertTenant = z.infer<typeof insertTenantSchema>;
+export type UpdateTenant = z.infer<typeof updateTenantSchema>;
+export type BusinessSettings = typeof businessSettings.$inferSelect;
+export type DeliveryRequest = typeof deliveryRequests.$inferSelect;
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
+export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
+
 // Google reviews schemas
 export const insertGoogleReviewsSchema = createInsertSchema(googleReviews).omit({
   id: true,
   createdAt: true,
   lastUpdated: true,
 });
-
-// Tenant schemas
-export const insertTenantSchema = createInsertSchema(tenants).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const updateTenantSchema = insertTenantSchema.partial();
 
 // Business schemas
 export const insertBusinessSchema = createInsertSchema(businesses).omit({
@@ -344,24 +381,16 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
-// Type exports
-export type InsertTenant = z.infer<typeof insertTenantSchema>;
-export type Tenant = typeof tenants.$inferSelect;
-
+// Additional type exports
 export type InsertBusiness = z.infer<typeof insertBusinessSchema>;
 export type Business = typeof businesses.$inferSelect;
 
 export type InsertGoogleReviews = z.infer<typeof insertGoogleReviewsSchema>;
 export type GoogleReviewsData = typeof googleReviews.$inferSelect;
 
-export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
-export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
-export type UserProfile = typeof userProfiles.$inferSelect;
-
 export type InsertDeliveryRequest = z.infer<typeof insertDeliveryRequestSchema>;
 export type InsertDeliveryRequestGuest = z.infer<typeof insertDeliveryRequestGuestSchema>;
 export type InsertDeliveryRequestAuthenticated = z.infer<typeof insertDeliveryRequestAuthenticatedSchema>;
-export type DeliveryRequest = typeof deliveryRequests.$inferSelect;
 
 export type ClaimDelivery = z.infer<typeof claimDeliverySchema>;
 export type UpdateDeliveryStatus = z.infer<typeof updateDeliveryStatusSchema>;

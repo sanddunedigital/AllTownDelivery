@@ -14,7 +14,7 @@ import {
   updateDeliveryStatusSchema,
   updateDriverStatusSchema,
   insertBusinessSchema,
-
+  insertTenantSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import { ObjectStorageService } from "./objectStorage";
@@ -774,6 +774,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching tenant info:', error);
       res.status(500).json({ message: "Error fetching tenant information" });
+    }
+  });
+
+  // Tenant signup endpoint
+  app.post("/api/tenants/signup", async (req, res) => {
+    try {
+      const validatedData = insertTenantSchema.parse(req.body);
+      
+      // Check if subdomain is available
+      const existingTenant = await storage.getTenantBySubdomain(validatedData.subdomain!);
+      if (existingTenant) {
+        return res.status(400).json({ 
+          message: "Subdomain already taken",
+          field: "subdomain"
+        });
+      }
+
+      // Calculate trial end date (30 days from now)
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 30);
+
+      // Create tenant
+      const newTenant = await storage.createTenant({
+        ...validatedData,
+        trialEndDate,
+        planType: "trial",
+        billingStatus: "trial"
+      });
+
+      // Create default business settings for the tenant
+      await storage.createBusinessSettings({
+        tenantId: newTenant.id,
+        businessName: validatedData.companyName,
+        businessPhone: validatedData.phone,
+        businessEmail: validatedData.email,
+        businessAddress: validatedData.businessAddress,
+        primaryColor: validatedData.primaryColor || "#0369a1",
+      });
+
+      res.status(201).json({
+        success: true,
+        tenant: newTenant,
+        subdomain: validatedData.subdomain,
+        trialEndsAt: trialEndDate.toISOString(),
+      });
+    } catch (error) {
+      console.error("Error creating tenant:", error);
+      res.status(500).json({ 
+        message: "Failed to create account",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Check subdomain availability
+  app.post("/api/tenants/check-subdomain", async (req, res) => {
+    try {
+      const { subdomain } = req.body;
+      
+      if (!subdomain || subdomain.length < 3) {
+        return res.status(400).json({ 
+          message: "Subdomain must be at least 3 characters" 
+        });
+      }
+
+      const existingTenant = await storage.getTenantBySubdomain(subdomain);
+      
+      res.json({ 
+        available: !existingTenant,
+        subdomain 
+      });
+    } catch (error) {
+      console.error("Error checking subdomain:", error);
+      res.status(500).json({ 
+        message: "Failed to check subdomain availability" 
+      });
     }
   });
 

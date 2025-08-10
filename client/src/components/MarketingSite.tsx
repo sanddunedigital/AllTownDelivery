@@ -67,12 +67,11 @@ export default function MarketingSite() {
               >
                 Find Services
               </button>
-              <Button 
-                onClick={() => document.getElementById('signup')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-primary hover:bg-primary/90"
-              >
-                Start Your Service
-              </Button>
+              <Link href="/signup">
+                <Button className="bg-primary hover:bg-primary/90">
+                  Start Your Service
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -330,13 +329,14 @@ export default function MarketingSite() {
                     Basic analytics
                   </li>
                 </ul>
-                <Button 
-                  className="w-full mt-6" 
-                  variant={selectedPlan === 'basic' ? 'default' : 'outline'}
-                  onClick={() => handleTenantSignup('basic')}
-                >
-                  Start Free Trial
-                </Button>
+                <Link href="/signup">
+                  <Button 
+                    className="w-full mt-6" 
+                    variant={selectedPlan === 'basic' ? 'default' : 'outline'}
+                  >
+                    Start Free Trial
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 
@@ -377,12 +377,13 @@ export default function MarketingSite() {
                     Custom domain support
                   </li>
                 </ul>
-                <Button 
-                  className="w-full mt-6" 
-                  onClick={() => handleTenantSignup('pro')}
-                >
-                  Start Free Trial
-                </Button>
+                <Link href="/signup">
+                  <Button 
+                    className="w-full mt-6"
+                  >
+                    Start Free Trial
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 
@@ -420,13 +421,14 @@ export default function MarketingSite() {
                     White-label options
                   </li>
                 </ul>
-                <Button 
-                  className="w-full mt-6" 
-                  variant={selectedPlan === 'enterprise' ? 'default' : 'outline'}
-                  onClick={() => handleTenantSignup('enterprise')}
-                >
-                  Contact Sales
-                </Button>
+                <Link href="/signup">
+                  <Button 
+                    className="w-full mt-6" 
+                    variant={selectedPlan === 'enterprise' ? 'default' : 'outline'}
+                  >
+                    Contact Sales
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>
@@ -444,15 +446,16 @@ export default function MarketingSite() {
             Start your free trial today and be delivering in hours, not weeks.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
-              variant="secondary"
-              onClick={() => handleTenantSignup('pro')}
-              className="px-8 py-3"
-            >
-              Start Free Trial
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <Link href="/signup">
+              <Button 
+                size="lg" 
+                variant="secondary"
+                className="px-8 py-3"
+              >
+                Start Free Trial
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
             <Button 
               size="lg" 
               variant="outline"

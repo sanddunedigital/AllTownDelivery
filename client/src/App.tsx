@@ -14,6 +14,7 @@ import AdminDashboard from "@/pages/admin";
 import BusinessSettings from "@/pages/business-settings";
 import ResetPassword from "@/pages/reset-password";
 import Auth from "@/pages/auth";
+import Signup from "@/pages/signup";
 import { lazy, Suspense } from "react";
 
 const PricingPage = lazy(() => import("@/pages/pricing"));
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/business-settings" component={BusinessSettings} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/signup" component={Signup} />
       <Route component={NotFound} />
     </Switch>
   );

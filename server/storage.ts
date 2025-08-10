@@ -3,7 +3,8 @@ import {
   type UserProfile, type InsertUserProfile, type UpdateUserProfile,
   type ClaimDelivery, type UpdateDeliveryStatus,
   type Business, type InsertBusiness,
-  users, deliveryRequests, userProfiles, businesses, businessSettings, serviceZones 
+  type Tenant, type InsertTenant,
+  users, deliveryRequests, userProfiles, businesses, businessSettings, serviceZones, tenants 
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -52,6 +53,11 @@ export interface IStorage {
   createServiceZone(zone: any): Promise<any>;
   updateServiceZone(id: string, updates: any): Promise<any>;
   deleteServiceZone(id: string): Promise<void>;
+  
+  // Tenant methods
+  getTenantBySubdomain(subdomain: string): Promise<Tenant | undefined>;
+  createTenant(tenant: Partial<Tenant>): Promise<Tenant>;
+  createBusinessSettings(settings: any): Promise<any>;
 }
 
 export class MemStorage implements IStorage {
@@ -60,6 +66,7 @@ export class MemStorage implements IStorage {
   private deliveryRequests: Map<string, DeliveryRequest>;
   private businesses: Map<string, Business>;
   private businessSettings: Map<string, any>;
+  private tenants: Map<string, Tenant>;
 
   constructor() {
     this.users = new Map();
@@ -67,6 +74,7 @@ export class MemStorage implements IStorage {
     this.deliveryRequests = new Map();
     this.businesses = new Map();
     this.businessSettings = new Map();
+    this.tenants = new Map();
     
     // Initialize default business settings for Sara's Quickie Delivery
     this.businessSettings.set('00000000-0000-0000-0000-000000000001', {
@@ -396,6 +404,58 @@ export class MemStorage implements IStorage {
 
   async deleteServiceZone(id: string): Promise<void> {
     // Memory storage doesn't persist service zones
+  }
+
+  // Tenant methods (memory storage)
+  async getTenantBySubdomain(subdomain: string): Promise<Tenant | undefined> {
+    for (const tenant of this.tenants.values()) {
+      if (tenant.subdomain === subdomain) {
+        return tenant;
+      }
+    }
+    return undefined;
+  }
+
+  async createTenant(tenant: Partial<Tenant>): Promise<Tenant> {
+    const id = randomUUID();
+    const newTenant: Tenant = {
+      id,
+      companyName: tenant.companyName || '',
+      subdomain: tenant.subdomain || '',
+      customDomain: tenant.customDomain || null,
+      slug: tenant.slug || null,
+      logoUrl: tenant.logoUrl || null,
+      primaryColor: tenant.primaryColor || '#0369a1',
+      isActive: tenant.isActive !== false,
+      planType: tenant.planType || 'trial',
+      ownerName: tenant.ownerName || '',
+      email: tenant.email || '',
+      phone: tenant.phone || '',
+      businessAddress: tenant.businessAddress || '',
+      city: tenant.city || '',
+      state: tenant.state || '',
+      zipCode: tenant.zipCode || '',
+      businessType: tenant.businessType || '',
+      currentDeliveryVolume: tenant.currentDeliveryVolume || '',
+      description: tenant.description || null,
+      trialStartDate: tenant.trialStartDate || new Date(),
+      trialEndDate: tenant.trialEndDate || null,
+      stripeCustomerId: tenant.stripeCustomerId || null,
+      stripeSubscriptionId: tenant.stripeSubscriptionId || null,
+      billingStatus: tenant.billingStatus || 'trial',
+      nextBillingDate: tenant.nextBillingDate || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.tenants.set(id, newTenant);
+    return newTenant;
+  }
+
+  async createBusinessSettings(settings: any): Promise<any> {
+    const id = randomUUID();
+    const newSettings = { ...settings, id };
+    this.businessSettings.set(settings.tenantId, newSettings);
+    return newSettings;
   }
 }
 
@@ -801,6 +861,31 @@ export class DatabaseStorage implements IStorage {
     }
     await db.delete(serviceZones).where(eq(serviceZones.id, id));
   }
+
+  // Tenant methods
+  async getTenantBySubdomain(subdomain: string): Promise<Tenant | undefined> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.select().from(tenants).where(eq(tenants.subdomain, subdomain)).limit(1);
+    return result[0];
+  }
+
+  async createTenant(tenant: Partial<Tenant>): Promise<Tenant> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.insert(tenants).values(tenant as any).returning();
+    return result[0];
+  }
+
+  async createBusinessSettings(settings: any): Promise<any> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.insert(businessSettings).values(settings).returning();
+    return result[0];
+  }
 }
 
 // Smart storage selection - try database first, fallback to memory
@@ -1077,6 +1162,34 @@ class SmartStorage implements IStorage {
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
       await this.memStorage.deleteServiceZone(id);
+    }
+  }
+
+  // Tenant methods
+  async getTenantBySubdomain(subdomain: string): Promise<Tenant | undefined> {
+    try {
+      return await this.dbStorage.getTenantBySubdomain(subdomain);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getTenantBySubdomain(subdomain);
+    }
+  }
+
+  async createTenant(tenant: Partial<Tenant>): Promise<Tenant> {
+    try {
+      return await this.dbStorage.createTenant(tenant);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.createTenant(tenant);
+    }
+  }
+
+  async createBusinessSettings(settings: any): Promise<any> {
+    try {
+      return await this.dbStorage.createBusinessSettings(settings);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.createBusinessSettings(settings);
     }
   }
 }
