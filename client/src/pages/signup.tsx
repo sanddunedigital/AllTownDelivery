@@ -40,9 +40,7 @@ type SignupFormData = z.infer<typeof signupSchema>;
 export default function TenantSignup() {
   const [step, setStep] = useState(1);
   const [isCheckingSubdomain, setIsCheckingSubdomain] = useState(false);
-  const [verificationSent, setVerificationSent] = useState(false);
   const [userEmail, setUserEmail] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<SignupFormData>({
@@ -75,73 +73,50 @@ export default function TenantSignup() {
       .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
   };
 
-  // Email verification mutation using Supabase
-  const verifyEmailMutation = useMutation({
+  // Single signup mutation that creates everything immediately
+  const signupMutation = useMutation({
     mutationFn: async (formData: SignupFormData) => {
-      // Generate temporary password for the business owner
+      // Generate a secure password for the user
       const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
       
-      // Create Supabase auth account with email confirmation and custom redirect
-      const { data, error } = await auth.signUp(formData.email, tempPassword, {
-        emailRedirectTo: `${window.location.origin}/signup-complete?step=verify&email=${encodeURIComponent(formData.email)}`
-      });
+      // Create Supabase auth account
+      const { data: authData, error: authError } = await auth.signUp(
+        formData.email, 
+        tempPassword
+      );
       
-      if (error) {
-        throw new Error(error.message);
+      if (authError) {
+        throw new Error(authError.message);
       }
 
-      // Store form data in localStorage for completion page
-      localStorage.setItem('pendingSignupData', JSON.stringify(formData));
+      // Create tenant immediately with user ID
+      const tenantData = {
+        ...formData,
+        userId: authData.user?.id,
+        emailVerified: false, // Will be updated when email is verified
+      };
+
+      const response = await apiRequest('POST', '/api/tenants/signup-verified', tenantData);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create tenant account');
+      }
+      
+      const result = await response.json();
       
       return { 
-        email: formData.email, 
-        tempPassword, 
-        userId: data.user?.id,
-        formData 
+        ...result,
+        email: formData.email,
+        tempPassword 
       };
     },
     onSuccess: (data) => {
       setUserEmail(data.email);
-      setVerificationSent(true);
-      toast({
-        title: 'Verification Email Sent',
-        description: 'Please check your email and click the verification link to continue.',
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Account Creation Failed',
-        description: error.message || 'Failed to send verification email. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Final signup mutation (after email verification)
-  const signupMutation = useMutation({
-    mutationFn: async (data: SignupFormData) => {
-      // Check if user is verified
-      const { session } = await auth.getSession();
-      if (!session || !session.user.email_confirmed_at) {
-        throw new Error('Please verify your email address first.');
-      }
-
-      // Create tenant with verified email
-      const tenantData = {
-        ...data,
-        userId: session.user.id,
-        emailVerified: true,
-      };
-
-      const response = await apiRequest('POST', '/api/tenants/signup-verified', tenantData);
-      return response.json();
-    },
-    onSuccess: (data) => {
       toast({
         title: 'Account Created Successfully!',
-        description: `Your delivery service is now live at ${data.subdomain}.alltowndelivery.com`,
+        description: `Your delivery service is now live at ${data.subdomain}.alltowndelivery.com. Please verify your email to complete setup.`,
       });
-      setStep(5); // Success step (updated step number)
+      setStep(4); // Go to success step with instructions
     },
     onError: (error: any) => {
       toast({
@@ -187,11 +162,7 @@ export default function TenantSignup() {
         console.log('Step 3 validation error: subdomain required');
         return;
       }
-      // Send email verification with full form data
-      verifyEmailMutation.mutate(data);
-      setStep(4); // Go to verification step
-    } else if (step === 4 && verificationSent) {
-      // Check verification status and create tenant
+      // Create account and tenant immediately
       signupMutation.mutate(data);
     }
   };
@@ -215,66 +186,8 @@ export default function TenantSignup() {
     '100+ deliveries per day',
   ];
 
-  // Email verification step
-  if (step === 4) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              {!verificationSent ? (
-                <>
-                  <Mail className="w-16 h-16 text-blue-500 mx-auto" />
-                  <h2 className="text-2xl font-bold text-gray-900">Verify Your Email</h2>
-                  <p className="text-gray-600">
-                    We need to verify your email address before creating your delivery service.
-                  </p>
-                  <Button 
-                    onClick={() => verifyEmailMutation.mutate(form.getValues())}
-                    disabled={verifyEmailMutation.isPending}
-                    className="w-full"
-                  >
-                    {verifyEmailMutation.isPending ? 'Creating Account...' : 'Create Account & Send Verification'}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <ShieldCheck className="w-16 h-16 text-green-500 mx-auto" />
-                  <h2 className="text-2xl font-bold text-gray-900">Check Your Email</h2>
-                  <p className="text-gray-600">
-                    We've sent a verification link to <strong>{userEmail}</strong>
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Please check your email (including spam folder) and click the verification link, then return here to complete setup.
-                  </p>
-                  <div className="space-y-2">
-                    <Button 
-                      onClick={() => form.handleSubmit(onSubmit)()}
-                      disabled={signupMutation.isPending}
-                      className="w-full"
-                    >
-                      {signupMutation.isPending ? 'Creating Account...' : 'I\'ve Verified My Email'}
-                    </Button>
-                    <Button 
-                      variant="ghost"
-                      onClick={() => verifyEmailMutation.mutate(form.getValues())}
-                      disabled={verifyEmailMutation.isPending}
-                      className="w-full text-sm"
-                    >
-                      Resend verification email
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // Success step
-  if (step === 5) {
+  if (step === 4) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -283,7 +196,8 @@ export default function TenantSignup() {
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
               <h2 className="text-2xl font-bold text-gray-900">Welcome to AllTownDelivery!</h2>
               <p className="text-gray-600">
-                Your account has been created and your 30-day free trial has started.
+                Your account has been created and your 30-day free trial has started. 
+                Please verify your email ({userEmail}) to complete setup.
               </p>
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm font-medium text-blue-900">
