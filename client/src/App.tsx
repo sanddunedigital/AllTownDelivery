@@ -18,6 +18,7 @@ import Signup from "@/pages/signup";
 import { lazy, Suspense } from "react";
 
 const PricingPage = lazy(() => import("@/pages/pricing"));
+const SignupComplete = lazy(() => import("@/pages/signup-complete"));
 
 function Router() {
   // Initialize theme based on business settings
@@ -39,6 +40,11 @@ function Router() {
       <Route path="/business-settings" component={BusinessSettings} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/signup" component={Signup} />
+      <Route path="/signup-complete">
+        <Suspense fallback={<div className="flex justify-center items-center h-64">Loading...</div>}>
+          <SignupComplete />
+        </Suspense>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

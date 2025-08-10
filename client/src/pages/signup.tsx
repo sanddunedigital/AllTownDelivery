@@ -81,14 +81,18 @@ export default function TenantSignup() {
       // Generate temporary password for the business owner
       const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
       
-      // Create Supabase auth account with email confirmation
-      const { data, error } = await auth.signUp(formData.email, tempPassword);
+      // Create Supabase auth account with email confirmation and custom redirect
+      const { data, error } = await auth.signUp(formData.email, tempPassword, {
+        emailRedirectTo: `${window.location.origin}/signup-complete?step=verify&email=${encodeURIComponent(formData.email)}`
+      });
       
       if (error) {
         throw new Error(error.message);
       }
 
-      // Store form data for later use
+      // Store form data in localStorage for completion page
+      localStorage.setItem('pendingSignupData', JSON.stringify(formData));
+      
       return { 
         email: formData.email, 
         tempPassword, 

@@ -30,10 +30,13 @@ export const supabase = createClient(
 
 // Auth helper functions
 export const auth = {
-  signUp: async (email: string, password: string) => {
+  signUp: async (email: string, password: string, options?: { emailRedirectTo?: string }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: options ? {
+        emailRedirectTo: options.emailRedirectTo
+      } : undefined
     });
     return { data, error };
   },
