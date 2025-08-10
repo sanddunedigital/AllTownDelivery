@@ -24,6 +24,44 @@ import { db } from "./db";
 import { googleReviews, deliveryRequests } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
+// Helper function to get business type defaults
+function getBusinessTypeDefaults(businessType: string) {
+  const defaults: Record<string, any> = {
+    'Multi-Service Delivery': {
+      planType: 'trial',
+      trialStartDate: new Date(),
+      trialEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      deliveryPricing: {
+        basePrice: 3.00,
+        pricePerMile: 1.50,
+        minimumOrder: 10.00,
+        freeDeliveryThreshold: 50.00,
+        rushDeliveryMultiplier: 1.5
+      },
+      loyaltyProgram: {
+        deliveriesForFreeDelivery: 10
+      }
+    },
+    'Restaurant Delivery Only': {
+      planType: 'trial',
+      trialStartDate: new Date(),
+      trialEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      deliveryPricing: {
+        basePrice: 2.50,
+        pricePerMile: 1.00,
+        minimumOrder: 15.00,
+        freeDeliveryThreshold: 35.00,
+        rushDeliveryMultiplier: 1.5
+      },
+      loyaltyProgram: {
+        deliveriesForFreeDelivery: 8
+      }
+    }
+  };
+
+  return defaults[businessType] || defaults['Multi-Service Delivery'];
+}
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant Information Route
@@ -56,6 +94,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking subdomain:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // New endpoint for verified email signup
+  app.post("/api/tenants/signup-verified", async (req, res) => {
+    try {
+      // Validate the request body with verified email data
+      const {
+        businessName,
+        ownerName,
+        email,
+        phone,
+        businessAddress,
+        city,
+        state,
+        zipCode,
+        businessType,
+        currentDeliveryVolume,
+        subdomain,
+        primaryColor,
+        userId, // Supabase user ID
+        emailVerified
+      } = req.body;
+
+      if (!emailVerified || !userId) {
+        return res.status(400).json({ 
+          message: "Email verification required. Please verify your email first." 
+        });
+      }
+
+      // Check if subdomain already exists
+      const existingTenant = await storage.getTenantBySubdomain(subdomain);
+      if (existingTenant) {
+        return res.status(400).json({ 
+          message: "Subdomain already exists. Please choose a different business name." 
+        });
+      }
+
+      // Create business settings based on business type
+      const businessTypeDefaults = getBusinessTypeDefaults(businessType);
+
+      // Create tenant data compatible with storage interface
+      const tenantData = {
+        companyName: businessName,
+        ownerName,
+        email,
+        phone,
+        businessAddress,
+        city,
+        state,
+        zipCode,
+        businessType,
+        currentDeliveryVolume,
+        subdomain,
+        primaryColor: primaryColor || '#0369a1',
+        isActive: true,
+        supabaseUserId: userId,
+        emailVerified: true,
+        ...businessTypeDefaults
+      };
+
+      const tenant = await storage.createTenant(tenantData);
+
+      // TODO: Send activation/welcome email with login instructions
+      // This would include temporary admin credentials and subdomain info
+
+      res.status(201).json({
+        message: "Tenant created successfully",
+        subdomain,
+        businessName,
+        tenantId: tenant.id,
+        activationEmailSent: true
+      });
+
+    } catch (error) {
+      console.error("Error creating verified tenant:", error);
+      res.status(500).json({ 
+        message: "Failed to create tenant account. Please try again." 
+      });
     }
   });
 

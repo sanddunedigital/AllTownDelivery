@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Truck, CheckCircle, ArrowLeft } from 'lucide-react';
+import { auth } from '@/lib/supabase';
+import { Truck, CheckCircle, ArrowLeft, Mail, ShieldCheck } from 'lucide-react';
 import { Link } from 'wouter';
 
 const signupSchema = z.object({
@@ -39,6 +40,9 @@ type SignupFormData = z.infer<typeof signupSchema>;
 export default function TenantSignup() {
   const [step, setStep] = useState(1);
   const [isCheckingSubdomain, setIsCheckingSubdomain] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<SignupFormData>({
@@ -71,9 +75,61 @@ export default function TenantSignup() {
       .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
   };
 
+  // Email verification mutation using Supabase
+  const verifyEmailMutation = useMutation({
+    mutationFn: async (formData: SignupFormData) => {
+      // Generate temporary password for the business owner
+      const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
+      
+      // Create Supabase auth account with email confirmation
+      const { data, error } = await auth.signUp(formData.email, tempPassword);
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Store form data for later use
+      return { 
+        email: formData.email, 
+        tempPassword, 
+        userId: data.user?.id,
+        formData 
+      };
+    },
+    onSuccess: (data) => {
+      setUserEmail(data.email);
+      setVerificationSent(true);
+      toast({
+        title: 'Verification Email Sent',
+        description: 'Please check your email and click the verification link to continue.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Account Creation Failed',
+        description: error.message || 'Failed to send verification email. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Final signup mutation (after email verification)
   const signupMutation = useMutation({
     mutationFn: async (data: SignupFormData) => {
-      const response = await apiRequest('POST', '/api/tenants/signup', data);
+      // Check if user is verified
+      const { session } = await auth.getSession();
+      if (!session || !session.user.email_confirmed_at) {
+        throw new Error('Please verify your email address first.');
+      }
+
+      // Create tenant with verified email
+      const tenantData = {
+        ...data,
+        userId: session.user.id,
+        emailVerified: true,
+      };
+
+      const response = await apiRequest('POST', '/api/tenants/signup-verified', tenantData);
       return response.json();
     },
     onSuccess: (data) => {
@@ -81,9 +137,9 @@ export default function TenantSignup() {
         title: 'Account Created Successfully!',
         description: `Your delivery service is now live at ${data.subdomain}.alltowndelivery.com`,
       });
-      setStep(4); // Success step
+      setStep(5); // Success step (updated step number)
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: 'Signup Failed',
         description: error.message || 'Failed to create account. Please try again.',
@@ -111,6 +167,8 @@ export default function TenantSignup() {
         console.log('Step 1 validation errors:', errors);
         return;
       }
+      // Proceed to step 2
+      setStep(step + 1);
     } else if (step === 2) {
       const step2Fields = ['businessAddress', 'city', 'state', 'zipCode', 'businessType', 'currentDeliveryVolume'];
       const errors = step2Fields.filter(field => !data[field as keyof SignupFormData]);
@@ -118,17 +176,18 @@ export default function TenantSignup() {
         console.log('Step 2 validation errors:', errors);
         return;
       }
+      // Proceed to step 3
+      setStep(step + 1);
     } else if (step === 3) {
       if (!data.subdomain) {
         console.log('Step 3 validation error: subdomain required');
         return;
       }
-    }
-
-    if (step < 3) {
-      setStep(step + 1);
-    } else {
-      console.log('Submitting final form data:', data);
+      // Send email verification with full form data
+      verifyEmailMutation.mutate(data);
+      setStep(4); // Go to verification step
+    } else if (step === 4 && verificationSent) {
+      // Check verification status and create tenant
       signupMutation.mutate(data);
     }
   };
@@ -152,7 +211,66 @@ export default function TenantSignup() {
     '100+ deliveries per day',
   ];
 
+  // Email verification step
   if (step === 4) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              {!verificationSent ? (
+                <>
+                  <Mail className="w-16 h-16 text-blue-500 mx-auto" />
+                  <h2 className="text-2xl font-bold text-gray-900">Verify Your Email</h2>
+                  <p className="text-gray-600">
+                    We need to verify your email address before creating your delivery service.
+                  </p>
+                  <Button 
+                    onClick={() => verifyEmailMutation.mutate(form.getValues())}
+                    disabled={verifyEmailMutation.isPending}
+                    className="w-full"
+                  >
+                    {verifyEmailMutation.isPending ? 'Creating Account...' : 'Create Account & Send Verification'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-16 h-16 text-green-500 mx-auto" />
+                  <h2 className="text-2xl font-bold text-gray-900">Check Your Email</h2>
+                  <p className="text-gray-600">
+                    We've sent a verification link to <strong>{userEmail}</strong>
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Please check your email (including spam folder) and click the verification link, then return here to complete setup.
+                  </p>
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={() => form.handleSubmit(onSubmit)()}
+                      disabled={signupMutation.isPending}
+                      className="w-full"
+                    >
+                      {signupMutation.isPending ? 'Creating Account...' : 'I\'ve Verified My Email'}
+                    </Button>
+                    <Button 
+                      variant="ghost"
+                      onClick={() => verifyEmailMutation.mutate(form.getValues())}
+                      disabled={verifyEmailMutation.isPending}
+                      className="w-full text-sm"
+                    >
+                      Resend verification email
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Success step
+  if (step === 5) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
