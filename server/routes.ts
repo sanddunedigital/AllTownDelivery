@@ -941,15 +941,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
         billingStatus: "trial"
       });
 
-      // Create default business settings for the tenant
-      await storage.createBusinessSettings({
-        tenantId: newTenant.id,
-        businessName: validatedData.companyName,
-        businessPhone: validatedData.phone,
-        businessEmail: validatedData.email,
-        businessAddress: validatedData.businessAddress,
-        primaryColor: validatedData.primaryColor || "#0369a1",
-      });
+      // Create business type-specific default settings
+      const getDefaultSettingsByType = (businessType: string) => {
+        const baseSettings = {
+          tenantId: newTenant.id,
+          businessName: validatedData.companyName,
+          businessPhone: validatedData.phone,
+          businessEmail: validatedData.email,
+          businessAddress: validatedData.businessAddress,
+          primaryColor: validatedData.primaryColor || "#0369a1",
+        };
+
+        switch (businessType) {
+          case 'Multi-Service Delivery':
+            return {
+              ...baseSettings,
+              baseDeliveryFee: "4.99",
+              freeDeliveryThreshold: "25.00",
+              operatingHours: {
+                monday: { open: '08:00', close: '20:00', closed: false },
+                tuesday: { open: '08:00', close: '20:00', closed: false },
+                wednesday: { open: '08:00', close: '20:00', closed: false },
+                thursday: { open: '08:00', close: '20:00', closed: false },
+                friday: { open: '08:00', close: '20:00', closed: false },
+                saturday: { open: '08:00', close: '20:00', closed: false },
+                sunday: { open: '10:00', close: '18:00', closed: false }
+              },
+              pointsForFreeDelivery: 10,
+              enableLoyaltyProgram: true,
+              enableRealTimeTracking: true,
+            };
+
+          case 'Restaurant Delivery Only':
+            return {
+              ...baseSettings,
+              baseDeliveryFee: "3.99",
+              freeDeliveryThreshold: "20.00",
+              operatingHours: {
+                monday: { open: '11:00', close: '22:00', closed: false },
+                tuesday: { open: '11:00', close: '22:00', closed: false },
+                wednesday: { open: '11:00', close: '22:00', closed: false },
+                thursday: { open: '11:00', close: '22:00', closed: false },
+                friday: { open: '11:00', close: '23:00', closed: false },
+                saturday: { open: '11:00', close: '23:00', closed: false },
+                sunday: { open: '12:00', close: '21:00', closed: false }
+              },
+              pointsForFreeDelivery: 8,
+              enableLoyaltyProgram: true,
+              enableRealTimeTracking: true,
+            };
+
+          case 'Pharmacy Delivery Only':
+            return {
+              ...baseSettings,
+              baseDeliveryFee: "5.99",
+              freeDeliveryThreshold: "30.00",
+              operatingHours: {
+                monday: { open: '09:00', close: '19:00', closed: false },
+                tuesday: { open: '09:00', close: '19:00', closed: false },
+                wednesday: { open: '09:00', close: '19:00', closed: false },
+                thursday: { open: '09:00', close: '19:00', closed: false },
+                friday: { open: '09:00', close: '19:00', closed: false },
+                saturday: { open: '09:00', close: '17:00', closed: false },
+                sunday: { open: '10:00', close: '16:00', closed: false }
+              },
+              pointsForFreeDelivery: 12,
+              enableLoyaltyProgram: true,
+              enableRealTimeTracking: true,
+            };
+
+          default:
+            return {
+              ...baseSettings,
+              baseDeliveryFee: "4.99",
+              freeDeliveryThreshold: "25.00",
+              operatingHours: {
+                monday: { open: '08:00', close: '20:00', closed: false },
+                tuesday: { open: '08:00', close: '20:00', closed: false },
+                wednesday: { open: '08:00', close: '20:00', closed: false },
+                thursday: { open: '08:00', close: '20:00', closed: false },
+                friday: { open: '08:00', close: '20:00', closed: false },
+                saturday: { open: '08:00', close: '20:00', closed: false },
+                sunday: { open: '10:00', close: '18:00', closed: false }
+              },
+              pointsForFreeDelivery: 10,
+              enableLoyaltyProgram: true,
+              enableRealTimeTracking: true,
+            };
+        }
+      };
+
+      const defaultSettings = getDefaultSettingsByType(validatedData.businessType || 'Multi-Service Delivery');
+      await storage.createBusinessSettings(defaultSettings);
 
       res.status(201).json({
         success: true,

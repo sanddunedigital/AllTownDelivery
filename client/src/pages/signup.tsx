@@ -52,7 +52,7 @@ export default function TenantSignup() {
       city: 'Oskaloosa',
       state: 'IA',
       zipCode: '52577',
-      businessType: 'Local Delivery Service',
+      businessType: 'Multi-Service Delivery',
       currentDeliveryVolume: '11-25 deliveries per day',
       subdomain: 'delivery-service-1',
       primaryColor: '#0369a1',
@@ -136,13 +136,13 @@ export default function TenantSignup() {
   };
 
   const businessTypes = [
-    'Local Delivery Service',
-    'Restaurant Delivery',
-    'Grocery Delivery',
-    'Pharmacy Delivery',
-    'Flower Delivery',
+    'Multi-Service Delivery',
+    'Restaurant Delivery Only',
+    'Grocery Delivery Only',
+    'Pharmacy Delivery Only',
     'Auto Parts Delivery',
-    'Document/Package Delivery',
+    'Local Courier Service',
+    'On-Demand Delivery',
     'Other',
   ];
 
