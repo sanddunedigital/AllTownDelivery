@@ -15,6 +15,7 @@ import BusinessSettings from "@/pages/business-settings";
 import ResetPassword from "@/pages/reset-password";
 import Auth from "@/pages/auth";
 import Signup from "@/pages/signup";
+import BusinessJoin from "@/pages/business-join";
 import { lazy, Suspense } from "react";
 
 const PricingPage = lazy(() => import("@/pages/pricing"));
@@ -45,6 +46,7 @@ function Router() {
           <SignupComplete />
         </Suspense>
       </Route>
+      <Route path="/join" component={BusinessJoin} />
       <Route component={NotFound} />
     </Switch>
   );
