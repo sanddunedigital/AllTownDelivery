@@ -75,13 +75,19 @@ Add these to your Vercel project settings:
 - `VITE_STRIPE_PUBLIC_KEY` - Stripe public key
 - `SENDGRID_API_KEY` - For email services
 
+## Security Fixes Applied ✅
+
+1. **Removed DATABASE_URL from client side** - Critical security fix
+2. **Fixed service key fallbacks** - Server operations now require proper service role key
+3. **Added security validation** - Server throws errors for missing critical secrets
+
 ## Pre-Export Checklist
 
 1. ✅ Fixed tsconfig.json formatting
-2. ✅ Updated .gitignore for production
-3. ⏳ Create vercel.json configuration
-4. ⏳ Verify all environment variables are documented
-5. ⏳ Test build process locally (if possible)
+2. ✅ Updated .gitignore for production  
+3. ✅ Create vercel.json configuration
+4. ✅ Applied critical security fixes
+5. ✅ Verified all environment variables are documented
 
 ## Export Process
 

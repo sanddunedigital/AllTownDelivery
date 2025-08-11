@@ -1,22 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Extract Supabase URL from DATABASE_URL if needed
-const extractedUrl = (() => {
-  try {
-    const dbUrl = import.meta.env.DATABASE_URL || '';
-    if (dbUrl.includes('supabase.com')) {
-      const url = new URL(dbUrl);
-      const projectRef = url.hostname.split('.')[0].replace('aws-0-us-east-2.pooler.', '');
-      return `https://${projectRef}.supabase.co`;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-})();
+// SECURITY FIX: Never extract DATABASE_URL on client side
+// Use only VITE_SUPABASE_URL which is safe to expose
 
-// Use environment variables with fallback to extracted URL
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || extractedUrl;
+// Use only safe client-side environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {

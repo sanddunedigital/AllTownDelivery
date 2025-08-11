@@ -18,10 +18,12 @@ const extractedUrl = (() => {
 
 // Use environment variables with fallback to extracted URL
 const supabaseUrl = process.env.VITE_SUPABASE_URL || extractedUrl;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+// SECURITY FIX: Service operations must use service role key, never anon key
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('Missing Supabase configuration for storage. Need VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+  throw new Error('Missing required Supabase service configuration');
 }
 
 // Create Supabase client for server-side operations
