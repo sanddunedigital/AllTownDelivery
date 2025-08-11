@@ -79,29 +79,12 @@ const formatTime = (time: string) => {
   return `${formattedHour}:${minutes} ${ampm}`;
 };
 
-export default function Home() {
+// Main delivery site component
+function DeliverySiteContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const { user, profile, signOut, loading } = useAuth();
   const [, navigate] = useLocation();
-
-  // Fetch tenant information to determine if this is the main site
-  const { data: tenantInfo } = useQuery<TenantInfo>({
-    queryKey: ['/api/tenant'],
-    refetchInterval: 300000, // Refresh every 5 minutes
-  });
-
-  // For testing: Add a URL parameter to force marketing site view
-  const urlParams = new URLSearchParams(window.location.search);
-  const forceMarketing = urlParams.get('marketing') === 'true';
-  
-  // TEMPORARY: Force marketing site for testing (remove this line when done testing)
-  // const alwaysShowMarketing = true;
-
-  // If this is the main marketing site or testing mode, render the marketing page
-  if (tenantInfo?.isMainSite || forceMarketing) {
-    return <MarketingSite />;
-  }
 
   // Set up real-time subscriptions for customer deliveries
   useCustomerDeliveriesRealtime(user?.id);
@@ -120,9 +103,10 @@ export default function Home() {
   });
 
   // Fetch business settings for pricing and branding
-  const { data: businessSettings } = useQuery<BusinessSettings>({
+  const { data: businessSettings, isLoading: settingsLoading } = useQuery<BusinessSettings>({
     queryKey: ['/api/business-settings'],
     refetchInterval: 300000, // Refresh every 5 minutes
+    retry: 3, // Retry failed requests
   });
 
   const queryClient = useQueryClient();
@@ -1071,4 +1055,38 @@ export default function Home() {
       </footer>
     </div>
   );
+}
+
+// Main Home component that decides between marketing and delivery site
+export default function Home() {
+  // Fetch tenant information to determine if this is the main site
+  const { data: tenantInfo, isLoading: tenantLoading } = useQuery<TenantInfo>({
+    queryKey: ['/api/tenant'],
+    refetchInterval: 300000, // Refresh every 5 minutes
+    retry: 3, // Retry failed requests
+  });
+
+  // For testing: Add a URL parameter to force marketing site view
+  const urlParams = new URLSearchParams(window.location.search);
+  const forceMarketing = urlParams.get('marketing') === 'true';
+
+  // Show loading state while tenant info loads
+  if (tenantLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If this is the main marketing site or testing mode, render the marketing page
+  if (tenantInfo?.isMainSite || forceMarketing) {
+    return <MarketingSite />;
+  }
+
+  // Otherwise render the delivery site
+  return <DeliverySiteContent />;
 }

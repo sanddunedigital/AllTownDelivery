@@ -460,13 +460,27 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private connectionCache: boolean | null = null;
+  private cacheTimestamp = 0;
+  private readonly CACHE_TTL = 30000; // 30 seconds
+
   private async testConnection(): Promise<boolean> {
+    // Use cached result for 30 seconds to reduce connection overhead
+    const now = Date.now();
+    if (this.connectionCache !== null && (now - this.cacheTimestamp) < this.CACHE_TTL) {
+      return this.connectionCache;
+    }
+
     try {
       // Test the database connection with a simple query
       await db.execute(sql`SELECT 1`);
+      this.connectionCache = true;
+      this.cacheTimestamp = now;
       return true;
     } catch (error) {
       console.error("Database connection test failed:", error);
+      this.connectionCache = false;
+      this.cacheTimestamp = now;
       return false;
     }
   }
