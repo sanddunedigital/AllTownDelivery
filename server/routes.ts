@@ -919,14 +919,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tenantId = getCurrentTenantId(req);
       
+      // Check if this is the main marketing site - it shouldn't fetch business settings
+      if ((req as any).isMainSite) {
+        return res.status(404).json({ message: "Business settings not available for marketing site" });
+      }
+
       // Try to get business settings with proper error handling
       let dbSettings;
       try {
-        if (storage instanceof SmartStorage) {
-          dbSettings = await storage.dbStorage.getBusinessSettings(tenantId);
-        } else {
-          dbSettings = await storage.getBusinessSettings(tenantId);
-        }
+        dbSettings = await storage.getBusinessSettings(tenantId);
       } catch (error) {
         console.error("Business settings database error:", error);
         
@@ -1463,6 +1464,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get cached reviews for current tenant
   app.get("/api/reviews", async (req, res) => {
     try {
+      // Check if this is the main marketing site - return empty reviews
+      if ((req as any).isMainSite) {
+        return res.json({ reviews: [], rating: 0, user_ratings_total: 0, lastUpdated: null });
+      }
+
       const tenantId = getCurrentTenantId(req);
       
       const reviewsData = await db.query.googleReviews.findFirst({
@@ -1474,11 +1480,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ reviews: [], rating: 0, user_ratings_total: 0, lastUpdated: null });
       }
       
-      const firstReview = reviewsData[0];
       res.json({
-        ...firstReview.reviewData,
-        lastUpdated: firstReview.lastUpdated,
-        placeId: firstReview.placeId
+        ...reviewsData.reviewData,
+        lastUpdated: reviewsData.lastUpdated,
+        placeId: reviewsData.placeId
       });
     } catch (error) {
       console.error("Error fetching reviews:", error);
