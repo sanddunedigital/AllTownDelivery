@@ -97,7 +97,7 @@ export default function TenantSignup() {
         emailVerified: false, // Will be updated when email is verified
       };
 
-      const response = await apiRequest('POST', '/api/tenants/signup-verified', tenantData);
+      const response = await apiRequest('/api/tenants/signup-verified', 'POST', tenantData);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create tenant account');

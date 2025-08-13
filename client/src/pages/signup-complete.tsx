@@ -71,7 +71,7 @@ export default function SignupComplete() {
       const parsedData = JSON.parse(signupData);
       
       // Create tenant with verified user
-      const response = await apiRequest('POST', '/api/tenants/signup-verified', {
+      const response = await apiRequest('/api/tenants/signup-verified', 'POST', {
         ...parsedData,
         userId: session.user.id,
         email: session.user.email,
