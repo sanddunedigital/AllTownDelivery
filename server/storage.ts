@@ -4,7 +4,8 @@ import {
   type ClaimDelivery, type UpdateDeliveryStatus,
   type Business, type InsertBusiness,
   type Tenant, type InsertTenant,
-  users, deliveryRequests, userProfiles, businesses, businessSettings, serviceZones, tenants 
+  type PendingSignup, type InsertPendingSignup,
+  users, deliveryRequests, userProfiles, businesses, businessSettings, serviceZones, tenants, pendingSignups 
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -58,6 +59,13 @@ export interface IStorage {
   getTenantBySubdomain(subdomain: string): Promise<Tenant | undefined>;
   createTenant(tenant: Partial<Tenant>): Promise<Tenant>;
   createBusinessSettings(settings: any): Promise<any>;
+  
+  // Pending signup methods
+  createPendingSignup(signup: InsertPendingSignup): Promise<PendingSignup>;
+  getPendingSignup(token: string): Promise<PendingSignup | undefined>;
+  deletePendingSignup(token: string): Promise<void>;
+  cleanupExpiredSignups(): Promise<void>;
+  checkSubdomainAvailable(subdomain: string, excludeEmail?: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -67,6 +75,7 @@ export class MemStorage implements IStorage {
   private businesses: Map<string, Business>;
   private businessSettings: Map<string, any>;
   private tenants: Map<string, Tenant>;
+  private pendingSignups: Map<string, PendingSignup>;
 
   constructor() {
     this.users = new Map();
@@ -75,6 +84,7 @@ export class MemStorage implements IStorage {
     this.businesses = new Map();
     this.businessSettings = new Map();
     this.tenants = new Map();
+    this.pendingSignups = new Map();
     
     // Initialize default business settings for Sara's Quickie Delivery
     this.businessSettings.set('00000000-0000-0000-0000-000000000001', {
@@ -456,6 +466,54 @@ export class MemStorage implements IStorage {
     const newSettings = { ...settings, id };
     this.businessSettings.set(settings.tenantId, newSettings);
     return newSettings;
+  }
+
+  // Pending signup methods (memory storage)
+  async createPendingSignup(insertSignup: InsertPendingSignup): Promise<PendingSignup> {
+    const id = randomUUID();
+    const signup: PendingSignup = {
+      id,
+      ...insertSignup,
+      createdAt: new Date(),
+    };
+    this.pendingSignups.set(insertSignup.verificationToken, signup);
+    return signup;
+  }
+
+  async getPendingSignup(token: string): Promise<PendingSignup | undefined> {
+    return this.pendingSignups.get(token);
+  }
+
+  async deletePendingSignup(token: string): Promise<void> {
+    this.pendingSignups.delete(token);
+  }
+
+  async cleanupExpiredSignups(): Promise<void> {
+    const now = new Date();
+    for (const [token, signup] of this.pendingSignups.entries()) {
+      if (signup.expiresAt < now) {
+        this.pendingSignups.delete(token);
+      }
+    }
+  }
+
+  async checkSubdomainAvailable(subdomain: string, excludeEmail?: string): Promise<boolean> {
+    // Check existing tenants
+    for (const tenant of this.tenants.values()) {
+      if (tenant.subdomain === subdomain && tenant.email !== excludeEmail) {
+        return false;
+      }
+    }
+    
+    // Check pending signups
+    for (const signup of this.pendingSignups.values()) {
+      const signupData = signup.signupData as any;
+      if (signupData.subdomain === subdomain && signup.email !== excludeEmail) {
+        return false;
+      }
+    }
+    
+    return true;
   }
 }
 
@@ -900,6 +958,63 @@ export class DatabaseStorage implements IStorage {
     const result = await db.insert(businessSettings).values(settings).returning();
     return result[0];
   }
+
+  // Pending signup methods (database)
+  async createPendingSignup(insertSignup: InsertPendingSignup): Promise<PendingSignup> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.insert(pendingSignups).values(insertSignup).returning();
+    return result[0];
+  }
+
+  async getPendingSignup(token: string): Promise<PendingSignup | undefined> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.select().from(pendingSignups).where(eq(pendingSignups.verificationToken, token)).limit(1);
+    return result[0];
+  }
+
+  async deletePendingSignup(token: string): Promise<void> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    await db.delete(pendingSignups).where(eq(pendingSignups.verificationToken, token));
+  }
+
+  async cleanupExpiredSignups(): Promise<void> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    await db.delete(pendingSignups).where(sql`${pendingSignups.expiresAt} < NOW()`);
+  }
+
+  async checkSubdomainAvailable(subdomain: string, excludeEmail?: string): Promise<boolean> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    
+    // Check existing tenants
+    const existingTenant = await db.select().from(tenants)
+      .where(excludeEmail ? 
+        sql`${tenants.subdomain} = ${subdomain} AND ${tenants.email} != ${excludeEmail}` :
+        eq(tenants.subdomain, subdomain)
+      ).limit(1);
+    
+    if (existingTenant.length > 0) {
+      return false;
+    }
+
+    // Check pending signups
+    const existingSignup = await db.select().from(pendingSignups)
+      .where(excludeEmail ?
+        sql`CAST(${pendingSignups.signupData}->>'subdomain' AS text) = ${subdomain} AND ${pendingSignups.email} != ${excludeEmail}` :
+        sql`CAST(${pendingSignups.signupData}->>'subdomain' AS text) = ${subdomain}`
+      ).limit(1);
+
+    return existingSignup.length === 0;
+  }
 }
 
 // Smart storage selection - try database first, fallback to memory
@@ -1204,6 +1319,52 @@ class SmartStorage implements IStorage {
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
       return await this.memStorage.createBusinessSettings(settings);
+    }
+  }
+
+  // Pending signup methods
+  async createPendingSignup(signup: InsertPendingSignup): Promise<PendingSignup> {
+    try {
+      return await this.dbStorage.createPendingSignup(signup);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.createPendingSignup(signup);
+    }
+  }
+
+  async getPendingSignup(token: string): Promise<PendingSignup | undefined> {
+    try {
+      return await this.dbStorage.getPendingSignup(token);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getPendingSignup(token);
+    }
+  }
+
+  async deletePendingSignup(token: string): Promise<void> {
+    try {
+      await this.dbStorage.deletePendingSignup(token);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      await this.memStorage.deletePendingSignup(token);
+    }
+  }
+
+  async cleanupExpiredSignups(): Promise<void> {
+    try {
+      await this.dbStorage.cleanupExpiredSignups();
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      await this.memStorage.cleanupExpiredSignups();
+    }
+  }
+
+  async checkSubdomainAvailable(subdomain: string, excludeEmail?: string): Promise<boolean> {
+    try {
+      return await this.dbStorage.checkSubdomainAvailable(subdomain, excludeEmail);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.checkSubdomainAvailable(subdomain, excludeEmail);
     }
   }
 }

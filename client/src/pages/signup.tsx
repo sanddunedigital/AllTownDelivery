@@ -73,56 +73,28 @@ export default function TenantSignup() {
       .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
   };
 
-  // Single signup mutation that creates everything immediately
-  const signupMutation = useMutation({
+  // Stage 1: Initiate signup (store pending signup data and send verification email)
+  const initiateSignupMutation = useMutation({
     mutationFn: async (formData: SignupFormData) => {
-      // Generate a secure password for the user
-      const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
-      
-      // Create Supabase auth account (disable email confirmation for smoother flow)
-      const { data: authData, error: authError } = await auth.signUp(
-        formData.email, 
-        tempPassword,
-        { emailRedirectTo: undefined } // Disable email confirmation redirect
-      );
-      
-      if (authError) {
-        throw new Error(authError.message);
-      }
-
-      // Create tenant immediately with user ID
-      const tenantData = {
-        ...formData,
-        userId: authData.user?.id,
-        emailVerified: false, // Will be updated when email is verified
-      };
-
-      const response = await apiRequest('/api/tenants/signup-verified', 'POST', tenantData);
+      const response = await apiRequest('/api/tenants/signup-initiate', 'POST', formData);
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create tenant account');
+        throw new Error(errorData.message || 'Failed to initiate signup');
       }
-      
-      const result = await response.json();
-      
-      return { 
-        ...result,
-        email: formData.email,
-        tempPassword 
-      };
+      return await response.json();
     },
     onSuccess: (data) => {
       setUserEmail(data.email);
       toast({
-        title: 'Account Created Successfully!',
-        description: `Your delivery service is now live at ${data.subdomain}.alltowndelivery.com. Please verify your email to complete setup.`,
+        title: 'Verification Email Sent!',
+        description: 'Please check your email and click the verification link to complete your account setup.',
       });
-      setStep(4); // Go to success step with instructions
+      setStep(4); // Go to email verification step
     },
     onError: (error: any) => {
       toast({
         title: 'Signup Failed',
-        description: error.message || 'Failed to create account. Please try again.',
+        description: error.message || 'Failed to initiate signup. Please try again.',
         variant: 'destructive',
       });
     },
@@ -163,8 +135,8 @@ export default function TenantSignup() {
         console.log('Step 3 validation error: subdomain required');
         return;
       }
-      // Create account and tenant immediately
-      signupMutation.mutate(data);
+      // Initiate signup process (email verification first)
+      initiateSignupMutation.mutate(data);
     }
   };
 
@@ -191,32 +163,66 @@ export default function TenantSignup() {
   if (step === 4) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-lg">
           <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
-              <h2 className="text-2xl font-bold text-gray-900">Welcome to AllTownDelivery!</h2>
+            <div className="text-center space-y-6">
+              <Mail className="w-16 h-16 text-blue-500 mx-auto" />
+              <h2 className="text-2xl font-bold text-gray-900">Check Your Email</h2>
               <p className="text-gray-600">
-                Your account has been created and your 30-day free trial has started. 
-                Your delivery service is ready to configure!
+                We've sent a verification email to verify your account and complete the signup process.
               </p>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm font-medium text-blue-900">
-                  Your reserved subdomain:
-                </p>
-                <p className="text-blue-600 font-bold">
-                  {form.getValues('subdomain')}.alltowndelivery.com
-                </p>
-                <p className="text-xs text-blue-700 mt-1">
-                  (Available after deployment setup)
-                </p>
+              
+              <div className="bg-blue-50 p-6 rounded-lg text-left space-y-4">
+                <div className="flex items-start space-x-3">
+                  <ShieldCheck className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">
+                      Email sent to:
+                    </p>
+                    <p className="text-blue-700 font-semibold break-all">
+                      {userEmail}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <Truck className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">
+                      Your delivery service will be available at:
+                    </p>
+                    <p className="text-blue-700 font-semibold break-all">
+                      {form.getValues('subdomain')}.alltowndelivery.com
+                    </p>
+                  </div>
+                </div>
               </div>
-              <Button 
-                onClick={() => window.location.href = `/`}
-                className="w-full"
-              >
-                Continue to Dashboard
-              </Button>
+
+              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <strong>Next Steps:</strong>
+                </p>
+                <ol className="text-sm text-yellow-800 mt-2 space-y-1 text-left">
+                  <li>1. Check your email inbox (and spam folder)</li>
+                  <li>2. Click the verification link in the email</li>
+                  <li>3. Complete your account setup</li>
+                  <li>4. Start managing deliveries right away!</li>
+                </ol>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/business-join" className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Business Page
+                  </Button>
+                </Link>
+                <Link href="/" className="flex-1">
+                  <Button className="w-full">
+                    Visit AllTownDelivery
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -532,7 +538,7 @@ export default function TenantSignup() {
                     )}
                     <Button
                       type="submit"
-                      disabled={signupMutation.isPending}
+                      disabled={initiateSignupMutation.isPending}
                       className={step === 1 ? 'ml-auto' : ''}
                       onClick={(e) => {
                         console.log('Button clicked, current step:', step);
@@ -541,9 +547,9 @@ export default function TenantSignup() {
                       }}
                     >
                       {step === 3
-                        ? signupMutation.isPending
-                          ? 'Creating Account...'
-                          : 'Create Account'
+                        ? initiateSignupMutation.isPending
+                          ? 'Sending Verification Email...'
+                          : 'Continue'
                         : 'Continue'}
                     </Button>
                   </div>

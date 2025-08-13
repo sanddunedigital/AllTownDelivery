@@ -1,186 +1,214 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useMutation } from '@tanstack/react-query';
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckCircle, AlertCircle, Loader2, Truck, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/supabase';
 import { apiRequest } from '@/lib/queryClient';
+import { supabase } from '@/lib/supabase';
+import { Link } from 'wouter';
 
 export default function SignupComplete() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [email, setEmail] = useState('');
-  const [isVerified, setIsVerified] = useState(false);
-  const [isChecking, setIsChecking] = useState(true);
+  const [verificationState, setVerificationState] = useState<'processing' | 'success' | 'error'>('processing');
+  const [tenantData, setTenantData] = useState<any>(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // Get email from URL params
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const emailParam = urlParams.get('email');
-    if (emailParam) {
-      setEmail(decodeURIComponent(emailParam));
-    }
-  }, []);
-
-  // Check verification status on mount
-  useEffect(() => {
-    const checkVerification = async () => {
-      try {
-        const { session } = await auth.getSession();
-        if (session?.user?.email_confirmed_at) {
-          setIsVerified(true);
-        }
-      } catch (error) {
-        console.error('Error checking verification:', error);
-      } finally {
-        setIsChecking(false);
-      }
-    };
-
-    // Check immediately and then set up listener
-    checkVerification();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
-        setIsVerified(true);
-        setIsChecking(false);
-      }
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, []);
-
-  // Complete tenant creation mutation
-  const completeTenantMutation = useMutation({
-    mutationFn: async () => {
-      const { session } = await auth.getSession();
-      if (!session?.user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Get signup data from localStorage
-      const signupData = localStorage.getItem('pendingSignupData');
-      if (!signupData) {
-        throw new Error('Signup data not found. Please start the signup process again.');
-      }
-
-      const parsedData = JSON.parse(signupData);
-      
-      // Create tenant with verified user
-      const response = await apiRequest('/api/tenants/signup-verified', 'POST', {
-        ...parsedData,
-        userId: session.user.id,
-        email: session.user.email,
-        emailVerified: true
-      });
-
+  // Complete signup mutation
+  const completeSignupMutation = useMutation({
+    mutationFn: async ({ token, userId }: { token: string; userId: string }) => {
+      const response = await apiRequest('/api/tenants/signup-complete', 'POST', { token, userId });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create tenant');
+        throw new Error(errorData.message || 'Failed to complete signup');
       }
-
       return await response.json();
     },
-    onSuccess: (response) => {
-      // Clear signup data
-      localStorage.removeItem('pendingSignupData');
-      
+    onSuccess: (data) => {
+      setTenantData(data);
+      setVerificationState('success');
       toast({
         title: 'Account Created Successfully!',
-        description: `Your delivery service "${response.businessName}" is now active.`,
+        description: `Your delivery service is now live at ${data.subdomain}.alltowndelivery.com`,
       });
-
-      // Redirect to tenant subdomain
-      setTimeout(() => {
-        window.location.href = `https://${response.subdomain}.alltowndelivery.com`;
-      }, 2000);
     },
     onError: (error: any) => {
-      toast({
-        title: 'Account Creation Failed',
-        description: error.message || 'Failed to complete account setup. Please try again.',
-        variant: 'destructive',
-      });
+      console.error('Signup completion error:', error);
+      setErrorMessage(error.message || 'Failed to complete account setup');
+      setVerificationState('error');
     },
   });
 
-  const handleCompleteTenant = () => {
-    completeTenantMutation.mutate();
-  };
+  useEffect(() => {
+    const handleSignupCompletion = async () => {
+      try {
+        // Get the verification token from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token') || urlParams.get('verification_token');
+        
+        if (!token) {
+          setErrorMessage('Missing verification token. Please use the link from your email.');
+          setVerificationState('error');
+          return;
+        }
 
-  if (isChecking) {
+        // Get current user session
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError || !user) {
+          setErrorMessage('Please sign in to complete your account setup.');
+          setVerificationState('error');
+          return;
+        }
+
+        // Complete the signup process
+        completeSignupMutation.mutate({ token, userId: user.id });
+
+      } catch (error) {
+        console.error('Error handling signup completion:', error);
+        setErrorMessage('An unexpected error occurred.');
+        setVerificationState('error');
+      }
+    };
+
+    handleSignupCompletion();
+  }, []);
+
+  if (verificationState === 'processing') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-          <Loader2 className="w-16 h-16 text-blue-500 mx-auto animate-spin mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Checking Verification Status</h2>
-          <p className="text-gray-600">Please wait while we verify your email...</p>
-        </div>
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <Loader2 className="w-16 h-16 text-blue-500 mx-auto animate-spin" />
+              <h2 className="text-2xl font-bold text-gray-900">Setting Up Your Account</h2>
+              <p className="text-gray-600">
+                We're completing your delivery service setup. This will just take a moment...
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (!isVerified) {
+  if (verificationState === 'success' && tenantData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-          <AlertCircle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Email Not Verified</h2>
-          <p className="text-gray-600 mb-4">
-            Your email address has not been verified yet. Please check your email and click the verification link.
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
-            Email: <strong>{email}</strong>
-          </p>
-          <Button
-            onClick={() => setLocation('/signup')}
-            variant="outline"
-            className="w-full"
-          >
-            Back to Signup
-          </Button>
-        </div>
+        <Card className="w-full max-w-lg">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-6">
+              <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
+              <h2 className="text-2xl font-bold text-gray-900">Welcome to AllTownDelivery!</h2>
+              <p className="text-gray-600">
+                Your account has been created and your 30-day free trial has started. 
+                Your delivery service is ready to configure!
+              </p>
+              
+              <div className="bg-green-50 p-6 rounded-lg space-y-4">
+                <div className="flex items-start space-x-3">
+                  <Truck className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-green-900">
+                      Your delivery service is now live:
+                    </p>
+                    <p className="text-green-700 font-semibold break-all">
+                      {tenantData.subdomain}.alltowndelivery.com
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-green-900">
+                      Business Name:
+                    </p>
+                    <p className="text-green-700 font-semibold">
+                      {tenantData.businessName}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>What's Next:</strong>
+                </p>
+                <ul className="text-sm text-blue-800 mt-2 space-y-1 text-left">
+                  <li>• Configure your business settings and service areas</li>
+                  <li>• Add your first delivery locations and pricing</li>
+                  <li>• Start accepting delivery requests from customers</li>
+                  <li>• Track deliveries in real-time with your dispatch center</li>
+                </ul>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  onClick={() => window.location.href = `https://${tenantData.subdomain}.alltowndelivery.com`}
+                  className="w-full bg-green-600 hover:bg-green-700"
+                >
+                  Access Your Dashboard
+                </Button>
+                <Link href="/" className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    Visit AllTownDelivery
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  // Error state
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-        <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Email Verified!</h2>
-        <p className="text-gray-600 mb-6">
-          Your email has been successfully verified. Click below to complete your account setup.
-        </p>
-        
-        {completeTenantMutation.isSuccess ? (
-          <div className="text-center">
-            <p className="text-green-600 font-medium mb-4">
-              Account created successfully! Redirecting to your delivery service...
+      <Card className="w-full max-w-lg">
+        <CardContent className="pt-6">
+          <div className="text-center space-y-6">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
+            <h2 className="text-2xl font-bold text-gray-900">Setup Incomplete</h2>
+            <p className="text-gray-600">
+              There was a problem completing your account setup.
             </p>
-            <Loader2 className="w-6 h-6 text-blue-500 mx-auto animate-spin" />
+            
+            <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+              <p className="text-sm text-red-800 font-medium">Error:</p>
+              <p className="text-sm text-red-700 mt-1">{errorMessage}</p>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>What you can do:</strong>
+              </p>
+              <ul className="text-sm text-yellow-800 mt-2 space-y-1 text-left">
+                <li>• Try signing up again with a different email</li>
+                <li>• Check that you used the correct verification link</li>
+                <li>• Contact support if the problem persists</li>
+              </ul>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link href="/signup" className="flex-1">
+                <Button className="w-full">
+                  Try Again
+                </Button>
+              </Link>
+              <Link href="/business-join" className="flex-1">
+                <Button variant="outline" className="w-full">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Business Page
+                </Button>
+              </Link>
+            </div>
           </div>
-        ) : (
-          <Button
-            onClick={handleCompleteTenant}
-            disabled={completeTenantMutation.isPending}
-            className="w-full"
-          >
-            {completeTenantMutation.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating Account...
-              </>
-            ) : (
-              'Complete Account Setup'
-            )}
-          </Button>
-        )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

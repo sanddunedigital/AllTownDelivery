@@ -15,6 +15,7 @@ import {
   updateDriverStatusSchema,
   insertBusinessSchema,
   insertTenantSchema,
+  insertPendingSignupSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import { ObjectStorageService } from "./objectStorage";
@@ -78,22 +79,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant Signup Routes
   app.post("/api/tenants/check-subdomain", async (req, res) => {
     try {
-      const { subdomain } = req.body;
+      const { subdomain, email } = req.body;
       
       if (!subdomain) {
         return res.status(400).json({ message: "Subdomain is required" });
       }
 
-      // Check if subdomain already exists
-      const existingTenant = await storage.getTenantBySubdomain(subdomain);
+      // Check if subdomain is available (excluding current user's email)
+      const available = await storage.checkSubdomainAvailable(subdomain, email);
       
       res.json({ 
-        available: !existingTenant,
+        available,
         subdomain 
       });
     } catch (error) {
       console.error("Error checking subdomain:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Stage 1: Initiate signup with email verification
+  app.post("/api/tenants/signup-initiate", async (req, res) => {
+    try {
+      const {
+        businessName,
+        ownerName,
+        email,
+        phone,
+        businessAddress,
+        city,
+        state,
+        zipCode,
+        businessType,
+        currentDeliveryVolume,
+        primaryColor,
+      } = req.body;
+
+      // Generate subdomain from business name
+      const subdomain = businessName
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/--+/g, '-')
+        .slice(0, 50);
+
+      // Check subdomain availability
+      const subdomainAvailable = await storage.checkSubdomainAvailable(subdomain, email);
+      if (!subdomainAvailable) {
+        return res.status(400).json({ 
+          message: "A business with this name already exists. Please choose a different name." 
+        });
+      }
+
+      // Generate verification token and expiry (24 hours)
+      const verificationToken = Math.random().toString(36).substr(2, 32);
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      // Store pending signup
+      await storage.createPendingSignup({
+        email,
+        signupData: {
+          businessName,
+          ownerName,
+          phone,
+          businessAddress,
+          city,
+          state,
+          zipCode,
+          businessType,
+          currentDeliveryVolume,
+          subdomain,
+          primaryColor: primaryColor || '#0369a1',
+        },
+        verificationToken,
+        expiresAt,
+      });
+
+      // Here we would normally send verification email
+      // For now, return success with token for development/testing
+      res.json({
+        message: "Verification email sent. Please check your email and click the verification link.",
+        email,
+        subdomain,
+        // Remove token from production - only for development
+        developmentToken: verificationToken
+      });
+
+    } catch (error) {
+      console.error("Error initiating signup:", error);
+      res.status(500).json({ message: "Failed to initiate signup. Please try again." });
+    }
+  });
+
+  // Stage 2: Complete signup after email verification
+  app.post("/api/tenants/signup-complete", async (req, res) => {
+    try {
+      const { token, userId } = req.body;
+
+      if (!token || !userId) {
+        return res.status(400).json({ message: "Verification token and user ID are required." });
+      }
+
+      // Get pending signup
+      const pendingSignup = await storage.getPendingSignup(token);
+      if (!pendingSignup) {
+        return res.status(400).json({ message: "Invalid or expired verification link." });
+      }
+
+      // Check if token is expired
+      if (new Date() > pendingSignup.expiresAt) {
+        await storage.deletePendingSignup(token);
+        return res.status(400).json({ message: "Verification link has expired. Please sign up again." });
+      }
+
+      const signupData = pendingSignup.signupData as any;
+
+      // Double-check subdomain is still available
+      const subdomainAvailable = await storage.checkSubdomainAvailable(
+        signupData.subdomain, 
+        pendingSignup.email
+      );
+      if (!subdomainAvailable) {
+        await storage.deletePendingSignup(token);
+        return res.status(400).json({ 
+          message: "Subdomain is no longer available. Please start signup process again." 
+        });
+      }
+
+      // Get business type defaults
+      const businessTypeDefaults = getBusinessTypeDefaults(signupData.businessType);
+
+      // Create tenant
+      const tenantData = {
+        companyName: signupData.businessName,
+        ownerName: signupData.ownerName,
+        email: pendingSignup.email,
+        phone: signupData.phone,
+        businessAddress: signupData.businessAddress,
+        city: signupData.city,
+        state: signupData.state,
+        zipCode: signupData.zipCode,
+        businessType: signupData.businessType,
+        currentDeliveryVolume: signupData.currentDeliveryVolume,
+        subdomain: signupData.subdomain,
+        primaryColor: signupData.primaryColor,
+        isActive: true,
+        userId: userId, // Supabase user ID
+        emailVerified: true, // Already verified
+        ...businessTypeDefaults
+      };
+
+      const tenant = await storage.createTenant(tenantData);
+
+      // Clean up pending signup
+      await storage.deletePendingSignup(token);
+
+      res.status(201).json({
+        message: "Account created successfully! You can now access your delivery management dashboard.",
+        subdomain: signupData.subdomain,
+        businessName: signupData.businessName,
+        tenantId: tenant.id,
+        redirectUrl: `https://${signupData.subdomain}.alltowndelivery.com`
+      });
+
+    } catch (error) {
+      console.error("Error completing signup:", error);
+      res.status(500).json({ message: "Failed to create account. Please try again." });
     }
   });
 

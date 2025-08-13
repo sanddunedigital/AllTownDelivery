@@ -3,6 +3,16 @@ import { pgTable, text, varchar, timestamp, integer, boolean, uuid, numeric, jso
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Pending signups table for email verification flow
+export const pendingSignups = pgTable("pending_signups", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  signupData: jsonb("signup_data").notNull(), // Store all signup form data
+  verificationToken: text("verification_token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Tenants table for multi-tenant SaaS support
 export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -266,10 +276,18 @@ export const insertTenantSchema = createInsertSchema(tenants).omit({
 
 export const updateTenantSchema = insertTenantSchema.partial();
 
+// Pending signup schemas
+export const insertPendingSignupSchema = createInsertSchema(pendingSignups).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Main Types
 export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type UpdateTenant = z.infer<typeof updateTenantSchema>;
+export type PendingSignup = typeof pendingSignups.$inferSelect;
+export type InsertPendingSignup = z.infer<typeof insertPendingSignupSchema>;
 export type BusinessSettings = typeof businessSettings.$inferSelect;
 export type DeliveryRequest = typeof deliveryRequests.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;
