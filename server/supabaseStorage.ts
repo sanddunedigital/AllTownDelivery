@@ -18,17 +18,17 @@ const extractedUrl = (() => {
 
 // Use environment variables with fallback to extracted URL
 const supabaseUrl = process.env.VITE_SUPABASE_URL || extractedUrl;
-// Modern Supabase approach: Use anon key with RLS policies for most operations
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+// Modern Supabase approach: Use publishable key with RLS policies for most operations
+const supabasePublishableKey = process.env.VITE_SUPABASE_ANON_KEY; // Legacy env var name but modern publishable key
 
-// For admin operations that bypass RLS, use service key (optional)
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+// For privileged server operations, use secret key (optional)
+const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
-// Create Supabase client - prefer anon key with RLS policies
+// Create Supabase client - use publishable key with RLS policies
 let supabase: any = null;
-if (supabaseUrl && supabaseAnonKey) {
-  // Use anon key for most operations with RLS policies handling security
-  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+if (supabaseUrl && supabasePublishableKey) {
+  // Use publishable key for operations with RLS policies handling security
+  supabase = createClient(supabaseUrl, supabasePublishableKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -37,10 +37,10 @@ if (supabaseUrl && supabaseAnonKey) {
       schema: 'public'
     }
   });
-  console.log('✓ Supabase client initialized with anon key and RLS policies');
-} else if (supabaseUrl && supabaseServiceKey) {
-  // Fallback to service key for admin operations
-  supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  console.log('✓ Supabase client initialized with publishable key and RLS policies');
+} else if (supabaseUrl && supabaseSecretKey) {
+  // Use secret key for privileged server operations
+  supabase = createClient(supabaseUrl, supabaseSecretKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -49,12 +49,12 @@ if (supabaseUrl && supabaseAnonKey) {
       schema: 'public'
     }
   });
-  console.log('✓ Supabase client initialized with service key (admin mode)');
+  console.log('✓ Supabase client initialized with secret key (privileged mode)');
 } else {
   console.warn('Supabase configuration incomplete. Storage features will be disabled.');
   console.warn('Missing:', {
     url: !supabaseUrl ? 'VITE_SUPABASE_URL' : 'present',
-    anonKey: !supabaseAnonKey ? 'VITE_SUPABASE_ANON_KEY' : 'present'
+    publishableKey: !supabasePublishableKey ? 'VITE_SUPABASE_ANON_KEY (publishable key)' : 'present'
   });
 }
 
