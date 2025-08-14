@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { auth } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { Truck, CheckCircle, ArrowLeft, Mail, ShieldCheck } from 'lucide-react';
 import { Link } from 'wouter';
 
@@ -73,21 +73,33 @@ export default function TenantSignup() {
       .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
   };
 
-  // Stage 1: Initiate signup (store pending signup data and send verification email)
+  // Unified signup with Supabase auth + business data
   const initiateSignupMutation = useMutation({
     mutationFn: async (formData: SignupFormData) => {
-      const response = await apiRequest('/api/tenants/signup-initiate', 'POST', formData);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to initiate signup');
+      // Sign up with Supabase, including business data in user metadata
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: 'temp-password-' + Math.random().toString(36), // Temporary password
+        options: {
+          data: {
+            businessData: formData, // Store all business info in user metadata
+            signupType: 'business'
+          },
+          emailRedirectTo: `${window.location.origin}/signup-complete`
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
       }
-      return await response.json();
+
+      return { email: formData.email, authData };
     },
     onSuccess: (data) => {
       setUserEmail(data.email);
       toast({
         title: 'Verification Email Sent!',
-        description: 'Please check your email and click the verification link to complete your account setup.',
+        description: 'Please check your email and click the verification link to complete your business setup.',
       });
       setStep(4); // Go to email verification step
     },

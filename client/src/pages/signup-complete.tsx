@@ -16,10 +16,10 @@ export default function SignupComplete() {
   const [tenantData, setTenantData] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Complete signup mutation
+  // Complete signup mutation - processes business data from Supabase user metadata
   const completeSignupMutation = useMutation({
-    mutationFn: async ({ token, userId }: { token: string; userId: string }) => {
-      const response = await apiRequest('/api/tenants/signup-complete', 'POST', { token, userId });
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const response = await apiRequest('/api/tenants/create-from-auth', 'POST', { userId });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to complete signup');
@@ -44,27 +44,25 @@ export default function SignupComplete() {
   useEffect(() => {
     const handleSignupCompletion = async () => {
       try {
-        // Get the verification token from URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token') || urlParams.get('verification_token');
-        
-        if (!token) {
-          setErrorMessage('Missing verification token. Please use the link from your email.');
-          setVerificationState('error');
-          return;
-        }
-
-        // Get current user session
+        // Get current user session (should exist after email verification)
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
         if (userError || !user) {
-          setErrorMessage('Please sign in to complete your account setup.');
+          setErrorMessage('Please verify your email to complete your account setup.');
           setVerificationState('error');
           return;
         }
 
-        // Complete the signup process
-        completeSignupMutation.mutate({ token, userId: user.id });
+        // Check if user has business signup data in their metadata
+        const businessData = user.user_metadata?.businessData;
+        if (!businessData || user.user_metadata?.signupType !== 'business') {
+          setErrorMessage('Invalid signup data. Please try signing up again.');
+          setVerificationState('error');
+          return;
+        }
+
+        // Complete the business account creation
+        completeSignupMutation.mutate({ userId: user.id });
 
       } catch (error) {
         console.error('Error handling signup completion:', error);

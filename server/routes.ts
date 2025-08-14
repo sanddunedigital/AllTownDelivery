@@ -24,6 +24,7 @@ import { GooglePlacesService } from "./googlePlaces";
 import { db } from "./db";
 import { googleReviews, deliveryRequests } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
+import { supabase as supabaseClient } from "./supabaseStorage";
 
 // Helper function to get business type defaults
 function getBusinessTypeDefaults(businessType: string) {
