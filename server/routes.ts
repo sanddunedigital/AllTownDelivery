@@ -24,7 +24,19 @@ import { GooglePlacesService } from "./googlePlaces";
 import { db } from "./db";
 import { googleReviews, deliveryRequests } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
-import { supabase as supabaseClient } from "./supabaseStorage";
+import { createClient } from '@supabase/supabase-js';
+
+// Create Supabase admin client for server operations
+const supabaseClient = createClient(
+  process.env.VITE_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
 
 // Helper function to get business type defaults
 function getBusinessTypeDefaults(businessType: string) {
