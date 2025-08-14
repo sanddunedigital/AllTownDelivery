@@ -18,24 +18,43 @@ const extractedUrl = (() => {
 
 // Use environment variables with fallback to extracted URL
 const supabaseUrl = process.env.VITE_SUPABASE_URL || extractedUrl;
-// SECURITY FIX: Service operations must use service role key, never anon key
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Modern Supabase approach: Use anon key with RLS policies for most operations
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
-// Gracefully handle missing configuration for deployment stability
+// For admin operations that bypass RLS, use service key (optional)
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Create Supabase client - prefer anon key with RLS policies
 let supabase: any = null;
-if (supabaseUrl && supabaseServiceKey) {
-  // Create Supabase client for server-side operations
+if (supabaseUrl && supabaseAnonKey) {
+  // Use anon key for most operations with RLS policies handling security
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
+    db: {
+      schema: 'public'
+    }
+  });
+  console.log('✓ Supabase client initialized with anon key and RLS policies');
+} else if (supabaseUrl && supabaseServiceKey) {
+  // Fallback to service key for admin operations
   supabase = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
+    },
+    db: {
+      schema: 'public'
     }
   });
+  console.log('✓ Supabase client initialized with service key (admin mode)');
 } else {
-  console.warn('Supabase service configuration incomplete. Some features will be disabled.');
+  console.warn('Supabase configuration incomplete. Storage features will be disabled.');
   console.warn('Missing:', {
     url: !supabaseUrl ? 'VITE_SUPABASE_URL' : 'present',
-    key: !supabaseServiceKey ? 'SUPABASE_SERVICE_ROLE_KEY' : 'present'
+    anonKey: !supabaseAnonKey ? 'VITE_SUPABASE_ANON_KEY' : 'present'
   });
 }
 
