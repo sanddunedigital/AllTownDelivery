@@ -673,12 +673,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { status, driverNotes } = updateDeliveryStatusSchema.parse(req.body);
       
-      const delivery = await storage.updateDeliveryStatus(id, status, driverNotes);
+      await storage.updateDeliveryStatus(id, status);
       
-      // Award loyalty points when delivery is completed
-      if (status === 'completed' && delivery.userId) {
-        await storage.updateLoyaltyPoints(delivery.userId, 1, delivery.usedFreeDelivery || false); // 1 point per completed delivery
-      }
+      // Award loyalty points when delivery is completed (if user exists)
+      // Loyalty points temporarily disabled until proper user integration
       
       res.json({ message: "Status updated successfully" });
     } catch (error) {
@@ -1782,21 +1780,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Valid refund amount is required" });
       }
 
-      const tenantId = getCurrentTenantId(req);
-      const squareConfig = await getTenantSquareConfig(tenantId);
-      const squareService = createSquareService(squareConfig);
-      
-      const refund = await squareService.refundPayment(
-        paymentId, 
-        Math.round(amount * 100), // Convert to cents
-        reason
-      );
-
-      res.json({
-        success: true,
-        refundId: refund?.id,
-        status: refund?.status,
-        amountRefunded: refund?.amountMoney?.amount ? Number(refund.amountMoney.amount) / 100 : 0
+      // Square integration temporarily disabled
+      return res.status(400).json({ 
+        success: false, 
+        error: "Refund processing temporarily unavailable" 
       });
     } catch (error: any) {
       console.error("Refund processing error:", error);
