@@ -961,59 +961,68 @@ export class DatabaseStorage implements IStorage {
 
   // Pending signup methods (database)
   async createPendingSignup(insertSignup: InsertPendingSignup): Promise<PendingSignup> {
-    if (!(await this.testConnection())) {
+    try {
+      const result = await db.insert(pendingSignups).values(insertSignup).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Database error in createPendingSignup:", error);
       throw new Error("Database connection unavailable");
     }
-    const result = await db.insert(pendingSignups).values(insertSignup).returning();
-    return result[0];
   }
 
   async getPendingSignup(token: string): Promise<PendingSignup | undefined> {
-    if (!(await this.testConnection())) {
+    try {
+      const result = await db.select().from(pendingSignups).where(eq(pendingSignups.verificationToken, token)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error("Database error in getPendingSignup:", error);
       throw new Error("Database connection unavailable");
     }
-    const result = await db.select().from(pendingSignups).where(eq(pendingSignups.verificationToken, token)).limit(1);
-    return result[0];
   }
 
   async deletePendingSignup(token: string): Promise<void> {
-    if (!(await this.testConnection())) {
+    try {
+      await db.delete(pendingSignups).where(eq(pendingSignups.verificationToken, token));
+    } catch (error) {
+      console.error("Database error in deletePendingSignup:", error);
       throw new Error("Database connection unavailable");
     }
-    await db.delete(pendingSignups).where(eq(pendingSignups.verificationToken, token));
   }
 
   async cleanupExpiredSignups(): Promise<void> {
-    if (!(await this.testConnection())) {
+    try {
+      await db.delete(pendingSignups).where(sql`${pendingSignups.expiresAt} < NOW()`);
+    } catch (error) {
+      console.error("Database error in cleanupExpiredSignups:", error);
       throw new Error("Database connection unavailable");
     }
-    await db.delete(pendingSignups).where(sql`${pendingSignups.expiresAt} < NOW()`);
   }
 
   async checkSubdomainAvailable(subdomain: string, excludeEmail?: string): Promise<boolean> {
-    if (!(await this.testConnection())) {
+    try {
+      // Check existing tenants
+      const existingTenant = await db.select().from(tenants)
+        .where(excludeEmail ? 
+          sql`${tenants.subdomain} = ${subdomain} AND ${tenants.email} != ${excludeEmail}` :
+          eq(tenants.subdomain, subdomain)
+        ).limit(1);
+      
+      if (existingTenant.length > 0) {
+        return false;
+      }
+
+      // Check pending signups (use JSONB signupData)
+      const existingPending = await db.select().from(pendingSignups)
+        .where(excludeEmail ?
+          sql`${pendingSignups.signupData}->>'subdomain' = ${subdomain} AND ${pendingSignups.email} != ${excludeEmail}` :
+          sql`${pendingSignups.signupData}->>'subdomain' = ${subdomain}`
+        ).limit(1);
+
+      return existingPending.length === 0;
+    } catch (error) {
+      console.error("Database error in checkSubdomainAvailable:", error);
       throw new Error("Database connection unavailable");
     }
-    
-    // Check existing tenants
-    const existingTenant = await db.select().from(tenants)
-      .where(excludeEmail ? 
-        sql`${tenants.subdomain} = ${subdomain} AND ${tenants.email} != ${excludeEmail}` :
-        eq(tenants.subdomain, subdomain)
-      ).limit(1);
-    
-    if (existingTenant.length > 0) {
-      return false;
-    }
-
-    // Check pending signups
-    const existingSignup = await db.select().from(pendingSignups)
-      .where(excludeEmail ?
-        sql`CAST(${pendingSignups.signupData}->>'subdomain' AS text) = ${subdomain} AND ${pendingSignups.email} != ${excludeEmail}` :
-        sql`CAST(${pendingSignups.signupData}->>'subdomain' AS text) = ${subdomain}`
-      ).limit(1);
-
-    return existingSignup.length === 0;
   }
 }
 
