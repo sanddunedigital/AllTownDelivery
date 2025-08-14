@@ -18,8 +18,11 @@ export default function SignupComplete() {
 
   // Complete signup mutation - processes business data from Supabase user metadata
   const completeSignupMutation = useMutation({
-    mutationFn: async ({ userId }: { userId: string }) => {
-      const response = await apiRequest('/api/tenants/create-from-auth', 'POST', { userId });
+    mutationFn: async ({ userId, businessData }: { userId: string, businessData: any }) => {
+      const response = await apiRequest('/api/tenants/create-from-auth', 'POST', { 
+        userId, 
+        businessData 
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to complete signup');
@@ -61,8 +64,11 @@ export default function SignupComplete() {
           return;
         }
 
-        // Complete the business account creation
-        completeSignupMutation.mutate({ userId: user.id });
+        // Complete the business account creation - pass business data directly
+        completeSignupMutation.mutate({ 
+          userId: user.id,
+          businessData: businessData
+        });
 
       } catch (error) {
         console.error('Error handling signup completion:', error);

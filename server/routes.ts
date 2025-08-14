@@ -447,6 +447,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // New unified Supabase signup endpoint
   app.post("/api/tenants/create-from-auth", async (req, res) => {
     try {
+      const { userId, businessData } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ 
+          message: "User ID is required." 
+        });
+      }
+
+      if (!businessData) {
+        return res.status(400).json({ 
+          message: "Business data is required." 
+        });
+      }
+
+      // Extract business data from request
       const {
         businessName,
         ownerName,
@@ -459,13 +474,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         businessType,
         currentDeliveryVolume,
         subdomain,
-        primaryColor,
-        supabaseUserId
-      } = req.body;
+        primaryColor
+      } = businessData;
 
-      if (!supabaseUserId) {
+      // Validate required fields
+      if (!businessName || !ownerName || !email || !phone || !businessAddress || !city || !state || !zipCode || !businessType || !currentDeliveryVolume || !subdomain) {
         return res.status(400).json({ 
-          message: "Supabase user ID is required." 
+          message: "All required business fields must be provided." 
         });
       }
 
@@ -475,21 +490,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ 
           message: "Subdomain already exists. Please choose a different business name." 
         });
-      }
-
-      // Validate with Supabase if gracefully available
-      if (supabaseClient) {
-        try {
-          const { data: user, error } = await supabaseClient.auth.admin.getUserById(supabaseUserId);
-          if (error || !user) {
-            return res.status(400).json({ 
-              message: "Invalid user ID or user not found in Supabase." 
-            });
-          }
-        } catch (error) {
-          console.warn('Could not validate user with Supabase:', error);
-          // Continue without validation if Supabase is not available
-        }
       }
 
       // Get business type defaults
@@ -510,7 +510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subdomain,
         primaryColor: primaryColor || '#0369a1',
         isActive: true,
-        supabaseUserId,
+        supabaseUserId: userId,
         emailVerified: true,
         ...businessTypeDefaults
       };
@@ -519,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create admin user profile for business owner
       const adminProfile = {
-        id: supabaseUserId,
+        id: userId,
         name: ownerName,
         email: email,
         phone: phone,
