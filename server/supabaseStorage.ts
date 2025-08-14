@@ -21,16 +21,23 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL || extractedUrl;
 // SECURITY FIX: Service operations must use service role key, never anon key
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Missing Supabase configuration for storage. Need VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  throw new Error('Missing required Supabase service configuration');
+// Gracefully handle missing configuration for deployment stability
+let supabase: any = null;
+if (supabaseUrl && supabaseServiceKey) {
+  // Create Supabase client for server-side operations
+  supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+} else {
+  console.warn('Supabase service configuration incomplete. Some features will be disabled.');
+  console.warn('Missing:', {
+    url: !supabaseUrl ? 'VITE_SUPABASE_URL' : 'present',
+    key: !supabaseServiceKey ? 'SUPABASE_SERVICE_ROLE_KEY' : 'present'
+  });
 }
-
-// Create Supabase client for server-side operations
-const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseServiceKey || 'placeholder-key'
-);
 
 export class SupabaseStorageService {
   private bucketName = 'business-assets';
@@ -39,6 +46,11 @@ export class SupabaseStorageService {
 
   // Initialize storage bucket if it doesn't exist
   async initializeBucket(): Promise<void> {
+    if (!supabase) {
+      console.warn('Supabase client not initialized. Skipping bucket initialization.');
+      return;
+    }
+    
     try {
       const { data: buckets, error: listError } = await supabase.storage.listBuckets();
       
@@ -47,7 +59,7 @@ export class SupabaseStorageService {
         return;
       }
 
-      const bucketExists = buckets?.some(bucket => bucket.name === this.bucketName);
+      const bucketExists = buckets?.some((bucket: any) => bucket.name === this.bucketName);
       
       if (!bucketExists) {
         const { error: createError } = await supabase.storage.createBucket(this.bucketName, {
@@ -69,6 +81,10 @@ export class SupabaseStorageService {
 
   // Get upload URL for logo
   async getLogoUploadURL(): Promise<string> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized. Cannot generate upload URL.');
+    }
+    
     const fileName = `logos/${randomUUID()}.png`;
     
     // Create a signed upload URL that expires in 15 minutes
@@ -87,6 +103,11 @@ export class SupabaseStorageService {
 
   // Get public URL for uploaded file
   getPublicURL(filePath: string): string {
+    if (!supabase) {
+      console.warn('Supabase client not initialized. Cannot generate public URL.');
+      return '';
+    }
+    
     const { data } = supabase.storage
       .from(this.bucketName)
       .getPublicUrl(filePath);
@@ -96,6 +117,10 @@ export class SupabaseStorageService {
 
   // Upload file directly (alternative method)
   async uploadLogo(file: Buffer, fileName: string, contentType: string): Promise<string> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized. Cannot upload logo.');
+    }
+    
     const filePath = `logos/${randomUUID()}-${fileName}`;
     
     const { data, error } = await supabase.storage
@@ -116,6 +141,11 @@ export class SupabaseStorageService {
 
   // Delete old logo when updating
   async deleteLogo(logoUrl: string): Promise<void> {
+    if (!supabase) {
+      console.warn('Supabase client not initialized. Cannot delete logo.');
+      return;
+    }
+    
     try {
       // Extract file path from URL
       const url = new URL(logoUrl);
@@ -156,4 +186,6 @@ export class SupabaseStorageService {
   }
 }
 
-export const supabaseStorage = new SupabaseStorageService();
+// Export singleton instance and Supabase client
+export const supabaseStorageService = new SupabaseStorageService();
+export { supabase };

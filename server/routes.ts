@@ -24,19 +24,7 @@ import { GooglePlacesService } from "./googlePlaces";
 import { db } from "./db";
 import { googleReviews, deliveryRequests } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
-import { createClient } from '@supabase/supabase-js';
-
-// Create Supabase admin client for server operations
-const supabaseClient = createClient(
-  process.env.VITE_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { supabase as supabaseClient } from "./supabaseStorage";
 
 // Helper function to get business type defaults
 function getBusinessTypeDefaults(businessType: string) {
@@ -453,6 +441,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // New unified Supabase signup endpoint
+  app.post("/api/tenants/create-from-auth", async (req, res) => {
+    try {
+      const {
+        businessName,
+        ownerName,
+        email,
+        phone,
+        businessAddress,
+        city,
+        state,
+        zipCode,
+        businessType,
+        currentDeliveryVolume,
+        subdomain,
+        primaryColor,
+        supabaseUserId
+      } = req.body;
+
+      if (!supabaseUserId) {
+        return res.status(400).json({ 
+          message: "Supabase user ID is required." 
+        });
+      }
+
+      // Check if subdomain already exists
+      const existingTenant = await storage.getTenantBySubdomain(subdomain);
+      if (existingTenant) {
+        return res.status(400).json({ 
+          message: "Subdomain already exists. Please choose a different business name." 
+        });
+      }
+
+      // Validate with Supabase if gracefully available
+      if (supabaseClient) {
+        try {
+          const { data: user, error } = await supabaseClient.auth.admin.getUserById(supabaseUserId);
+          if (error || !user) {
+            return res.status(400).json({ 
+              message: "Invalid user ID or user not found in Supabase." 
+            });
+          }
+        } catch (error) {
+          console.warn('Could not validate user with Supabase:', error);
+          // Continue without validation if Supabase is not available
+        }
+      }
+
+      // Get business type defaults
+      const businessTypeDefaults = getBusinessTypeDefaults(businessType);
+
+      // Create tenant data
+      const tenantData = {
+        companyName: businessName,
+        ownerName,
+        email,
+        phone,
+        businessAddress,
+        city,
+        state,
+        zipCode,
+        businessType,
+        currentDeliveryVolume,
+        subdomain,
+        primaryColor: primaryColor || '#0369a1',
+        isActive: true,
+        supabaseUserId,
+        emailVerified: true,
+        ...businessTypeDefaults
+      };
+
+      const tenant = await storage.createTenant(tenantData);
+
+      // Create admin user profile for business owner
+      const adminProfile = {
+        id: supabaseUserId,
+        name: ownerName,
+        email: email,
+        phone: phone,
+        address: `${businessAddress}, ${city}, ${state} ${zipCode}`,
+        isDriver: false,
+        isOnDuty: false,
+        role: "admin" as const,
+        loyaltyPoints: 0,
+        totalDeliveries: 0,
+        freeDeliveryCredits: 0,
+        tenantId: tenant.id
+      };
+
+      await storage.createUserProfile(adminProfile);
+
+      res.status(201).json({
+        message: "Business account created successfully! You now have admin access to your delivery management dashboard.",
+        subdomain: subdomain,
+        businessName: businessName,
+        tenantId: tenant.id,
+        userRole: "admin",
+        redirectUrl: `https://${subdomain}.alltowndelivery.com`
+      });
+
+    } catch (error) {
+      console.error("Error creating tenant from auth:", error);
+      res.status(500).json({ 
+        message: "Failed to create business account. Please try again." 
+      });
     }
   });
 
