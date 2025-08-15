@@ -61,12 +61,10 @@ export default function DriverPortal() {
     console.log('Driver portal - isOnDuty value:', isOnDuty);
   }, [profile, isOnDuty]);
 
-  // Fetch available deliveries (only when on duty) with auto-refresh
+  // Fetch available deliveries (only when on duty)
   const { data: availableDeliveries = [], isLoading: loadingAvailable } = useQuery<DeliveryRequest[]>({
     queryKey: ['/api/driver/deliveries/available'],
-    enabled: !!user && isOnDuty,
-    refetchInterval: isOnDuty ? 5000 : false, // Auto-refresh every 5 seconds when on duty
-    refetchOnWindowFocus: true
+    enabled: !!user && isOnDuty
   });
 
   // Fetch driver's claimed deliveries

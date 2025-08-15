@@ -252,7 +252,7 @@ export function useCustomerDeliveriesRealtime(userId?: string) {
         console.log('Customer delivery update received:', payload);
         
         // Check if this delivery belongs to the current user (using snake_case from database)
-        const isUserDelivery = payload.new?.user_id === userId || payload.old?.user_id === userId;
+        const isUserDelivery = (payload.new as any)?.user_id === userId || (payload.old as any)?.user_id === userId;
         
         if (isUserDelivery) {
           console.log('Delivery update is for current user - invalidating cache');
