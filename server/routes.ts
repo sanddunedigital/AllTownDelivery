@@ -1906,6 +1906,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dispatch routes
   app.use('/api/dispatch', dispatchRoutes);
 
+  // Debug route to test database connection
+  app.get("/api/debug/database", async (req, res) => {
+    try {
+      console.log("=== DATABASE CONNECTION DEBUG ===");
+      
+      // Clear cache and test connection directly
+      storage.dbStorage.clearConnectionCache();
+      
+      // Test direct db query  
+      const dbModule = await import("./db.js");
+      const drizzleModule = await import("drizzle-orm");
+      const { db } = dbModule;
+      const { sql } = drizzleModule;
+      
+      const result = await db.execute(sql`SELECT NOW() as current_time, 1 as test_value`);
+      console.log("Direct DB query successful:", result);
+      
+      // Test storage layer
+      const deliveryRequests = await storage.getDeliveryRequests();
+      console.log("Storage layer successful, delivery requests count:", deliveryRequests.length);
+      
+      res.json({
+        success: true,
+        direct_query: result,
+        storage_test: `Retrieved ${deliveryRequests.length} delivery requests`,
+        message: "Database connection working!"
+      });
+      
+    } catch (error) {
+      console.error("Database debug failed:", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        message: "Database connection failed"
+      });
+    }
+  });
+
   // Admin routes
   app.use('/api/admin', adminRoutes);
 

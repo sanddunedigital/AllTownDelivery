@@ -53,7 +53,31 @@ export async function runMigrations() {
       );
     `);
 
-    console.log("Database tables created successfully");
+    // Add missing columns to delivery_requests table (update existing schema)
+    await db.execute(sql`
+      ALTER TABLE "delivery_requests" 
+      ADD COLUMN IF NOT EXISTS "tenant_id" uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL,
+      ADD COLUMN IF NOT EXISTS "business_id" varchar,
+      ADD COLUMN IF NOT EXISTS "used_free_delivery" boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS "claimed_by_driver" uuid,
+      ADD COLUMN IF NOT EXISTS "claimed_at" timestamp,
+      ADD COLUMN IF NOT EXISTS "driver_notes" text,
+      ADD COLUMN IF NOT EXISTS "delivery_fee" numeric(10,2),
+      ADD COLUMN IF NOT EXISTS "square_payment_id" text,
+      ADD COLUMN IF NOT EXISTS "square_invoice_id" text,
+      ADD COLUMN IF NOT EXISTS "payment_status" text DEFAULT 'pending',
+      ADD COLUMN IF NOT EXISTS "total_amount" numeric(10,2),
+      ADD COLUMN IF NOT EXISTS "invoice_url" text;
+    `);
+
+    // Update delivery_requests table to fix column types and constraints
+    await db.execute(sql`
+      ALTER TABLE "delivery_requests" 
+      ALTER COLUMN "email" SET NOT NULL,
+      ALTER COLUMN "status" SET NOT NULL;
+    `);
+
+    console.log("Database tables created and updated successfully");
   } catch (error) {
     console.error("Error creating database tables:", error);
     throw error;

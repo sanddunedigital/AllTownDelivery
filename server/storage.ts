@@ -522,16 +522,26 @@ export class DatabaseStorage implements IStorage {
   private cacheTimestamp = 0;
   private readonly CACHE_TTL = 30000; // 30 seconds
 
+  // Method to force clear cache for testing
+  public clearConnectionCache(): void {
+    this.connectionCache = null;
+    this.cacheTimestamp = 0;
+    console.log("Database connection cache cleared");
+  }
+
   private async testConnection(): Promise<boolean> {
     // Use cached result for 30 seconds to reduce connection overhead
     const now = Date.now();
     if (this.connectionCache !== null && (now - this.cacheTimestamp) < this.CACHE_TTL) {
+      console.log("Using cached database connection result:", this.connectionCache);
       return this.connectionCache;
     }
 
     try {
       // Test the database connection with a simple query
-      await db.execute(sql`SELECT 1`);
+      console.log("Testing database connection...");
+      const result = await db.execute(sql`SELECT 1 as test`);
+      console.log("Database connection test successful:", result);
       this.connectionCache = true;
       this.cacheTimestamp = now;
       return true;
@@ -710,10 +720,22 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Database connection unavailable");
     }
     
-    if (userId) {
-      return await db.select().from(deliveryRequests).where(eq(deliveryRequests.userId, userId));
+    try {
+      console.log("DatabaseStorage: Attempting to query delivery_requests table...");
+      
+      if (userId) {
+        const result = await db.select().from(deliveryRequests).where(eq(deliveryRequests.userId, userId));
+        console.log("DatabaseStorage: User-specific delivery requests query successful:", result.length);
+        return result;
+      }
+      
+      const result = await db.select().from(deliveryRequests);
+      console.log("DatabaseStorage: All delivery requests query successful:", result.length);
+      return result;
+    } catch (error) {
+      console.error("DatabaseStorage: Database query error in getDeliveryRequests:", error);
+      throw error;
     }
-    return await db.select().from(deliveryRequests);
   }
 
   async updateDeliveryStatus(id: string, status: string): Promise<void> {
@@ -1147,6 +1169,7 @@ class SmartStorage implements IStorage {
       return await this.dbStorage.getDeliveryRequests(userId);
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
+      console.error("Specific database error:", error);
       return await this.memStorage.getDeliveryRequests(userId);
     }
   }
