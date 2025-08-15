@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "https://sara-deliver-mynameisnick421.replit.app/$1"
-    }
-  ]
-}
