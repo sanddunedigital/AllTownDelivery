@@ -4,11 +4,7 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
 
-  "functions": {
-    "api/index.ts": {
-      "runtime": "nodejs22.x"
-    }
-  },
+
   "rewrites": [
     {
       "source": "/api/(.*)",
