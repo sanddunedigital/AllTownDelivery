@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "../server/routes";
-import { runMigrations } from "../server/migrate";
-import { resolveTenant } from "../server/tenant";
+import { registerRoutes } from "../server/routes.js";
+import { runMigrations } from "../server/migrate.js";
+import { resolveTenant } from "../server/tenant.js";
 
 const app = express();
 

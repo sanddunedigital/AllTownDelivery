@@ -1,9 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage, SmartStorage } from "./storage";
-import dispatchRoutes from "./dispatch-routes";
-import adminRoutes from "./admin-routes";
-import { getCurrentTenant, getCurrentTenantId } from "./tenant";
+import { storage, SmartStorage } from "./storage.js";
+import dispatchRoutes from "./dispatch-routes.js";
+import adminRoutes from "./admin-routes.js";
+import { getCurrentTenant, getCurrentTenantId } from "./tenant.js";
 import { 
   insertDeliveryRequestSchema, 
   insertUserProfileSchema, 
@@ -18,13 +18,13 @@ import {
   insertPendingSignupSchema,
 } from "@shared/schema";
 import { z } from "zod";
-import { ObjectStorageService } from "./objectStorage";
-import { googleMapsService } from "./googleMaps";
-import { GooglePlacesService } from "./googlePlaces";
-import { db } from "./db";
+import { ObjectStorageService } from "./objectStorage.js";
+import { googleMapsService } from "./googleMaps.js";
+import { GooglePlacesService } from "./googlePlaces.js";
+import { db } from "./db.js";
 import { googleReviews, deliveryRequests } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
-import { supabase as supabaseClient } from "./supabaseStorage";
+import { supabase as supabaseClient } from "./supabaseStorage.js";
 
 // Helper function to get business type defaults
 function getBusinessTypeDefaults(businessType: string) {
