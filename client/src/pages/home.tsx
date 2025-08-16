@@ -35,6 +35,7 @@ import { EnhancedDeliveryForm } from "@/components/ui/enhanced-delivery-form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCustomerDeliveriesRealtime } from "@/hooks/use-realtime";
 import MarketingSite from "@/components/MarketingSite";
+import TenantNotFound from "./tenant-not-found";
 
 interface BusinessSettings {
   businessPhone?: string;
@@ -103,10 +104,10 @@ function DeliverySiteContent() {
   });
 
   // Fetch business settings for pricing and branding
-  const { data: businessSettings, isLoading: settingsLoading } = useQuery<BusinessSettings>({
+  const { data: businessSettings, isLoading: settingsLoading, error: settingsError } = useQuery<BusinessSettings>({
     queryKey: ['/api/business-settings'],
     refetchInterval: 300000, // Refresh every 5 minutes
-    retry: 3, // Retry failed requests
+    retry: false, // Don't retry if tenant is invalid
   });
 
   const queryClient = useQueryClient();
@@ -129,6 +130,11 @@ function DeliverySiteContent() {
 
   // Clear loyalty info when loyalty program is disabled
   const effectiveLoyaltyInfo = loyaltyEnabled ? loyaltyInfo : null;
+
+  // Check if business settings failed due to invalid tenant
+  if (settingsError && (settingsError as any)?.message?.includes('not found')) {
+    return <TenantNotFound />;
+  }
 
   // Type the delivery data properly
   const deliveries = (userDeliveries as any[]) || [];
@@ -1086,6 +1092,8 @@ export default function Home() {
   if (tenantInfo?.isMainSite || forceMarketing) {
     return <MarketingSite />;
   }
+
+
 
   // Otherwise render the delivery site
   return <DeliverySiteContent />;

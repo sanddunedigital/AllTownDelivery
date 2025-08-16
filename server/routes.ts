@@ -517,20 +517,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const tenant = await storage.createTenant(tenantData);
 
+      // Create default business settings for the new tenant
+      const businessSettings = {
+        tenantId: tenant.id,
+        businessName: businessName,
+        businessPhone: phone,
+        businessEmail: email,
+        businessAddress: businessAddress,
+        primaryColor: primaryColor || '#0369a1',
+        secondaryColor: '#64748b',
+        accentColor: '#ea580c',
+        enableLoyaltyProgram: businessTypeDefaults.loyaltyProgram?.deliveriesForFreeDelivery ? true : false,
+        enableScheduledDeliveries: false,
+        baseDeliveryFee: businessTypeDefaults.deliveryPricing?.basePrice?.toString() || '3.00',
+        pricePerMile: businessTypeDefaults.deliveryPricing?.pricePerMile?.toString() || '1.50',
+        minimumOrderValue: businessTypeDefaults.deliveryPricing?.minimumOrder?.toString() || '10.00',
+        freeDeliveryThreshold: businessTypeDefaults.deliveryPricing?.freeDeliveryThreshold?.toString() || '50.00',
+        baseFeeRadius: '10.0',
+        acceptedPaymentMethods: ['cash_on_delivery', 'card_on_delivery'],
+        operatingHours: {
+          monday: { open: '09:00', close: '17:00', closed: false },
+          tuesday: { open: '09:00', close: '17:00', closed: false },
+          wednesday: { open: '09:00', close: '17:00', closed: false },
+          thursday: { open: '09:00', close: '17:00', closed: false },
+          friday: { open: '09:00', close: '17:00', closed: false },
+          saturday: { open: '10:00', close: '16:00', closed: false },
+          sunday: { open: '12:00', close: '16:00', closed: true }
+        }
+      };
+
+      await storage.createBusinessSettings(tenant.id, businessSettings);
+
       // Create admin user profile for business owner
       const adminProfile = {
-        id: userId,
-        name: ownerName,
+        supabaseUserId: userId,
+        tenantId: tenant.id,
         email: email,
+        firstName: ownerName.split(' ')[0] || ownerName,
+        lastName: ownerName.split(' ').slice(1).join(' ') || '',
         phone: phone,
-        address: `${businessAddress}, ${city}, ${state} ${zipCode}`,
-        isDriver: false,
-        isOnDuty: false,
-        role: "admin" as const,
-        loyaltyPoints: 0,
-        totalDeliveries: 0,
-        freeDeliveryCredits: 0,
-        tenantId: tenant.id
+        role: 'admin',
+        isActive: true
       };
 
       await storage.createUserProfile(adminProfile);
@@ -1189,79 +1216,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error("Business settings database error:", error);
         
-        // Instead of failing, return default settings to keep the site working
-        const defaultSettings = {
-          businessName: "Sara's Quickie Delivery",
-          businessPhone: "(641) 673-0123",
-          businessEmail: "contact@sarasquickiedelivery.com",
-          businessAddress: "1004 A Ave E, Oskaloosa, IA 52577",
-          primaryColor: "#0369a1",
-          secondaryColor: "#64748b",
-          accentColor: "#ea580c",
-          features: {
-            loyaltyProgram: true,
-            scheduledDeliveries: false
-          },
-          deliveryPricing: {
-            basePrice: 3.00,
-            pricePerMile: 1.50,
-            minimumOrder: 10.00,
-            freeDeliveryThreshold: 50.00
-          },
-          distanceSettings: {
-            baseFeeRadius: 10.0
-          },
-          acceptedPaymentMethods: ['cash_on_delivery', 'card_on_delivery', 'online_payment'],
-          businessHours: {
-            monday: { open: '09:00', close: '17:00', closed: false },
-            tuesday: { open: '09:00', close: '17:00', closed: false },
-            wednesday: { open: '09:00', close: '17:00', closed: false },
-            thursday: { open: '09:00', close: '17:00', closed: false },
-            friday: { open: '09:00', close: '17:00', closed: false },
-            saturday: { open: '10:00', close: '16:00', closed: false },
-            sunday: { open: '12:00', close: '16:00', closed: true }
-          }
-        };
-        console.log("Using default business settings due to database error");
-        return res.json(defaultSettings);
+        // Return error instead of defaulting to Sara's data - this prevents data leakage
+        return res.status(404).json({ 
+          message: "Business settings not found for this tenant. Please configure your business settings first.",
+          requiresSetup: true
+        });
       }
       
       if (!dbSettings) {
-        // This should only happen for truly new tenants - not database connection issues
+        // No settings found for this tenant - they need to set up their business
         console.log("No business settings found for tenant:", tenantId);
-        const defaultSettings = {
-          businessName: "Sara's Quickie Delivery",
-          businessPhone: "(641) 673-0123",
-          businessEmail: "contact@sarasquickiedelivery.com",
-          businessAddress: "1004 A Ave E, Oskaloosa, IA 52577",
-          primaryColor: "#0369a1",
-          secondaryColor: "#64748b",
-          accentColor: "#ea580c",
-          features: {
-            loyaltyProgram: true,
-            scheduledDeliveries: false
-          },
-          deliveryPricing: {
-            basePrice: 3.00,
-            pricePerMile: 1.50,
-            minimumOrder: 10.00,
-            freeDeliveryThreshold: 50.00
-          },
-          distanceSettings: {
-            baseFeeRadius: 10.0
-          },
-          acceptedPaymentMethods: ['cash_on_delivery', 'card_on_delivery', 'online_payment'],
-          businessHours: {
-            monday: { open: '09:00', close: '17:00', closed: false },
-            tuesday: { open: '09:00', close: '17:00', closed: false },
-            wednesday: { open: '09:00', close: '17:00', closed: false },
-            thursday: { open: '09:00', close: '17:00', closed: false },
-            friday: { open: '09:00', close: '17:00', closed: false },
-            saturday: { open: '10:00', close: '16:00', closed: false },
-            sunday: { open: '12:00', close: '16:00', closed: true }
-          }
-        };
-        return res.json(defaultSettings);
+        return res.status(404).json({ 
+          message: "Business settings not configured for this tenant. Please complete your business setup.",
+          requiresSetup: true
+        });
       }
       
       // Return public business settings (subset of admin settings)

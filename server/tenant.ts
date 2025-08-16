@@ -200,31 +200,39 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
         tenant = await getTenantBySubdomain(subdomain);
       }
 
-      // 3. Fallback to default tenant (Sara's Quickie) for development
+      // 3. No tenant found - this subdomain doesn't exist
       if (!tenant) {
-        tenant = await getDefaultTenant();
+        // Return null to indicate invalid subdomain instead of falling back
+        tenant = null;
       }
+    }
+
+    // Check if we have a valid tenant for non-main sites
+    if (!isMainSite && !tenant) {
+      // Invalid subdomain - return 404 instead of serving content
+      return res.status(404).json({ 
+        error: 'Subdomain not found',
+        message: 'This subdomain is not associated with any delivery service.',
+        isInvalidSubdomain: true
+      });
     }
 
     // Add tenant to request context
     (req as any).tenant = tenant;
     (req as any).isMainSite = isMainSite;
     
-    // Set tenant context for database queries (for future RLS)
-    // For now, this is just stored but not used since RLS is disabled
-    (req as any).tenantId = tenant.id;
+    // Set tenant context for database queries
+    (req as any).tenantId = tenant ? tenant.id : 'main-site';
 
     next();
   } catch (error) {
     console.error('Error resolving tenant:', error);
     
-    // Fallback to default tenant on error
-    tenant = await getDefaultTenant();
-    (req as any).tenant = tenant;
-    (req as any).isMainSite = false;
-    (req as any).tenantId = tenant.id;
-    
-    next();
+    // Return error instead of fallback for better debugging
+    return res.status(500).json({ 
+      error: 'Tenant resolution error',
+      message: 'Unable to determine tenant context'
+    });
   }
 }
 

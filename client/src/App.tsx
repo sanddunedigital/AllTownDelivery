@@ -16,6 +16,7 @@ import ResetPassword from "@/pages/reset-password";
 import Auth from "@/pages/auth";
 import Signup from "@/pages/signup";
 import BusinessJoin from "@/pages/business-join";
+import TenantNotFound from "@/pages/tenant-not-found";
 import { lazy, Suspense } from "react";
 
 const PricingPage = lazy(() => import("@/pages/pricing"));
