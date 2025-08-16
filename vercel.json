@@ -4,7 +4,11 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
 
-
+  "functions": {
+    "api/index.ts": {
+      "runtime": "@vercel/node"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
