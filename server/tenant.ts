@@ -174,7 +174,8 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
     // Check if this is the main AllTownDelivery.com domain (no subdomain)
     const isMainDomain = host.toLowerCase() === 'alltowndelivery.com' || 
                         host.toLowerCase() === 'www.alltowndelivery.com' ||
-                        (hostParts.length === 2 && !hostParts[0].includes('-')); // No subdomain detected
+                        host.includes('vercel.app') || // Include Vercel deployment URLs
+                        (hostParts.length === 2 && hostParts[1] === 'com' && !hostParts[0].includes('-')); // No subdomain detected
 
     if (isMainDomain) {
       // This is the main marketing site

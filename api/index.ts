@@ -30,18 +30,25 @@ async function initializeApp() {
   if (initialized) return;
   
   try {
+    console.log("Initializing database...");
+    console.log("DATABASE_URL present:", !!process.env.DATABASE_URL);
+    console.log("VITE_SUPABASE_URL present:", !!process.env.VITE_SUPABASE_URL);
+    
     await runMigrations();
     console.log("Database connected and tables created successfully");
   } catch (error) {
-    console.warn("Database connection failed, using memory storage:", error instanceof Error ? error.message : String(error));
+    console.error("Database initialization failed:", error);
+    console.error("Error details:", error instanceof Error ? error.message : String(error));
+    console.error("Stack trace:", error instanceof Error ? error.stack : 'No stack trace');
   }
 
   await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    console.error("Express error handler:", err);
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-    res.status(status).json({ message });
+    res.status(status).json({ message, error: err.stack });
   });
 
   initialized = true;
