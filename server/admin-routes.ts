@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { eq, sql, and, gte, lte, desc, count } from 'drizzle-orm';
 import { db } from './db.js';
-import { userProfiles, deliveryRequests, businesses, businessSettings } from '@shared/schema';
+import { userProfiles, deliveryRequests, businesses, businessSettings } from '../shared/schema.js';
 
 const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';

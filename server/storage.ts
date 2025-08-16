@@ -6,7 +6,7 @@ import {
   type Tenant, type InsertTenant,
   type PendingSignup, type InsertPendingSignup,
   users, deliveryRequests, userProfiles, businesses, businessSettings, serviceZones, tenants, pendingSignups 
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { db } from "./db.js";
 import { eq, sql } from "drizzle-orm";

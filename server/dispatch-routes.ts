@@ -1,6 +1,6 @@
 import express from 'express';
 import { db } from './db.js';
-import { userProfiles, deliveryRequests } from '../shared/schema';
+import { userProfiles, deliveryRequests } from '../shared/schema.js';
 import { eq, or, and, sql } from 'drizzle-orm';
 import { storage } from './storage.js';
 

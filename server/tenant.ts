@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from './db.js';
-import { tenants } from '@shared/schema';
+import { tenants } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 // Sara's Quickie default tenant ID

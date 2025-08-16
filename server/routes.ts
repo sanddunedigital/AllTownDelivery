@@ -16,13 +16,13 @@ import {
   insertBusinessSchema,
   insertTenantSchema,
   insertPendingSignupSchema,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { z } from "zod";
 import { ObjectStorageService } from "./objectStorage.js";
 import { googleMapsService } from "./googleMaps.js";
 import { GooglePlacesService } from "./googlePlaces.js";
 import { db } from "./db.js";
-import { googleReviews, deliveryRequests } from "@shared/schema";
+import { googleReviews, deliveryRequests } from "../shared/schema.js";
 import { eq, and } from "drizzle-orm";
 import { supabase as supabaseClient } from "./supabaseStorage.js";
 
