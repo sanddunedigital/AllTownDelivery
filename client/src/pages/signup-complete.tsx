@@ -149,12 +149,24 @@ export default function SignupComplete() {
                 </ul>
               </div>
 
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                <p className="text-sm text-blue-800 font-medium">
+                  <strong>Admin Access:</strong>
+                </p>
+                <p className="text-sm text-blue-800 mt-1">
+                  You can log into your delivery management dashboard using your email address: <strong>{tenantData.businessEmail || 'your signup email'}</strong>
+                </p>
+                <p className="text-sm text-blue-600 mt-2">
+                  Use the same password from your email verification to access admin features, or reset your password if needed.
+                </p>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button 
-                  onClick={() => window.location.href = `https://${tenantData.subdomain}.alltowndelivery.com`}
+                  onClick={() => window.location.href = `https://${tenantData.subdomain}.alltowndelivery.com/admin-setup`}
                   className="w-full bg-green-600 hover:bg-green-700"
                 >
-                  Access Your Dashboard
+                  Setup Admin Access
                 </Button>
                 <Link href="/" className="flex-1">
                   <Button variant="outline" className="w-full">

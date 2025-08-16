@@ -175,6 +175,7 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
     const isMainDomain = host.toLowerCase() === 'alltowndelivery.com' || 
                         host.toLowerCase() === 'www.alltowndelivery.com' ||
                         host.includes('vercel.app') || // Include Vercel deployment URLs
+                        host.toLowerCase() === 'localhost:5000' || // Development main site
                         (hostParts.length === 2 && hostParts[1] === 'com' && !hostParts[0].includes('-')); // No subdomain detected
 
     if (isMainDomain) {
@@ -198,6 +199,14 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
       if (!tenant && hostParts.length >= 3) {
         const subdomain = hostParts[0].toLowerCase();
         tenant = await getTenantBySubdomain(subdomain);
+      }
+
+      // 3. For development: check if this is a full subdomain in localhost (e.g., saras-quickie-delivery.localhost:5000)
+      if (!tenant && host.includes('localhost') && hostParts.length >= 2) {
+        const potentialSubdomain = hostParts[0].toLowerCase();
+        if (potentialSubdomain !== 'localhost') {
+          tenant = await getTenantBySubdomain(potentialSubdomain);
+        }
       }
 
       // 3. No tenant found - this subdomain doesn't exist

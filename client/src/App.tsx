@@ -17,6 +17,7 @@ import Auth from "@/pages/auth";
 import Signup from "@/pages/signup";
 import BusinessJoin from "@/pages/business-join";
 import TenantNotFound from "@/pages/tenant-not-found";
+import AdminSetup from "@/pages/admin-setup";
 import { lazy, Suspense } from "react";
 
 const PricingPage = lazy(() => import("@/pages/pricing"));
@@ -48,6 +49,7 @@ function Router() {
         </Suspense>
       </Route>
       <Route path="/join" component={BusinessJoin} />
+      <Route path="/admin-setup" component={AdminSetup} />
       <Route component={NotFound} />
     </Switch>
   );

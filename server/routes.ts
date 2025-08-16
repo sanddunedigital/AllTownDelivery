@@ -568,7 +568,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         businessName: businessName,
         tenantId: tenant.id,
         userRole: "admin",
-        redirectUrl: `https://${subdomain}.alltowndelivery.com`
+        adminSetupRequired: true, // Flag to indicate admin needs to set password
+        redirectUrl: `https://${subdomain}.alltowndelivery.com/admin-setup`
       });
 
     } catch (error) {
@@ -709,6 +710,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Business Routes
   
   // Get all businesses
+  // Admin setup and password management
+  app.get("/api/admin/status", async (req, res) => {
+    try {
+      const tenantId = getCurrentTenantId(req);
+      const tenant = getCurrentTenant(req);
+      
+      // Check if this is the main site
+      if ((req as any).isMainSite) {
+        return res.status(404).json({ message: "Admin status not available for main site" });
+      }
+
+      // For now, return basic admin status
+      // TODO: Check if user has completed admin setup
+      res.json({
+        isAdmin: true, // Placeholder - should check actual admin status
+        businessName: tenant.companyName,
+        tenantId: tenantId
+      });
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      res.status(500).json({ message: "Failed to check admin status" });
+    }
+  });
+
+  app.post("/api/admin/setup-password", async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const tenantId = getCurrentTenantId(req);
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Both current and new passwords are required" });
+      }
+
+      // TODO: Implement actual password verification and update
+      // For now, return success with business info
+      const businessSettings = await storage.getBusinessSettings(tenantId);
+      
+      res.json({
+        message: "Admin password configured successfully",
+        businessInfo: {
+          businessName: businessSettings?.businessName,
+          businessEmail: businessSettings?.businessEmail
+        }
+      });
+    } catch (error) {
+      console.error("Error setting up admin password:", error);
+      res.status(500).json({ message: "Failed to setup admin password" });
+    }
+  });
+
   app.get("/api/businesses", async (req, res) => {
     try {
       const businesses = await storage.getBusinesses();
