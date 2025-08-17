@@ -1440,12 +1440,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw error; // Re-throw other errors
       }
 
+      // Construct proper redirect URL - handle both development and production
+      const host = req.get('host') || 'localhost:5000';
+      const protocol = req.protocol || 'http';
+      
+      // For production, ensure we use the proper domain
+      let redirectHost = host;
+      if (process.env.NODE_ENV === 'production' && !host.includes('alltowndelivery.com')) {
+        redirectHost = 'www.alltowndelivery.com';
+      }
+      
+      const redirectUrl = `${protocol}://${redirectHost}/signup-complete?token=${verificationToken}`;
+      console.log('Email redirect URL:', redirectUrl);
+      
       // Send verification email through Supabase
       const { error } = await supabaseClient.auth.signUp({
         email: validatedData.email,
         password: validatedData.adminPassword, // Use admin password for Supabase auth
         options: {
-          emailRedirectTo: `${req.protocol}://${req.get('host')}/signup-complete?token=${verificationToken}`,
+          emailRedirectTo: redirectUrl,
           data: {
             full_name: validatedData.ownerName,
             business_name: validatedData.businessName,
