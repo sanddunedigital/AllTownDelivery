@@ -1496,6 +1496,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Email verification endpoint for custom token flow
+  app.post("/api/verify-email", async (req, res) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Verification token is required" });
+      }
+
+      // Get pending signup data
+      const pendingSignup = await storage.getPendingSignup(token);
+      if (!pendingSignup) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+
+      // Check if token is expired
+      if (new Date() > pendingSignup.expiresAt) {
+        await storage.deletePendingSignup(token);
+        return res.status(400).json({ message: "Verification token has expired" });
+      }
+
+      const signupData = pendingSignup.signupData as any;
+      
+      // Create tenant and business settings
+      const newTenant = await storage.createTenant({
+        subdomain: signupData.subdomain,
+        companyName: signupData.businessName,
+        businessType: signupData.businessType,
+        ownerName: signupData.ownerName,
+        email: signupData.email,
+        phone: signupData.phone,
+        businessAddress: signupData.businessAddress,
+        city: signupData.city,
+        state: signupData.state,
+        zipCode: signupData.zipCode,
+        currentDeliveryVolume: signupData.currentDeliveryVolume,
+        description: signupData.description,
+      });
+
+      // Create admin user
+      const adminUser = await storage.createUser({
+        username: signupData.email,
+        password: signupData.adminPassword,
+        name: signupData.ownerName,
+        role: 'admin' as const,
+        phone: signupData.phone,
+        tenantId: newTenant.id,
+      });
+
+      // Create default business settings
+      const defaultBusinessSettings = {
+        businessName: signupData.businessName,
+        businessType: signupData.businessType,
+        businessAddress: signupData.businessAddress,
+        phone: signupData.phone,
+        email: signupData.email,
+        operatingHours: {
+          monday: { open: '09:00', close: '17:00', closed: false },
+          tuesday: { open: '09:00', close: '17:00', closed: false },
+          wednesday: { open: '09:00', close: '17:00', closed: false },
+          thursday: { open: '09:00', close: '17:00', closed: false },
+          friday: { open: '09:00', close: '17:00', closed: false },
+          saturday: { open: '10:00', close: '15:00', closed: false },
+          sunday: { open: '10:00', close: '15:00', closed: true }
+        },
+        deliveryRadius: 15,
+        minimumOrder: 0,
+        deliveryFee: 5.99,
+        loyaltyProgram: {
+          enabled: true,
+          freeDeliveryAfter: 10
+        },
+        tenantId: newTenant.id,
+      };
+
+      await storage.createBusinessSettings(defaultBusinessSettings);
+
+      // Clean up pending signup
+      await storage.deletePendingSignup(token);
+
+      res.status(200).json({
+        message: "Email verified and account created successfully",
+        subdomain: signupData.subdomain,
+        tenantId: newTenant.id
+      });
+
+    } catch (error) {
+      console.error("Email verification error:", error);
+      res.status(500).json({ message: "Failed to verify email" });
+    }
+  });
+
   // Tenant signup endpoint
   app.post("/api/tenants/signup", async (req, res) => {
     try {
