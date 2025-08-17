@@ -69,9 +69,10 @@ export default function BusinessJoin() {
     onSuccess: () => {
       toast({
         title: "Account Created Successfully!",
-        description: "Please check your email to verify your account.",
+        description: "Please check your email to verify your account. Click the verification link in your email to complete setup.",
       });
-      setLocation('/signup-complete');
+      // Don't redirect to signup-complete immediately
+      // User will be redirected there after clicking email verification link
     },
     onError: (error: any) => {
       toast({
