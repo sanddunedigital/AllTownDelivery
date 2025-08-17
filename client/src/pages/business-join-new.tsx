@@ -44,26 +44,26 @@ export default function BusinessJoin() {
   const form = useForm<FormData>({
     resolver: zodResolver(combinedBusinessSignupSchema),
     defaultValues: {
-      businessName: 'Delivery Service 1',
-      businessType: 'Multi-Service Delivery',
-      ownerName: 'Nick Browser',
-      email: 'nick.houser421@gmail.com',
-      phone: '6415551234',
-      businessAddress: '1004 Main St',
-      city: 'Oskaloosa',
-      state: 'Ia',
-      zipCode: '52577',
-      serviceArea: 'Oskaloosa area',
-      currentDeliveryVolume: '1-10 deliveries per day',
-      description: 'Super cool delivery service',
-      adminPassword: 'Password1',
-      confirmPassword: 'Password1',
+      businessName: '',
+      businessType: '',
+      ownerName: '',
+      email: '',
+      phone: '',
+      businessAddress: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      serviceArea: '',
+      currentDeliveryVolume: '',
+      description: '',
+      adminPassword: '',
+      confirmPassword: '',
     },
   });
 
   const signupMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await apiRequest('POST', '/api/signup/combined', data);
+      const response = await apiRequest('/api/signup/combined', 'POST', data);
       return response.json();
     },
     onSuccess: () => {
