@@ -16,6 +16,7 @@ import ResetPassword from "@/pages/reset-password";
 import Auth from "@/pages/auth";
 import Signup from "@/pages/signup";
 import BusinessJoinNew from "@/pages/business-join-new";
+import BusinessLogin from "@/pages/business-login";
 import TenantNotFound from "@/pages/tenant-not-found";
 import AdminSetup from "@/pages/admin-setup";
 import { lazy, Suspense } from "react";
@@ -32,6 +33,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/auth" component={Auth} />
+      <Route path="/business-login" component={BusinessLogin} />
       <Route path="/profile" component={Profile} />
       <Route path="/pricing">
         <Suspense fallback={<div className="flex justify-center items-center h-64">Loading pricing...</div>}>

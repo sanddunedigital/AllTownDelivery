@@ -15,7 +15,16 @@ export interface IStorage {
   // Legacy user methods (for backward compatibility)
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(userData: { 
+    username: string; 
+    password: string; 
+    name?: string;
+    email?: string;
+    tenantId?: string;
+    role?: string;
+    phone?: string; 
+  }): Promise<{ id: string; username: string; tenantId: string }>;
+  authenticateUser(username: string, password: string): Promise<User | null>;
   
   // User profile methods (for Supabase Auth integration)
   getUserProfile(id: string): Promise<UserProfile | undefined>;
@@ -136,11 +145,38 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(userData: { 
+    username: string; 
+    password: string; 
+    name?: string;
+    email?: string;
+    tenantId?: string;
+    role?: string;
+    phone?: string; 
+  }): Promise<{ id: string; username: string; tenantId: string }> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      id,
+      username: userData.username,
+      password: userData.password,
+      name: userData.name || null,
+      email: userData.email || null,
+      phone: userData.phone || null,
+      role: userData.role || "customer",
+      tenantId: userData.tenantId || "00000000-0000-0000-0000-000000000001",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
     this.users.set(id, user);
-    return user;
+    return { id: user.id, username: user.username, tenantId: user.tenantId };
+  }
+
+  async authenticateUser(username: string, password: string): Promise<User | null> {
+    const user = await this.getUserByUsername(username);
+    if (user && user.password === password) {
+      return user;
+    }
+    return null;
   }
 
   // User profile methods
@@ -570,12 +606,33 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(userData: { 
+    username: string; 
+    password: string; 
+    name?: string;
+    email?: string;
+    tenantId?: string;
+    role?: string;
+    phone?: string; 
+  }): Promise<{ id: string; username: string; tenantId: string }> {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
-    const result = await db.insert(users).values(insertUser).returning();
-    return result[0];
+    const result = await db.insert(users).values(userData).returning();
+    const user = result[0];
+    return { id: user.id, username: user.username, tenantId: user.tenantId };
+  }
+
+  async authenticateUser(username: string, password: string): Promise<User | null> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    const user = result[0];
+    if (user && user.password === password) {
+      return user;
+    }
+    return null;
   }
 
   // User profile methods
@@ -1072,12 +1129,29 @@ class SmartStorage implements IStorage {
     }
   }
 
-  async createUser(user: InsertUser): Promise<User> {
+  async createUser(userData: { 
+    username: string; 
+    password: string; 
+    name?: string;
+    email?: string;
+    tenantId?: string;
+    role?: string;
+    phone?: string; 
+  }): Promise<{ id: string; username: string; tenantId: string }> {
     try {
-      return await this.dbStorage.createUser(user);
+      return await this.dbStorage.createUser(userData);
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
-      return await this.memStorage.createUser(user);
+      return await this.memStorage.createUser(userData);
+    }
+  }
+
+  async authenticateUser(username: string, password: string): Promise<User | null> {
+    try {
+      return await this.dbStorage.authenticateUser(username, password);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.authenticateUser(username, password);
     }
   }
 

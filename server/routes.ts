@@ -1601,6 +1601,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '');
 
+      // Generate username from business name for admin login
+      const username = subdomain + '-admin';
+
       // Check if subdomain is available
       const existingTenant = await storage.getTenantBySubdomain(subdomain);
       if (existingTenant) {
@@ -1625,13 +1628,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: validatedData.description,
       });
 
-      // Create admin user
+      // Create admin user with username-based login
       const adminUser = await storage.createUser({
-        username: validatedData.email,
+        username: username,
         password: validatedData.adminPassword,
         name: validatedData.ownerName,
         role: 'admin' as const,
         phone: validatedData.phone,
+        email: validatedData.email,
         tenantId: newTenant.id,
       });
 
@@ -1666,6 +1670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ 
         message: "Account created successfully! You can now access your business dashboard.",
         subdomain: subdomain,
+        username: username,
         tenantId: newTenant.id
       });
 
@@ -1678,6 +1683,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Business login endpoint (username/password)
+  app.post("/api/auth/business-login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
+      // Authenticate business user
+      const user = await storage.authenticateUser(username, password);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+
+      // Check if user has business role (admin, driver, dispatcher)
+      if (!['admin', 'driver', 'dispatcher'].includes(user.role)) {
+        return res.status(403).json({ message: "Access denied. Business account required." });
+      }
+
+      // Create session (req.session will be available if express-session is configured)
+      if (req.session) {
+        req.session.userId = user.id;
+        req.session.userRole = user.role;
+        req.session.tenantId = user.tenantId;
+      }
+
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role,
+          tenantId: user.tenantId
+        }
+      });
+      
+    } catch (error) {
+      console.error("Business login error:", error);
+      res.status(500).json({ message: "Login failed. Please try again." });
     }
   });
 

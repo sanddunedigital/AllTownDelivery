@@ -240,11 +240,18 @@ export const serviceZones = pgTable("service_zones", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Legacy users table (can be removed later)
+// Business users table (for business login system)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  name: text("name"),
+  email: text("email"),
+  phone: text("phone"),
+  role: text("role", { enum: ["customer", "admin", "driver", "dispatcher"] }).default("customer"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Business settings schemas
