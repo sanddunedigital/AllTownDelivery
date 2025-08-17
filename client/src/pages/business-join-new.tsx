@@ -44,26 +44,26 @@ export default function BusinessJoin() {
   const form = useForm<FormData>({
     resolver: zodResolver(combinedBusinessSignupSchema),
     defaultValues: {
-      businessName: '',
-      businessType: '',
-      ownerName: '',
-      email: '',
-      phone: '',
-      businessAddress: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      serviceArea: '',
-      currentDeliveryVolume: '',
-      description: '',
-      adminPassword: '',
-      confirmPassword: '',
+      businessName: 'Delivery Service 1',
+      businessType: 'Multi-Service Delivery',
+      ownerName: 'Nick Browser',
+      email: 'nick.houser421@gmail.com',
+      phone: '6415551234',
+      businessAddress: '1004 Main St',
+      city: 'Oskaloosa',
+      state: 'Ia',
+      zipCode: '52577',
+      serviceArea: 'Oskaloosa area',
+      currentDeliveryVolume: '1-10 deliveries per day',
+      description: 'Super cool delivery service',
+      adminPassword: 'Password1',
+      confirmPassword: 'Password1',
     },
   });
 
   const signupMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await apiRequest('/api/signup/combined', 'POST', data);
+      const response = await apiRequest('POST', '/api/signup/combined', data);
       return response.json();
     },
     onSuccess: () => {
@@ -221,7 +221,7 @@ export default function BusinessJoin() {
                       <FormItem>
                         <FormLabel>Business Name</FormLabel>
                         <FormControl>
-                          <Input {...field} data-testid="input-business-name" />
+                          <Input  {...field} data-testid="input-business-name" />
                         </FormControl>
                         <FormDescription>
                           This is how your business will appear to customers on your delivery site.
@@ -294,7 +294,7 @@ export default function BusinessJoin() {
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input {...field} data-testid="input-phone" />
+                          <Input  {...field} data-testid="input-phone" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
