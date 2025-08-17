@@ -171,15 +171,17 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
     const host = req.headers.host || '';
     const hostParts = host.split('.');
 
-    // Check if this is a development environment
-    const isDevelopment = host.includes('replit.app') || host.includes('replit.dev') || host.includes('repl.co') || 
-                         host.includes('localhost') || host.includes('vercel.app');
+    // Check if this is a development environment - be very aggressive about this
+    const isDevelopment = process.env.NODE_ENV === 'development' || 
+                         host.includes('replit.app') || host.includes('replit.dev') || host.includes('repl.co') || 
+                         host.includes('localhost') || host.includes('vercel.app') ||
+                         host.includes('replit') || // Catch any replit domain variations
+                         !host.includes('alltowndelivery.com'); // If it's not the production domain, treat as development
     
     // For development environments, ALWAYS treat as main marketing site
     // For production, only treat as main site if it's the actual alltowndelivery.com domain
     if (isDevelopment) {
       // Development environment - always main site
-      console.log(`[TENANT] DEVELOPMENT MODE: Host ${host} detected as development, setting as main site`);
       isMainSite = true;
       tenant = {
         id: 'main-site',
@@ -216,7 +218,7 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
 
       // No tenant found for this subdomain/domain
       if (!tenant) {
-        console.log(`[TENANT] ERROR: No tenant found for production host: ${host}`);
+
         return res.status(404).json({ 
           error: 'Subdomain not found',
           message: 'This subdomain is not associated with any delivery service.',

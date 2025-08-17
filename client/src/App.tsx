@@ -49,6 +49,9 @@ function Router() {
         </Suspense>
       </Route>
       <Route path="/join" component={BusinessJoinNew} />
+      <Route path="/business-join-new" component={BusinessJoinNew} />
+      <Route path="/business-signup" component={BusinessJoinNew} />
+      <Route path="/user-signup" component={Signup} />
       <Route path="/admin-setup" component={AdminSetup} />
       <Route component={NotFound} />
     </Switch>
