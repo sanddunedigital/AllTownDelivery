@@ -66,13 +66,15 @@ export default function BusinessJoin() {
       const response = await apiRequest('/api/signup/combined', 'POST', data);
       return response.json();
     },
-    onSuccess: () => {
-      toast({
-        title: "Account Created Successfully!",
-        description: "Please check your email to verify your account. Click the verification link in your email to complete setup.",
+    onSuccess: (data) => {
+      // Redirect to signup-pending page with email and business name
+      const email = form.getValues('email');
+      const businessName = form.getValues('businessName');
+      const params = new URLSearchParams({
+        email: email,
+        business: businessName
       });
-      // Don't redirect to signup-complete immediately
-      // User will be redirected there after clicking email verification link
+      setLocation(`/signup-pending?${params.toString()}`);
     },
     onError: (error: any) => {
       toast({

@@ -1423,12 +1423,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         verificationToken,
       };
 
-      await storage.createPendingSignup({
-        email: validatedData.email,
-        signupData: signupData as any,
-        verificationToken,
-        expiresAt,
-      });
+      try {
+        await storage.createPendingSignup({
+          email: validatedData.email,
+          signupData: signupData as any,
+          verificationToken,
+          expiresAt,
+        });
+      } catch (error: any) {
+        // Handle duplicate email case
+        if (error.code === '23505' && error.constraint === 'pending_signups_email_key') {
+          return res.status(400).json({ 
+            message: "An account with this email is already pending verification. Please check your email or wait for the previous signup to expire." 
+          });
+        }
+        throw error; // Re-throw other errors
+      }
 
       // Send verification email through Supabase
       const { error } = await supabaseClient.auth.signUp({
