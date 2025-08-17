@@ -172,17 +172,17 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
     const hostParts = host.split('.');
 
     // Check if this is the main AllTownDelivery.com domain (no subdomain)
+    // In development environments (Replit, localhost), we treat the main access URL as the marketing site
     const isMainDomain = host.toLowerCase() === 'alltowndelivery.com' || 
                         host.toLowerCase() === 'www.alltowndelivery.com' ||
-                        host.includes('vercel.app') || // Include Vercel deployment URLs
-                        host.includes('replit.app') || // Include Replit deployment URLs
-                        host.includes('replit.dev') || // Include Replit development URLs
-                        host.includes('repl.co') || // Include legacy Replit URLs
+                        host.includes('vercel.app') || // Include Vercel deployment URLs  
+                        host.includes('replit.app') || // Include Replit deployment URLs (development main site)
+                        host.includes('replit.dev') || // Include Replit development URLs (development main site)
+                        host.includes('repl.co') || // Include legacy Replit URLs (development main site)
                         host.toLowerCase() === 'localhost:5000' || // Development main site
                         host.toLowerCase() === 'localhost' || // Development main site without port
-                        host.toLowerCase().startsWith('localhost:') || // Any localhost port
-                        (hostParts.length === 1 && hostParts[0] === 'localhost') || // Just localhost
-                        (hostParts.length === 2 && hostParts[1] === 'com' && !hostParts[0].includes('-')); // No subdomain detected
+                        host.toLowerCase().startsWith('localhost:') || // Any localhost port (development main site)
+                        (hostParts.length === 1); // Single domain without subdomain (development main site)
 
     if (isMainDomain) {
       // This is the main marketing site
