@@ -1444,14 +1444,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const host = req.get('host') || 'localhost:5000';
       const protocol = req.protocol || 'http';
       
-      // For production, ensure we use the proper domain
+      // For production, ensure we use the proper domain with HTTPS
       let redirectHost = host;
-      if (process.env.NODE_ENV === 'production' && !host.includes('alltowndelivery.com')) {
+      let redirectProtocol = protocol;
+      
+      if (process.env.NODE_ENV === 'production' || host.includes('alltowndelivery.com')) {
         redirectHost = 'www.alltowndelivery.com';
+        redirectProtocol = 'https';
       }
       
-      const redirectUrl = `${protocol}://${redirectHost}/signup-complete?token=${verificationToken}`;
-      console.log('Email redirect URL:', redirectUrl);
+      const redirectUrl = `${redirectProtocol}://${redirectHost}/signup-complete?token=${verificationToken}`;
+      console.log('Production signup - Host:', host, 'Protocol:', protocol, 'NODE_ENV:', process.env.NODE_ENV);
+      console.log('Final email redirect URL:', redirectUrl);
       
       // Send verification email through Supabase
       const { error } = await supabaseClient.auth.signUp({

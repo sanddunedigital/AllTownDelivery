@@ -47,6 +47,13 @@ export default function SignupComplete() {
   useEffect(() => {
     const handleSignupCompletion = async () => {
       try {
+        // Check if user came from email verification - look for token or other indicators
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasToken = urlParams.has('token') || urlParams.has('access_token') || urlParams.has('refresh_token');
+        
+        console.log('Signup complete page loaded. URL params:', window.location.search);
+        console.log('Has verification token/access_token:', hasToken);
+        
         // Get current user session (should exist after email verification)
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
