@@ -427,8 +427,30 @@ export default function BusinessJoin() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Admin Access Setup</h3>
                   <p className="text-sm text-gray-600">
-                    Create a secure password for managing your delivery service. You'll use your email address as the admin username.
+                    Create your admin login credentials for managing your delivery service.
                   </p>
+
+                  <FormField
+                    control={form.control}
+                    name="adminUsername"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admin Username (Optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            data-testid="input-admin-username"
+                            placeholder="Leave blank to auto-generate from your name"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          If blank, we'll create a username from your first initial + last name
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   
                   <div className="grid md:grid-cols-2 gap-4">
                     <FormField
