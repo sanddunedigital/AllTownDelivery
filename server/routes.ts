@@ -233,11 +233,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const tenant = await storage.createTenant(tenantData);
 
-      // Create default business settings with service name
+      // Create default business settings with business name
       const defaultBusinessSettings = {
         tenantId: tenant.id,
-        businessName: signupData.companyName || signupData.businessName,
-        serviceName: signupData.serviceName, // Include service name
+        businessName: signupData.businessName,
+        serviceName: signupData.businessName, // Use businessName for service name too
         businessEmail: pendingSignup.email,
         businessPhone: signupData.phone,
         businessAddress: signupData.businessAddress,
@@ -273,14 +273,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create admin user profile in storage
       const adminProfile = {
         id: userId,
-        name: signupData.ownerName,
         email: pendingSignup.email,
-        role: 'admin' as const,
+        phone: signupData.phone,
         tenantId: tenant.id,
+        fullName: signupData.ownerName,
+        role: 'admin' as const,
         isActive: true
       };
 
-      await storage.createUser(adminProfile);
+      await storage.createUserProfile(adminProfile);
 
       // Clean up pending signup
       await storage.deletePendingSignup(token);
@@ -1396,8 +1397,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = combinedBusinessSignupSchema.parse(req.body);
       
-      // Generate subdomain from company name
-      const subdomain = validatedData.companyName
+      // Generate subdomain from business name
+      const subdomain = validatedData.businessName
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')
@@ -1408,7 +1409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAvailable = await storage.checkSubdomainAvailable(subdomain, validatedData.email);
       if (!isAvailable) {
         return res.status(400).json({ 
-          message: "A business with a similar name already exists. Please choose a different company name." 
+          message: "A business with a similar name already exists. Please choose a different business name." 
         });
       }
 
@@ -1439,8 +1440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           emailRedirectTo: `${req.protocol}://${req.get('host')}/signup-complete?token=${verificationToken}`,
           data: {
             full_name: validatedData.ownerName,
-            business_name: validatedData.companyName,
-            service_name: validatedData.serviceName,
+            business_name: validatedData.businessName,
             subdomain: subdomain,
           }
         }

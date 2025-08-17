@@ -259,8 +259,7 @@ export const updateBusinessSettingsSchema = insertBusinessSettingsSchema.partial
 // Combined business signup schema
 export const combinedBusinessSignupSchema = z.object({
   // Business Information
-  companyName: z.string().min(1, "Company name is required"),
-  serviceName: z.string().min(1, "Service name is required"), 
+  businessName: z.string().min(1, "Business name is required"), 
   businessType: z.string().min(1, "Business type is required"),
   ownerName: z.string().min(1, "Owner name is required"),
   email: z.string().email("Valid email is required"),

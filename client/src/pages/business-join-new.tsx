@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { combinedBusinessSignupSchema } from '@shared/schema';
@@ -44,8 +44,7 @@ export default function BusinessJoin() {
   const form = useForm<FormData>({
     resolver: zodResolver(combinedBusinessSignupSchema),
     defaultValues: {
-      companyName: 'Test Delivery Co',
-      serviceName: 'Test Delivery Service',
+      businessName: 'Test Delivery Co',
       businessType: 'Multi-Service Delivery',
       ownerName: 'John Smith',
       email: 'john@testdelivery.com',
@@ -215,35 +214,22 @@ export default function BusinessJoin() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Business Information</h3>
                   
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="companyName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Company Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Your Delivery Company" {...field} data-testid="input-company-name" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="serviceName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Service Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="How customers will see your service" {...field} data-testid="input-service-name" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="businessName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Business Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your Delivery Service Name" {...field} data-testid="input-business-name" />
+                        </FormControl>
+                        <FormDescription>
+                          This is how your business will appear to customers on your delivery site.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <FormField
                     control={form.control}
