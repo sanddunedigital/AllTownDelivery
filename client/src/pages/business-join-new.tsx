@@ -63,7 +63,7 @@ export default function BusinessJoin() {
 
   const signupMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await apiRequest('POST', '/api/signup/combined', data);
+      const response = await apiRequest('/api/signup/combined', 'POST', data);
       return response.json();
     },
     onSuccess: () => {
