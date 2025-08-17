@@ -1601,16 +1601,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '');
 
-      // Generate username from owner name (first initial + last name) or use provided username
-      let username: string;
-      if (validatedData.adminUsername) {
-        username = validatedData.adminUsername.toLowerCase().replace(/[^a-z0-9]/g, '');
-      } else {
-        const nameParts = validatedData.ownerName.trim().split(/\s+/);
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts[nameParts.length - 1] || '';
-        username = (firstName.charAt(0) + lastName).toLowerCase().replace(/[^a-z0-9]/g, '');
-      }
+      // Use the provided username (cleaned for safety)
+      const username = validatedData.adminUsername.toLowerCase().replace(/[^a-z0-9]/g, '');
       
 
 

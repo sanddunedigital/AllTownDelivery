@@ -280,7 +280,7 @@ export const combinedBusinessSignupSchema = z.object({
   description: z.string().optional(),
   
   // Admin Setup
-  adminUsername: z.string().optional(),
+  adminUsername: z.string().min(3, "Username must be at least 3 characters").max(20, "Username must be 20 characters or less"),
   adminPassword: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(8, "Please confirm your password"),
 }).refine((data) => data.adminPassword === data.confirmPassword, {

@@ -435,17 +435,17 @@ export default function BusinessJoin() {
                     name="adminUsername"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Admin Username (Optional)</FormLabel>
+                        <FormLabel>Admin Username</FormLabel>
                         <FormControl>
                           <Input
                             type="text"
                             data-testid="input-admin-username"
-                            placeholder="Leave blank to auto-generate from your name"
+                            placeholder="Choose your admin username"
                             {...field}
                           />
                         </FormControl>
                         <FormDescription>
-                          If blank, we'll create a username from your first initial + last name
+                          This will be your login username for the admin dashboard
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
