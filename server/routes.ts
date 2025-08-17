@@ -1457,7 +1457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Production signup - Host:', host, 'Protocol:', protocol, 'NODE_ENV:', process.env.NODE_ENV);
       console.log('Final email redirect URL:', redirectUrl);
       
-      // Send verification email through Supabase
+      // Send verification email through Supabase with business data in metadata
       const { error } = await supabaseClient.auth.signUp({
         email: validatedData.email,
         password: validatedData.adminPassword, // Use admin password for Supabase auth
@@ -1467,6 +1467,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             full_name: validatedData.ownerName,
             business_name: validatedData.businessName,
             subdomain: subdomain,
+            signupType: 'business',
+            businessData: signupData // Store complete business data for fallback
           }
         }
       });

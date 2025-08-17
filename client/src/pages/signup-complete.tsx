@@ -47,14 +47,39 @@ export default function SignupComplete() {
   useEffect(() => {
     const handleSignupCompletion = async () => {
       try {
-        // Check if user came from email verification - look for token or other indicators
         const urlParams = new URLSearchParams(window.location.search);
-        const hasToken = urlParams.has('token') || urlParams.has('access_token') || urlParams.has('refresh_token');
+        const customToken = urlParams.get('token');
         
         console.log('Signup complete page loaded. URL params:', window.location.search);
-        console.log('Has verification token/access_token:', hasToken);
+        console.log('Custom token:', customToken);
         
-        // Get current user session (should exist after email verification)
+        // If we have our custom verification token, use the original flow
+        if (customToken) {
+          console.log('Using custom token verification flow');
+          // This is the original flow where we process the business data from pending_signups table
+          const response = await apiRequest('/api/verify-email', 'POST', { 
+            token: customToken 
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            setErrorMessage(errorData.message || 'Email verification failed');
+            setVerificationState('error');
+            return;
+          }
+          
+          const data = await response.json();
+          setTenantData(data);
+          setVerificationState('success');
+          toast({
+            title: 'Account Created Successfully!',
+            description: `Your delivery service is now live at ${data.subdomain}.alltowndelivery.com`,
+          });
+          return;
+        }
+        
+        // Fallback: Try the new Supabase-based flow
+        console.log('Using Supabase auth verification flow');
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
         if (userError || !user) {
