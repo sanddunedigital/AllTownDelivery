@@ -63,18 +63,17 @@ export default function BusinessJoin() {
 
   const signupMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await apiRequest('/api/signup/supabase', 'POST', data);
+      const response = await apiRequest('/api/signup/direct', 'POST', data);
       return response.json();
     },
     onSuccess: (data) => {
-      // Redirect to signup-pending page with email and business name
-      const email = form.getValues('email');
-      const businessName = form.getValues('businessName');
+      // Redirect directly to success page since account is created immediately
+      const subdomain = data.subdomain;
       const params = new URLSearchParams({
-        email: email,
-        business: businessName
+        subdomain: subdomain,
+        direct: 'true'
       });
-      setLocation(`/signup-pending?${params.toString()}`);
+      setLocation(`/signup-complete?${params.toString()}`);
     },
     onError: (error: any) => {
       toast({

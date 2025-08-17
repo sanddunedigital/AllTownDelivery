@@ -1539,7 +1539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adminUser = await storage.createUser({
         username: signupData.email,
         password: signupData.adminPassword,
-        fullName: signupData.ownerName,
+        name: signupData.ownerName,
         role: 'admin' as const,
         phone: signupData.phone,
         tenantId: newTenant.id,
@@ -1588,8 +1588,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Supabase-based business signup (simplified approach)
-  app.post("/api/signup/supabase", async (req, res) => {
+  // Direct business account creation (no email verification complexity)
+  app.post("/api/signup/direct", async (req, res) => {
     try {
       const validatedData = combinedBusinessSignupSchema.parse(req.body);
       
@@ -1601,88 +1601,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '');
 
-      // Check if subdomain is available by checking existing tenants
+      // Check if subdomain is available
       const existingTenant = await storage.getTenantBySubdomain(subdomain);
-      if (existingTenant && existingTenant.email !== validatedData.email) {
+      if (existingTenant) {
         return res.status(400).json({ 
           message: "A business with a similar name already exists. Please choose a different business name." 
         });
       }
 
-      if (!supabaseClient) {
-        return res.status(500).json({ 
-          message: "Email service not available. Please contact support." 
-        });
-      }
+      // Create tenant directly
+      const newTenant = await storage.createTenant({
+        subdomain: subdomain,
+        companyName: validatedData.businessName,
+        businessType: validatedData.businessType,
+        ownerName: validatedData.ownerName,
+        email: validatedData.email,
+        phone: validatedData.phone,
+        businessAddress: validatedData.businessAddress,
+        city: validatedData.city,
+        state: validatedData.state,
+        zipCode: validatedData.zipCode,
+        currentDeliveryVolume: validatedData.currentDeliveryVolume,
+        description: validatedData.description,
+      });
 
-      // Construct redirect URL for email confirmation
-      const host = req.get('host') || 'localhost:5000';
-      const protocol = req.protocol || 'http';
-      
-      let redirectHost = host;
-      let redirectProtocol = protocol;
-      
-      if (process.env.NODE_ENV === 'production' || host.includes('alltowndelivery.com')) {
-        redirectHost = 'www.alltowndelivery.com';
-        redirectProtocol = 'https';
-      }
-      
-      const redirectUrl = `${redirectProtocol}://${redirectHost}/signup-complete`;
+      // Create admin user
+      const adminUser = await storage.createUser({
+        username: validatedData.email,
+        password: validatedData.adminPassword,
+        name: validatedData.ownerName,
+        role: 'admin' as const,
+        phone: validatedData.phone,
+        tenantId: newTenant.id,
+      });
 
-      try {
-        // Create Supabase user with business data in metadata
-        const { data, error } = await supabaseClient.auth.admin.createUser({
-          email: validatedData.email,
-          password: validatedData.adminPassword,
-          email_confirm: false, // Require email confirmation
-          user_metadata: {
-            role: 'business_admin',
-            businessName: validatedData.businessName,
-            businessType: validatedData.businessType,
-            ownerName: validatedData.ownerName,
-            phone: validatedData.phone,
-            businessAddress: validatedData.businessAddress,
-            city: validatedData.city,
-            state: validatedData.state,
-            zipCode: validatedData.zipCode,
-            serviceArea: validatedData.serviceArea,
-            currentDeliveryVolume: validatedData.currentDeliveryVolume,
-            description: validatedData.description,
-            subdomain: subdomain
-          }
-        });
+      // Create default business settings
+      const defaultBusinessSettings = {
+        businessName: validatedData.businessName,
+        businessType: validatedData.businessType,
+        businessAddress: validatedData.businessAddress,
+        phone: validatedData.phone,
+        email: validatedData.email,
+        operatingHours: {
+          monday: { open: '09:00', close: '17:00', closed: false },
+          tuesday: { open: '09:00', close: '17:00', closed: false },
+          wednesday: { open: '09:00', close: '17:00', closed: false },
+          thursday: { open: '09:00', close: '17:00', closed: false },
+          friday: { open: '09:00', close: '17:00', closed: false },
+          saturday: { open: '10:00', close: '15:00', closed: false },
+          sunday: { open: '10:00', close: '15:00', closed: true }
+        },
+        deliveryRadius: 15,
+        minimumOrder: 0,
+        deliveryFee: 5.99,
+        loyaltyProgram: {
+          enabled: true,
+          freeDeliveryAfter: 10
+        },
+        tenantId: newTenant.id,
+      };
 
-        if (error) {
-          console.error('Supabase user creation error:', error);
-          
-          // Handle duplicate email
-          if (error.message.includes('already been registered')) {
-            return res.status(400).json({
-              message: "An account with this email already exists. Please use a different email or sign in to your existing account."
-            });
-          }
-          
-          return res.status(400).json({ 
-            message: error.message || "Failed to create account" 
-          });
-        }
+      await storage.createBusinessSettings(defaultBusinessSettings);
 
-        console.log('Supabase user created successfully:', data.user?.id);
-        
-        res.status(200).json({ 
-          message: "Account created! Please check your email to verify your account.",
-          subdomain: subdomain
-        });
-        
-      } catch (supabaseError) {
-        console.error('Supabase signup error:', supabaseError);
-        res.status(500).json({ 
-          message: "Failed to create account. Please try again." 
-        });
-      }
+      res.status(200).json({ 
+        message: "Account created successfully! You can now access your business dashboard.",
+        subdomain: subdomain,
+        tenantId: newTenant.id
+      });
 
     } catch (error) {
-      console.error("Signup error:", error);
+      console.error("Direct signup error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
           message: "Invalid form data", 
@@ -1726,7 +1714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adminUser = await storage.createUser({
         username: user.email,
         password: 'managed_by_supabase', // Password managed by Supabase
-        fullName: metadata.ownerName,
+        name: metadata.ownerName,
         role: 'admin' as const,
         phone: metadata.phone,
         tenantId: newTenant.id,
