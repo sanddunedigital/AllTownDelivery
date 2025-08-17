@@ -171,21 +171,25 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
     const host = req.headers.host || '';
     const hostParts = host.split('.');
 
-    // Check if this is the main AllTownDelivery.com domain (no subdomain)
-    // In development environments (Replit, localhost), we treat the main access URL as the marketing site
-    const isMainDomain = host.toLowerCase() === 'alltowndelivery.com' || 
-                        host.toLowerCase() === 'www.alltowndelivery.com' ||
-                        host.includes('vercel.app') || // Include Vercel deployment URLs  
-                        host.includes('replit.app') || // Include Replit deployment URLs (development main site)
-                        host.includes('replit.dev') || // Include Replit development URLs (development main site)
-                        host.includes('repl.co') || // Include legacy Replit URLs (development main site)
-                        host.toLowerCase() === 'localhost:5000' || // Development main site
-                        host.toLowerCase() === 'localhost' || // Development main site without port
-                        host.toLowerCase().startsWith('localhost:') || // Any localhost port (development main site)
-                        (hostParts.length === 1); // Single domain without subdomain (development main site)
-
-    if (isMainDomain) {
-      // This is the main marketing site
+    // Check if this is a development environment
+    const isDevelopment = host.includes('replit.app') || host.includes('replit.dev') || host.includes('repl.co') || 
+                         host.includes('localhost') || host.includes('vercel.app');
+    
+    // For development environments, ALWAYS treat as main marketing site
+    // For production, only treat as main site if it's the actual alltowndelivery.com domain
+    if (isDevelopment) {
+      // Development environment - always main site
+      console.log(`[TENANT] DEVELOPMENT MODE: Host ${host} detected as development, setting as main site`);
+      isMainSite = true;
+      tenant = {
+        id: 'main-site',
+        companyName: 'AllTownDelivery',
+        primaryColor: '#0369a1',
+        planType: 'platform',
+        isMainSite: true,
+      };
+    } else if (host.toLowerCase() === 'alltowndelivery.com' || host.toLowerCase() === 'www.alltowndelivery.com') {
+      // Production main domain
       isMainSite = true;
       tenant = {
         id: 'main-site',
@@ -195,6 +199,9 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
         isMainSite: true,
       };
     } else {
+      // Production subdomain or custom domain
+      isMainSite = false;
+      
       // 1. Try custom domain first (e.g., sarasquickiedelivery.com)
       if (hostParts.length >= 2) {
         const domain = host.toLowerCase();
@@ -207,29 +214,15 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
         tenant = await getTenantBySubdomain(subdomain);
       }
 
-      // 3. For development: check if this is a full subdomain in localhost (e.g., saras-quickie-delivery.localhost:5000)
-      if (!tenant && host.includes('localhost') && hostParts.length >= 2) {
-        const potentialSubdomain = hostParts[0].toLowerCase();
-        if (potentialSubdomain !== 'localhost') {
-          tenant = await getTenantBySubdomain(potentialSubdomain);
-        }
-      }
-
-      // 3. No tenant found - this subdomain doesn't exist
+      // No tenant found for this subdomain/domain
       if (!tenant) {
-        // Return null to indicate invalid subdomain instead of falling back
-        tenant = null;
+        console.log(`[TENANT] ERROR: No tenant found for production host: ${host}`);
+        return res.status(404).json({ 
+          error: 'Subdomain not found',
+          message: 'This subdomain is not associated with any delivery service.',
+          isInvalidSubdomain: true
+        });
       }
-    }
-
-    // Check if we have a valid tenant for non-main sites
-    if (!isMainSite && !tenant) {
-      // Invalid subdomain - return 404 instead of serving content
-      return res.status(404).json({ 
-        error: 'Subdomain not found',
-        message: 'This subdomain is not associated with any delivery service.',
-        isInvalidSubdomain: true
-      });
     }
 
     // Add tenant to request context

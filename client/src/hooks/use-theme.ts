@@ -48,6 +48,22 @@ export function useTheme() {
     refetchOnWindowFocus: false, // Don't refetch when window gains focus
     refetchOnMount: false, // Don't refetch on component mount
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/business-settings');
+        if (!response.ok) {
+          // For 404 errors on main marketing site, return null silently
+          if (response.status === 404) {
+            return null;
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      } catch (error) {
+        // Silently return null for main marketing site - this is expected
+        return null;
+      }
+    }
   }) as { data: BusinessSettings | undefined };
 
   useEffect(() => {
