@@ -597,18 +597,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
-      await storage.createBusinessSettings(tenant.id, businessSettings);
+      await storage.createBusinessSettings(businessSettings);
 
       // Create admin user profile for business owner
       const adminProfile = {
-        supabaseUserId: userId,
+        id: userId, // Use Supabase user ID as profile ID
         tenantId: tenant.id,
         email: email,
-        firstName: ownerName.split(' ')[0] || ownerName,
-        lastName: ownerName.split(' ').slice(1).join(' ') || '',
+        fullName: ownerName,
         phone: phone,
-        role: 'admin',
-        isActive: true
+        role: 'admin'
       };
 
       await storage.createUserProfile(adminProfile);
