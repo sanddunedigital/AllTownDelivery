@@ -44,6 +44,10 @@ interface BusinessSettings {
 export function useTheme() {
   const { data: businessSettings } = useQuery({
     queryKey: ['/api/business-settings'],
+    retry: false, // Don't retry failed requests for main marketing site
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    refetchOnMount: false, // Don't refetch on component mount
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
   }) as { data: BusinessSettings | undefined };
 
   useEffect(() => {
