@@ -116,7 +116,13 @@ export const deliveryRequests = pgTable("delivery_requests", {
 // Business settings for tenant customization
 export const businessSettings = pgTable("business_settings", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: uuid("tenant_id").default(sql`'00000000-0000-0000-0000-000000000001'::uuid`).notNull(),
+  tenantId: uuid("tenant_id").notNull().unique(), // One settings per tenant
+  
+  // Basic Business Info
+  serviceName: text("service_name").notNull(), // The display name on the subdomain
+  businessEmail: text("business_email").notNull(),
+  businessPhone: text("business_phone").notNull(),
+  serviceArea: text("service_area").notNull(), // "Oskaloosa, IA" or "Des Moines Metro"
   
   // Pricing Configuration
   baseDeliveryFee: numeric("base_delivery_fee", { precision: 10, scale: 2 }).default("3.00"),
@@ -142,10 +148,8 @@ export const businessSettings = pgTable("business_settings", {
     sunday: { open: string; close: string; closed?: boolean };
   }>(),
   
-  // Branding & Contact
-  businessName: text("business_name"),
-  businessPhone: text("business_phone"),
-  businessEmail: text("business_email"),
+  // Additional Business Info
+  businessName: text("business_name"), // Can be different from serviceName
   businessAddress: text("business_address"),
   logoUrl: text("logo_url"),
   websiteUrl: text("website_url"),
@@ -251,6 +255,31 @@ export const insertBusinessSettingsSchema = createInsertSchema(businessSettings)
 });
 
 export const updateBusinessSettingsSchema = insertBusinessSettingsSchema.partial();
+
+// Combined business signup schema
+export const combinedBusinessSignupSchema = z.object({
+  // Business Information
+  companyName: z.string().min(1, "Company name is required"),
+  serviceName: z.string().min(1, "Service name is required"), 
+  businessType: z.string().min(1, "Business type is required"),
+  ownerName: z.string().min(1, "Owner name is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().min(1, "Phone number is required"),
+  businessAddress: z.string().min(1, "Business address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State is required"),
+  zipCode: z.string().min(1, "ZIP code is required"),
+  serviceArea: z.string().min(1, "Service area is required"),
+  currentDeliveryVolume: z.string().min(1, "Delivery volume is required"),
+  description: z.string().optional(),
+  
+  // Admin Setup
+  adminPassword: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string().min(8, "Please confirm your password"),
+}).refine((data) => data.adminPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
 
 // Service zones schemas
 export const insertServiceZoneSchema = createInsertSchema(serviceZones).omit({

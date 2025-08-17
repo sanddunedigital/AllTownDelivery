@@ -16,6 +16,7 @@ import {
   insertBusinessSchema,
   insertTenantSchema,
   insertPendingSignupSchema,
+  combinedBusinessSignupSchema
 } from "../shared/schema.js";
 import { z } from "zod";
 import { ObjectStorageService } from "./objectStorage.js";
@@ -231,6 +232,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const tenant = await storage.createTenant(tenantData);
+
+      // Create default business settings with service name
+      const defaultBusinessSettings = {
+        tenantId: tenant.id,
+        businessName: signupData.companyName || signupData.businessName,
+        serviceName: signupData.serviceName, // Include service name
+        businessEmail: pendingSignup.email,
+        businessPhone: signupData.phone,
+        businessAddress: signupData.businessAddress,
+        primaryColor: signupData.primaryColor || "#0369a1",
+        secondaryColor: "#64748b",
+        accentColor: "#ea580c",
+        currency: "USD",
+        timezone: "America/Chicago",
+        baseDeliveryFee: "4.99",
+        pricePerMile: "1.50",
+        minimumOrderValue: "10.00",
+        freeDeliveryThreshold: "25.00",
+        rushDeliveryMultiplier: "1.5",
+        baseFeeRadius: "10.0",
+        pointsForFreeDelivery: 10,
+        enableLoyaltyProgram: true,
+        enableRealTimeTracking: true,
+        enableScheduledDeliveries: false,
+        acceptedPaymentMethods: ['cash_on_delivery', 'card_on_delivery'],
+        operatingHours: {
+          monday: { open: '08:00', close: '20:00', closed: false },
+          tuesday: { open: '08:00', close: '20:00', closed: false },
+          wednesday: { open: '08:00', close: '20:00', closed: false },
+          thursday: { open: '08:00', close: '20:00', closed: false },
+          friday: { open: '08:00', close: '20:00', closed: false },
+          saturday: { open: '08:00', close: '20:00', closed: false },
+          sunday: { open: '10:00', close: '18:00', closed: false }
+        }
+      };
+
+      await storage.createBusinessSettings(defaultBusinessSettings);
+
+      // Create admin user profile in storage
+      const adminProfile = {
+        id: userId,
+        name: signupData.ownerName,
+        email: pendingSignup.email,
+        role: 'admin' as const,
+        tenantId: tenant.id,
+        isActive: true
+      };
+
+      await storage.createUser(adminProfile);
 
       // Clean up pending signup
       await storage.deletePendingSignup(token);
@@ -1338,6 +1388,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching tenant info:', error);
       res.status(500).json({ message: "Error fetching tenant information" });
+    }
+  });
+
+  // Combined Business Signup Route
+  app.post("/api/signup/combined", async (req, res) => {
+    try {
+      const validatedData = combinedBusinessSignupSchema.parse(req.body);
+      
+      // Generate subdomain from company name
+      const subdomain = validatedData.companyName
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      // Check if subdomain is available
+      const isAvailable = await storage.checkSubdomainAvailable(subdomain, validatedData.email);
+      if (!isAvailable) {
+        return res.status(400).json({ 
+          message: "A business with a similar name already exists. Please choose a different company name." 
+        });
+      }
+
+      // Create verification token
+      const crypto = await import('crypto');
+      const verificationToken = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Store signup data including admin password
+      const signupData = {
+        ...validatedData,
+        subdomain,
+        verificationToken,
+      };
+
+      await storage.createPendingSignup({
+        email: validatedData.email,
+        signupData: signupData as any,
+        verificationToken,
+        expiresAt,
+      });
+
+      // Send verification email through Supabase
+      const { error } = await supabaseClient.auth.signUp({
+        email: validatedData.email,
+        password: validatedData.adminPassword, // Use admin password for Supabase auth
+        options: {
+          emailRedirectTo: `${req.protocol}://${req.get('host')}/signup-complete?token=${verificationToken}`,
+          data: {
+            full_name: validatedData.ownerName,
+            business_name: validatedData.companyName,
+            service_name: validatedData.serviceName,
+            subdomain: subdomain,
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Supabase signup error:', error);
+        await storage.deletePendingSignup(verificationToken);
+        return res.status(400).json({ message: error.message });
+      }
+
+      res.status(200).json({ 
+        message: "Verification email sent successfully",
+        subdomain: subdomain
+      });
+
+    } catch (error) {
+      console.error("Combined signup error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to create account" });
     }
   });
 

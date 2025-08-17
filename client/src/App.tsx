@@ -15,7 +15,7 @@ import BusinessSettings from "@/pages/business-settings";
 import ResetPassword from "@/pages/reset-password";
 import Auth from "@/pages/auth";
 import Signup from "@/pages/signup";
-import BusinessJoin from "@/pages/business-join";
+import BusinessJoinNew from "@/pages/business-join-new";
 import TenantNotFound from "@/pages/tenant-not-found";
 import AdminSetup from "@/pages/admin-setup";
 import { lazy, Suspense } from "react";
@@ -48,7 +48,7 @@ function Router() {
           <SignupComplete />
         </Suspense>
       </Route>
-      <Route path="/join" component={BusinessJoin} />
+      <Route path="/join" component={BusinessJoinNew} />
       <Route path="/admin-setup" component={AdminSetup} />
       <Route component={NotFound} />
     </Switch>
