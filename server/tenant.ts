@@ -174,10 +174,9 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
     // Check if this is the main AllTownDelivery.com domain (no subdomain)
     const isMainDomain = host.toLowerCase() === 'alltowndelivery.com' || 
                         host.toLowerCase() === 'www.alltowndelivery.com' ||
-                        host.includes('vercel.app'); // Include Vercel deployment URLs
-
-    // For localhost development, default to Sara's Quickie tenant instead of main site
-    const isLocalhost = host.toLowerCase().includes('localhost');
+                        host.includes('vercel.app') || // Include Vercel deployment URLs
+                        host.toLowerCase() === 'localhost:5000' || // Development main site
+                        (hostParts.length === 2 && hostParts[1] === 'com' && !hostParts[0].includes('-')); // No subdomain detected
 
     if (isMainDomain) {
       // This is the main marketing site
@@ -189,9 +188,6 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
         planType: 'platform',
         isMainSite: true,
       };
-    } else if (isLocalhost) {
-      // In development, default to Sara's Quickie for easier testing
-      tenant = await getDefaultTenant();
     } else {
       // 1. Try custom domain first (e.g., sarasquickiedelivery.com)
       if (hostParts.length >= 2) {
@@ -213,15 +209,15 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
         }
       }
 
-      // 4. No tenant found - this subdomain doesn't exist
+      // 3. No tenant found - this subdomain doesn't exist
       if (!tenant) {
         // Return null to indicate invalid subdomain instead of falling back
         tenant = null;
       }
     }
 
-    // Check if we have a valid tenant for non-main sites and non-localhost
-    if (!isMainSite && !isLocalhost && !tenant) {
+    // Check if we have a valid tenant for non-main sites
+    if (!isMainSite && !tenant) {
       // Invalid subdomain - return 404 instead of serving content
       return res.status(404).json({ 
         error: 'Subdomain not found',
