@@ -48,15 +48,34 @@ export default function SignupComplete() {
     const handleSignupCompletion = async () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
+        const directSignup = urlParams.get('direct');
+        const subdomain = urlParams.get('subdomain');
+        const username = urlParams.get('username');
         const customToken = urlParams.get('token');
         
         console.log('Signup complete page loaded. URL params:', window.location.search);
-        console.log('Custom token:', customToken);
         
-        // If we have our custom verification token, use the original flow
+        // If this is a direct signup (no email verification needed), show success immediately
+        if (directSignup === 'true' && subdomain && username) {
+          console.log('Using direct signup flow - no email verification needed');
+          const businessName = urlParams.get('businessName') || 'Your Business';
+          setTenantData({
+            subdomain: subdomain,
+            username: username,
+            businessName: businessName,
+            tenantId: 'direct-signup'
+          });
+          setVerificationState('success');
+          toast({
+            title: 'Account Created Successfully!',
+            description: `Your delivery service is now live at ${subdomain}.alltowndelivery.com`,
+          });
+          return;
+        }
+        
+        // Legacy flow: If we have our custom verification token, use the original flow
         if (customToken) {
           console.log('Using custom token verification flow');
-          // This is the original flow where we process the business data from pending_signups table
           const response = await apiRequest('/api/verify-email', 'POST', { 
             token: customToken 
           });
@@ -78,7 +97,7 @@ export default function SignupComplete() {
           return;
         }
         
-        // Fallback: Try the new Supabase-based flow
+        // Legacy flow: Try the Supabase-based flow
         console.log('Using Supabase auth verification flow');
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
@@ -186,10 +205,10 @@ export default function SignupComplete() {
                   <strong>Admin Access:</strong>
                 </p>
                 <p className="text-sm text-blue-800 mt-1">
-                  You can log into your delivery management dashboard using your email address: <strong>{tenantData.businessEmail || 'your signup email'}</strong>
+                  You can log into your delivery management dashboard using your username: <strong>{tenantData.username}</strong>
                 </p>
                 <p className="text-sm text-blue-600 mt-2">
-                  Use the same password from your email verification to access admin features, or reset your password if needed.
+                  Use the password you created during signup to access admin features and configure your delivery service.
                 </p>
               </div>
 

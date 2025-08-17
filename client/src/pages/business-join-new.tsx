@@ -70,9 +70,11 @@ export default function BusinessJoin() {
       // Redirect directly to success page since account is created immediately
       const subdomain = data.subdomain;
       const username = data.username;
+      const businessName = form.getValues('businessName');
       const params = new URLSearchParams({
         subdomain: subdomain,
         username: username,
+        businessName: businessName,
         direct: 'true'
       });
       setLocation(`/signup-complete?${params.toString()}`);
