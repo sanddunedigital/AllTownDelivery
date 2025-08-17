@@ -44,18 +44,18 @@ export default function BusinessJoin() {
   const form = useForm<FormData>({
     resolver: zodResolver(combinedBusinessSignupSchema),
     defaultValues: {
-      businessName: 'Test Delivery Co',
-      businessType: 'Multi-Service Delivery',
-      ownerName: 'John Smith',
-      email: 'john@testdelivery.com',
-      phone: '555-0123',
-      businessAddress: '123 Main St',
-      city: 'Test City',
-      state: 'TS',
-      zipCode: '12345',
-      serviceArea: 'Test City Metro',
-      currentDeliveryVolume: '1-10 deliveries per day',
-      description: 'Professional delivery service for the Test City area',
+      businessName: '',
+      businessType: '',
+      ownerName: '',
+      email: '',
+      phone: '',
+      businessAddress: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      serviceArea: '',
+      currentDeliveryVolume: '',
+      description: '',
       adminPassword: '',
       confirmPassword: '',
     },
@@ -221,7 +221,7 @@ export default function BusinessJoin() {
                       <FormItem>
                         <FormLabel>Business Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Your Delivery Service Name" {...field} data-testid="input-business-name" />
+                          <Input placeholder="e.g. Swift Express Delivery, Downtown Pizza Delivery" {...field} data-testid="input-business-name" />
                         </FormControl>
                         <FormDescription>
                           This is how your business will appear to customers on your delivery site.
@@ -265,7 +265,7 @@ export default function BusinessJoin() {
                         <FormItem>
                           <FormLabel>Owner Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Your full name" {...field} data-testid="input-owner-name" />
+                            <Input placeholder="e.g. Sarah Johnson, Michael Chen" {...field} data-testid="input-owner-name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -279,7 +279,7 @@ export default function BusinessJoin() {
                         <FormItem>
                           <FormLabel>Email Address</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="your@email.com" {...field} data-testid="input-email" />
+                            <Input type="email" placeholder="owner@yourdelivery.com" {...field} data-testid="input-email" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -308,7 +308,7 @@ export default function BusinessJoin() {
                       <FormItem>
                         <FormLabel>Business Address</FormLabel>
                         <FormControl>
-                          <Input placeholder="123 Main Street" {...field} data-testid="input-business-address" />
+                          <Input placeholder="e.g. 456 Commerce Drive, 123 Main Street Suite 200" {...field} data-testid="input-business-address" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -323,7 +323,7 @@ export default function BusinessJoin() {
                         <FormItem>
                           <FormLabel>City</FormLabel>
                           <FormControl>
-                            <Input placeholder="Your City" {...field} data-testid="input-city" />
+                            <Input placeholder="e.g. San Francisco, Des Moines" {...field} data-testid="input-city" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -337,7 +337,7 @@ export default function BusinessJoin() {
                         <FormItem>
                           <FormLabel>State</FormLabel>
                           <FormControl>
-                            <Input placeholder="IA" {...field} data-testid="input-state" />
+                            <Input placeholder="CA, TX, NY" {...field} data-testid="input-state" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -351,7 +351,7 @@ export default function BusinessJoin() {
                         <FormItem>
                           <FormLabel>ZIP Code</FormLabel>
                           <FormControl>
-                            <Input placeholder="52577" {...field} data-testid="input-zip-code" />
+                            <Input placeholder="12345, 94102" {...field} data-testid="input-zip-code" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -367,7 +367,7 @@ export default function BusinessJoin() {
                         <FormItem>
                           <FormLabel>Service Area</FormLabel>
                           <FormControl>
-                            <Input placeholder="City, State or Metro Area" {...field} data-testid="input-service-area" />
+                            <Input placeholder="e.g. Greater Chicago Area, Downtown Austin, Manhattan" {...field} data-testid="input-service-area" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -408,7 +408,7 @@ export default function BusinessJoin() {
                         <FormLabel>Business Description (Optional)</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Tell customers about your delivery service..."
+                            placeholder="e.g. Fast, reliable delivery service specializing in restaurant and grocery deliveries. Same-day delivery available throughout the metro area."
                             {...field}
                             data-testid="textarea-description"
                           />
@@ -437,7 +437,7 @@ export default function BusinessJoin() {
                             <div className="relative">
                               <Input 
                                 type={showPassword ? "text" : "password"}
-                                placeholder="Create a secure password"
+                                placeholder="At least 8 characters with letters and numbers"
                                 {...field}
                                 data-testid="input-admin-password"
                               />
@@ -472,7 +472,7 @@ export default function BusinessJoin() {
                             <div className="relative">
                               <Input 
                                 type={showConfirmPassword ? "text" : "password"}
-                                placeholder="Confirm your password"
+                                placeholder="Re-enter the password above"
                                 {...field}
                                 data-testid="input-confirm-password"
                               />
