@@ -41,19 +41,40 @@ export const tenants = pgTable("tenants", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// User profiles table (linked to Supabase Auth users)
+// Base user profiles - core info shared by all users (linked to Supabase Auth users)
 export const userProfiles = pgTable("user_profiles", {
-  id: uuid("id").primaryKey(), // This will match Supabase Auth user ID
-  tenantId: uuid("tenant_id").default(sql`'00000000-0000-0000-0000-000000000001'::uuid`).notNull(), // Default to Sara's tenant
-  email: text("email").notNull().unique(),
+  id: text("id").primaryKey(), // Supabase user ID (text type)
+  email: text("email").notNull(),
   fullName: text("full_name"),
   phone: text("phone"),
+  tenantId: uuid("tenant_id").notNull().default(sql`'00000000-0000-0000-0000-000000000001'::uuid`),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Business staff - employees of delivery businesses (admin, dispatcher, driver)
+export const businessStaff = pgTable("business_staff", {
+  id: text("id").primaryKey(), // Supabase user ID
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  role: text("role").notNull(), // admin, dispatcher, driver
+  isOnDuty: boolean("is_on_duty").default(false), // for drivers
+  permissions: jsonb("permissions"), // role-specific permissions
+  inviteToken: text("invite_token"), // for email invitations
+  inviteStatus: text("invite_status").default("pending"), // pending, accepted, expired
+  invitedBy: text("invited_by"), // admin who sent invite
+  invitedAt: timestamp("invited_at"),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Customer profiles - delivery service customers (can be cross-tenant)
+export const customerProfiles = pgTable("customer_profiles", {
+  id: text("id").primaryKey(), // Supabase user ID  
   defaultPickupAddress: text("default_pickup_address"),
   defaultDeliveryAddress: text("default_delivery_address"),
   preferredPaymentMethod: text("preferred_payment_method"),
   marketingConsent: boolean("marketing_consent").default(false),
-  role: text("role").default("customer").notNull(), // customer, driver, admin, dispatcher
-  isOnDuty: boolean("is_on_duty").default(false), // true when driver is available for deliveries
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -386,6 +407,41 @@ export const PREDEFINED_PAYMENT_METHODS = [
   { value: 'google_pay', label: 'Google Pay' },
   { value: 'zelle', label: 'Zelle' },
 ] as const;
+
+// Business staff schemas (NEW - for invite-based business authentication)
+export const insertBusinessStaffSchema = createInsertSchema(businessStaff, {
+  role: z.enum(["admin", "dispatcher", "driver"]),
+  inviteStatus: z.enum(["pending", "accepted", "expired"]).default("pending"),
+}).omit({ id: true, createdAt: true, updatedAt: true });
+
+export const updateBusinessStaffSchema = insertBusinessStaffSchema.partial();
+
+export type InsertBusinessStaff = z.infer<typeof insertBusinessStaffSchema>;
+export type UpdateBusinessStaff = z.infer<typeof updateBusinessStaffSchema>;
+export type BusinessStaff = typeof businessStaff.$inferSelect;
+
+// Customer profile schemas (NEW - for customer-specific data)
+export const insertCustomerProfileSchema = createInsertSchema(customerProfiles).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+export const updateCustomerProfileSchema = insertCustomerProfileSchema.partial();
+
+export type InsertCustomerProfile = z.infer<typeof insertCustomerProfileSchema>;
+export type UpdateCustomerProfile = z.infer<typeof updateCustomerProfileSchema>;
+export type CustomerProfile = typeof customerProfiles.$inferSelect;
+
+// Staff invitation schema for admin use
+export const inviteStaffSchema = z.object({
+  email: z.string().email("Valid email is required"),
+  fullName: z.string().min(1, "Full name is required"),
+  role: z.enum(["admin", "dispatcher", "driver"]),
+  permissions: z.object({}).optional(), // Role-specific permissions
+});
+
+export type InviteStaff = z.infer<typeof inviteStaffSchema>;
 
 // Square payment schemas
 export const processPaymentSchema = z.object({
