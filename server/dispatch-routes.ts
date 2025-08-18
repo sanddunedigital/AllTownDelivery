@@ -60,15 +60,18 @@ router.get('/drivers', async (req, res) => {
   try {
     console.log('Fetching all drivers for dispatch...');
     
-    // Use storage layer to get drivers (properly handles field conversion)
-    const drivers = await storage.getDrivers();
+    // Get tenant context
+    const tenantId = (req as any).tenantId || '00000000-0000-0000-0000-000000000001';
+    
+    // Use storage layer to get drivers for this tenant
+    const drivers = await storage.getDrivers(tenantId);
 
-    console.log(`Found ${drivers.length} drivers/staff members`);
-    console.log('Data from storage:', drivers.map(d => ({ 
+    console.log(`Found ${drivers.length} drivers for tenant ${tenantId}`);
+    console.log('Driver data:', drivers.map(d => ({ 
       id: d.id, 
-      email: d.email, 
       role: d.role, 
-      isOnDuty: d.isOnDuty 
+      isOnDuty: d.isOnDuty,
+      inviteStatus: d.inviteStatus
     })));
 
     res.json(drivers);

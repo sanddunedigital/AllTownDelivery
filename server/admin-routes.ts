@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { eq, sql, and, gte, lte, desc, count } from 'drizzle-orm';
 import { db } from './db.js';
-import { userProfiles, deliveryRequests, businesses, businessSettings } from '../shared/schema.js';
+import { userProfiles, deliveryRequests, businesses, businessSettings, businessStaff } from '../shared/schema.js';
 
 const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
@@ -88,18 +88,18 @@ router.get('/analytics', async (req, res) => {
       
       // Active drivers
       db.select({ count: count() })
-        .from(userProfiles)
+        .from(businessStaff)
         .where(
           and(
-            eq(userProfiles.role, 'driver'),
-            eq(userProfiles.isOnDuty, true)
+            eq(businessStaff.role, 'driver'),
+            eq(businessStaff.isOnDuty, true)
           )
         ),
       
-      // Total customers
+      // Total customers (users who are not business staff)
       db.select({ count: count() })
         .from(userProfiles)
-        .where(eq(userProfiles.role, 'customer')),
+        .where(sql`${userProfiles.id} NOT IN (SELECT id FROM business_staff)`),
       
       // Top businesses by order count
       db.select({
@@ -182,19 +182,29 @@ router.get('/analytics', async (req, res) => {
 // Get all users for admin management
 router.get('/users', async (req, res) => {
   try {
-    const users = await db.select({
+    // Get all user profiles with optional business staff info
+    const usersWithStaff = await db.select({
       id: userProfiles.id,
       email: userProfiles.email,
       fullName: userProfiles.fullName,
       phone: userProfiles.phone,
-      role: userProfiles.role,
-      isOnDuty: userProfiles.isOnDuty,
-      totalDeliveries: userProfiles.totalDeliveries,
-      loyaltyPoints: userProfiles.loyaltyPoints,
-      createdAt: userProfiles.createdAt
+      tenantId: userProfiles.tenantId,
+      createdAt: userProfiles.createdAt,
+      // Business staff info (may be null for customers)
+      role: businessStaff.role,
+      isOnDuty: businessStaff.isOnDuty,
+      inviteStatus: businessStaff.inviteStatus
     })
       .from(userProfiles)
+      .leftJoin(businessStaff, eq(userProfiles.id, businessStaff.id))
       .orderBy(desc(userProfiles.createdAt));
+
+    // Transform data to include user type
+    const users = usersWithStaff.map(user => ({
+      ...user,
+      userType: user.role ? 'business_staff' : 'customer',
+      role: user.role || 'customer'
+    }));
 
     res.json(users);
   } catch (error) {
@@ -212,13 +222,13 @@ router.post('/assign-role', async (req, res) => {
       return res.status(400).json({ error: 'Email and role are required' });
     }
 
-    // Valid roles
-    const validRoles = ['customer', 'driver', 'dispatcher', 'admin'];
+    // Valid business staff roles only
+    const validRoles = ['driver', 'dispatcher', 'admin'];
     if (!validRoles.includes(role)) {
-      return res.status(400).json({ error: 'Invalid role' });
+      return res.status(400).json({ error: 'Invalid role. Must be driver, dispatcher, or admin' });
     }
 
-    // Check if user exists
+    // Check if user exists in base user_profiles
     const existingUser = await db.select()
       .from(userProfiles)
       .where(eq(userProfiles.email, email))
@@ -228,17 +238,38 @@ router.post('/assign-role', async (req, res) => {
       return res.status(404).json({ error: 'User not found. User must register first.' });
     }
 
-    // Update user role
-    await db.update(userProfiles)
-      .set({ 
-        role,
-        updatedAt: new Date()
-      })
-      .where(eq(userProfiles.email, email));
+    const userId = existingUser[0].id;
+    const tenantId = existingUser[0].tenantId;
+
+    // Check if business staff record exists
+    const existingStaff = await db.select()
+      .from(businessStaff)
+      .where(eq(businessStaff.id, userId))
+      .limit(1);
+
+    if (existingStaff.length === 0) {
+      // Create new business staff record
+      await db.insert(businessStaff).values({
+        id: userId,
+        tenantId: tenantId,
+        role: role,
+        inviteStatus: 'accepted',
+        acceptedAt: new Date(),
+        permissions: {}
+      });
+    } else {
+      // Update existing business staff role
+      await db.update(businessStaff)
+        .set({ 
+          role,
+          updatedAt: new Date()
+        })
+        .where(eq(businessStaff.id, userId));
+    }
 
     res.json({ 
       success: true, 
-      message: `Role updated to ${role} for ${email}` 
+      message: `Business role updated to ${role} for ${email}` 
     });
   } catch (error) {
     console.error('Error assigning role:', error);
