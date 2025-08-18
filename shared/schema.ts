@@ -42,6 +42,7 @@ export const tenants = pgTable("tenants", {
 });
 
 // Base user profiles - core info shared by all users (linked to Supabase Auth users)
+// This table contains only essential shared data: identity, contact info, tenant association
 export const userProfiles = pgTable("user_profiles", {
   id: text("id").primaryKey(), // Supabase user ID (text type)
   email: text("email").notNull(),

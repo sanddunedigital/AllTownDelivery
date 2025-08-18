@@ -44,6 +44,7 @@ Preferred communication style: Simple, everyday language.
 - **Security**: Row Level Security (RLS) policies on all sensitive tables (tenants, user_profiles, customer_loyalty_accounts, delivery_requests) with hybrid approach allowing cross-tenant service discovery via business_settings.
 - **Recent Cleanup**: Successfully removed deprecated tables (google_reviews, pending_signups, users) and all associated code references for streamlined architecture. Fixed recurring users table creation in migrate.ts to prevent automatic recreation on startup.
 - **Architecture Upgrade**: Implemented Option 1 architecture separating business staff from customers: business_staff table for tenant employees with invite system, customer_profiles for delivery customers, simplified user_profiles as base table. Ready for Supabase Auth + invite-based business onboarding.
+- **Data Migration Complete (2025-08-18)**: Migrated existing user data to new table structure. Admin user moved to business_staff table, deprecated columns (role, is_on_duty, address fields) removed from user_profiles. RLS policies updated to use business_staff table for role checking. Schema is now clean and role-based authorization works properly.
 
 ## External Dependencies
 
