@@ -47,7 +47,7 @@ export default function BusinessJoin() {
       businessName: 'Delivery Service 1',
       businessType: 'Multi-Service Delivery',
       ownerName: 'Nick Browser',
-      email: 'nick.houser421@gmail.com',
+      email: '421@gmail.com',
       phone: '6415551234',
       businessAddress: '1004 Main St',
       city: 'Oskaloosa',
