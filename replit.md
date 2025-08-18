@@ -40,7 +40,8 @@ Preferred communication style: Simple, everyday language.
 - **Migration System**: Automatic table creation with SQL migrations and tenant setup.
 - **Smart Storage**: Automatic fallback from database to memory storage when connection fails.
 - **Authentication Flow**: Role-based redirects (drivers to /driver portal, customers to home page).
-- **Loyalty Program**: Credit-based system where users earn free delivery credits after a set number of paid deliveries.
+- **Loyalty Program**: Multi-tenant credit-based system where customers earn separate loyalty points with each delivery service through dedicated customer_loyalty_accounts table.
+- **Security**: Row Level Security (RLS) policies on all sensitive tables (tenants, user_profiles, customer_loyalty_accounts, delivery_requests) with hybrid approach allowing cross-tenant service discovery via business_settings.
 
 ## External Dependencies
 
