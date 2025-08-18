@@ -1630,15 +1630,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: validatedData.description,
       });
 
-      // Create admin user with username-based login
-      const adminUser = await storage.createUser({
-        username: username,
-        password: validatedData.adminPassword,
-        name: validatedData.ownerName,
-        role: 'admin' as const,
-        phone: validatedData.phone,
+      // Create admin user profile (using user_profiles table for Supabase integration)
+      const adminUserProfile = await storage.createUserProfile({
+        id: crypto.randomUUID(), // Generate a proper UUID for the admin
         email: validatedData.email,
+        fullName: validatedData.ownerName,
+        phone: validatedData.phone,
+        role: 'admin' as const,
         tenantId: newTenant.id,
+        loyaltyPoints: 0,
+        totalDeliveries: 0,
+        freeDeliveryCredits: 0,
+        marketingConsent: false,
+        isOnDuty: false,
       });
 
       // Create default business settings
@@ -1673,6 +1677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Account created successfully! You can now access your business dashboard.",
         subdomain: subdomain,
         username: username,
+        adminEmail: validatedData.email,
         tenantId: newTenant.id
       });
 
