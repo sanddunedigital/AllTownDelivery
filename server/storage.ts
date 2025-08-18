@@ -2,10 +2,12 @@ import {
   type DeliveryRequest, type InsertDeliveryRequest,
   type UserProfile, type InsertUserProfile, type UpdateUserProfile,
   type CustomerLoyaltyAccount, type InsertCustomerLoyaltyAccount, type UpdateCustomerLoyaltyAccount,
+  type BusinessStaff, type InsertBusinessStaff, type UpdateBusinessStaff,
+  type CustomerProfile, type InsertCustomerProfile, type UpdateCustomerProfile,
   type ClaimDelivery, type UpdateDeliveryStatus,
   type Business, type InsertBusiness,
   type Tenant, type InsertTenant,
-  deliveryRequests, userProfiles, customerLoyaltyAccounts, businesses, businessSettings, serviceZones, tenants 
+  deliveryRequests, userProfiles, customerLoyaltyAccounts, businessStaff, customerProfiles, businesses, businessSettings, serviceZones, tenants 
 } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { db } from "./db.js";
@@ -16,10 +18,22 @@ export interface IStorage {
   
   // User profile methods (for Supabase Auth integration)
   getUserProfile(id: string): Promise<UserProfile | undefined>;
-  getDrivers(): Promise<UserProfile[]>; // Get all users who can be drivers (drivers, dispatchers, admins)
   createUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
   updateUserProfile(id: string, updates: UpdateUserProfile): Promise<UserProfile>;
   getUserDeliveries(userId: string): Promise<DeliveryRequest[]>;
+  
+  // Business staff methods (for invite-based business authentication)
+  getBusinessStaff(tenantId: string): Promise<BusinessStaff[]>;
+  getBusinessStaffByRole(tenantId: string, role: string): Promise<BusinessStaff[]>;
+  getDrivers(tenantId: string): Promise<BusinessStaff[]>; // Get drivers for specific tenant
+  createBusinessStaff(staff: InsertBusinessStaff): Promise<BusinessStaff>;
+  updateBusinessStaff(id: string, updates: UpdateBusinessStaff): Promise<BusinessStaff>;
+  getBusinessStaffById(id: string): Promise<BusinessStaff | undefined>;
+  
+  // Customer profile methods (for delivery customers)
+  getCustomerProfile(id: string): Promise<CustomerProfile | undefined>;
+  createCustomerProfile(profile: InsertCustomerProfile): Promise<CustomerProfile>;
+  updateCustomerProfile(id: string, updates: UpdateCustomerProfile): Promise<CustomerProfile>;
   
   // Customer loyalty account methods
   getLoyaltyAccount(userId: string, tenantId: string): Promise<CustomerLoyaltyAccount | undefined>;
@@ -64,6 +78,8 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private userProfiles: Map<string, UserProfile>;
+  private businessStaff: Map<string, BusinessStaff>;
+  private customerProfiles: Map<string, CustomerProfile>;
   private loyaltyAccounts: Map<string, CustomerLoyaltyAccount>; // key: userId-tenantId
   private deliveryRequests: Map<string, DeliveryRequest>;
   private businesses: Map<string, Business>;
@@ -72,6 +88,8 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.userProfiles = new Map();
+    this.businessStaff = new Map();
+    this.customerProfiles = new Map();
     this.loyaltyAccounts = new Map();
     this.deliveryRequests = new Map();
     this.businesses = new Map();
@@ -124,10 +142,89 @@ export class MemStorage implements IStorage {
     return this.userProfiles.get(id);
   }
 
-  async getDrivers(): Promise<UserProfile[]> {
-    return Array.from(this.userProfiles.values()).filter(
-      profile => profile.role === 'driver' || profile.role === 'dispatcher' || profile.role === 'admin'
+  // Business staff methods (for invite-based business authentication)
+  async getBusinessStaff(tenantId: string): Promise<BusinessStaff[]> {
+    return Array.from(this.businessStaff.values()).filter(staff => staff.tenantId === tenantId);
+  }
+
+  async getBusinessStaffByRole(tenantId: string, role: string): Promise<BusinessStaff[]> {
+    return Array.from(this.businessStaff.values()).filter(staff => 
+      staff.tenantId === tenantId && staff.role === role
     );
+  }
+
+  async getDrivers(tenantId: string): Promise<BusinessStaff[]> {
+    return Array.from(this.businessStaff.values()).filter(staff => 
+      staff.tenantId === tenantId && staff.role === 'driver'
+    );
+  }
+
+  async createBusinessStaff(insertStaff: InsertBusinessStaff): Promise<BusinessStaff> {
+    const staff: BusinessStaff = {
+      ...insertStaff,
+      isOnDuty: insertStaff.isOnDuty || false,
+      permissions: insertStaff.permissions || {},
+      inviteToken: insertStaff.inviteToken || null,
+      inviteStatus: insertStaff.inviteStatus || 'pending',
+      invitedBy: insertStaff.invitedBy || null,
+      invitedAt: insertStaff.invitedAt || null,
+      acceptedAt: insertStaff.acceptedAt || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.businessStaff.set(staff.id, staff);
+    return staff;
+  }
+
+  async updateBusinessStaff(id: string, updates: UpdateBusinessStaff): Promise<BusinessStaff> {
+    const existing = this.businessStaff.get(id);
+    if (!existing) {
+      throw new Error("Business staff not found");
+    }
+    const updated: BusinessStaff = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date()
+    };
+    this.businessStaff.set(id, updated);
+    return updated;
+  }
+
+  async getBusinessStaffById(id: string): Promise<BusinessStaff | undefined> {
+    return this.businessStaff.get(id);
+  }
+
+  // Customer profile methods (for delivery customers)
+  async getCustomerProfile(id: string): Promise<CustomerProfile | undefined> {
+    return this.customerProfiles.get(id);
+  }
+
+  async createCustomerProfile(insertProfile: InsertCustomerProfile): Promise<CustomerProfile> {
+    const profile: CustomerProfile = {
+      ...insertProfile,
+      defaultPickupAddress: insertProfile.defaultPickupAddress || null,
+      defaultDeliveryAddress: insertProfile.defaultDeliveryAddress || null,
+      preferredPaymentMethod: insertProfile.preferredPaymentMethod || null,
+      marketingConsent: insertProfile.marketingConsent || false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.customerProfiles.set(profile.id, profile);
+    return profile;
+  }
+
+  async updateCustomerProfile(id: string, updates: UpdateCustomerProfile): Promise<CustomerProfile> {
+    const existing = this.customerProfiles.get(id);
+    if (!existing) {
+      throw new Error("Customer profile not found");
+    }
+    const updated: CustomerProfile = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date()
+    };
+    this.customerProfiles.set(id, updated);
+    return updated;
   }
 
   async createUserProfile(insertProfile: InsertUserProfile): Promise<UserProfile> {
@@ -136,12 +233,6 @@ export class MemStorage implements IStorage {
       tenantId: insertProfile.tenantId || "00000000-0000-0000-0000-000000000001",
       fullName: insertProfile.fullName || null,
       phone: insertProfile.phone || null,
-      defaultPickupAddress: insertProfile.defaultPickupAddress || null,
-      defaultDeliveryAddress: insertProfile.defaultDeliveryAddress || null,
-      preferredPaymentMethod: insertProfile.preferredPaymentMethod || null,
-      marketingConsent: insertProfile.marketingConsent || false,
-      role: insertProfile.role || "customer",
-      isOnDuty: insertProfile.isOnDuty || null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -563,15 +654,103 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getDrivers(): Promise<UserProfile[]> {
+  // Business staff methods (for invite-based business authentication)
+  async getBusinessStaff(tenantId: string): Promise<BusinessStaff[]> {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
     const result = await db
       .select()
-      .from(userProfiles)
-      .where(sql`${userProfiles.role} IN ('driver', 'dispatcher', 'admin')`);
+      .from(businessStaff)
+      .where(eq(businessStaff.tenantId, tenantId));
     return result;
+  }
+
+  async getBusinessStaffByRole(tenantId: string, role: string): Promise<BusinessStaff[]> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db
+      .select()
+      .from(businessStaff)
+      .where(sql`${businessStaff.tenantId} = ${tenantId} AND ${businessStaff.role} = ${role}`);
+    return result;
+  }
+
+  async getDrivers(tenantId: string): Promise<BusinessStaff[]> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db
+      .select()
+      .from(businessStaff)
+      .where(sql`${businessStaff.tenantId} = ${tenantId} AND ${businessStaff.role} = 'driver'`);
+    return result;
+  }
+
+  async createBusinessStaff(insertStaff: InsertBusinessStaff): Promise<BusinessStaff> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.insert(businessStaff).values(insertStaff).returning();
+    return result[0];
+  }
+
+  async updateBusinessStaff(id: string, updates: UpdateBusinessStaff): Promise<BusinessStaff> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db
+      .update(businessStaff)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(businessStaff.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error("Business staff not found");
+    }
+    return result[0];
+  }
+
+  async getBusinessStaffById(id: string): Promise<BusinessStaff | undefined> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.select().from(businessStaff).where(eq(businessStaff.id, id)).limit(1);
+    return result[0];
+  }
+
+  // Customer profile methods (for delivery customers)
+  async getCustomerProfile(id: string): Promise<CustomerProfile | undefined> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.select().from(customerProfiles).where(eq(customerProfiles.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createCustomerProfile(insertProfile: InsertCustomerProfile): Promise<CustomerProfile> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db.insert(customerProfiles).values(insertProfile).returning();
+    return result[0];
+  }
+
+  async updateCustomerProfile(id: string, updates: UpdateCustomerProfile): Promise<CustomerProfile> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db
+      .update(customerProfiles)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(customerProfiles.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error("Customer profile not found");
+    }
+    return result[0];
   }
 
   async createUserProfile(insertProfile: InsertUserProfile): Promise<UserProfile> {

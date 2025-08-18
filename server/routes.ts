@@ -1623,16 +1623,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: validatedData.description,
       });
 
-      // Create admin user profile (using user_profiles table for Supabase integration)
+      // Create admin user in base user_profiles table
+      const adminUserId = crypto.randomUUID(); // Will be replaced with actual Supabase user ID
       const adminUserProfile = await storage.createUserProfile({
-        id: crypto.randomUUID(), // Generate a proper UUID for the admin
+        id: adminUserId,
         email: validatedData.email,
         fullName: validatedData.ownerName,
         phone: validatedData.phone,
-        role: 'admin' as const,
         tenantId: newTenant.id,
-        marketingConsent: false,
-        isOnDuty: false,
+      });
+
+      // Create admin staff record in business_staff table
+      const adminStaffRecord = await storage.createBusinessStaff({
+        id: adminUserId, // Same ID as user profile
+        tenantId: newTenant.id,
+        role: 'admin' as const,
+        inviteStatus: 'accepted' as const, // Pre-accepted since they created the business
+        acceptedAt: new Date(),
+        permissions: {
+          canInviteStaff: true,
+          canManageSettings: true,
+          canViewReports: true,
+          canManagePayments: true
+        }
       });
 
       // Create default business settings
