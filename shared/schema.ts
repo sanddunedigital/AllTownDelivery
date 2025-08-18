@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, uuid, numeric, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, uuid, numeric, jsonb, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -60,14 +60,25 @@ export const userProfiles = pgTable("user_profiles", {
   defaultDeliveryAddress: text("default_delivery_address"),
   preferredPaymentMethod: text("preferred_payment_method"),
   marketingConsent: boolean("marketing_consent").default(false),
-  loyaltyPoints: integer("loyalty_points").default(0),
-  totalDeliveries: integer("total_deliveries").default(0),
-  freeDeliveryCredits: integer("free_delivery_credits").default(0),
   role: text("role").default("customer").notNull(), // customer, driver, admin, dispatcher
   isOnDuty: boolean("is_on_duty").default(false), // true when driver is available for deliveries
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// Customer loyalty accounts per tenant
+export const customerLoyaltyAccounts = pgTable("customer_loyalty_accounts", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull().references(() => userProfiles.id, { onDelete: "cascade" }),
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  loyaltyPoints: integer("loyalty_points").default(0).notNull(),
+  totalDeliveries: integer("total_deliveries").default(0).notNull(),
+  freeDeliveryCredits: integer("free_delivery_credits").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueUserTenant: unique().on(table.userId, table.tenantId), // One loyalty account per user per tenant
+}));
 
 // Business partners table
 export const businesses = pgTable("businesses", {
@@ -329,6 +340,9 @@ export type DeliveryRequest = typeof deliveryRequests.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
+export type CustomerLoyaltyAccount = typeof customerLoyaltyAccounts.$inferSelect;
+export type InsertCustomerLoyaltyAccount = z.infer<typeof insertCustomerLoyaltyAccountSchema>;
+export type UpdateCustomerLoyaltyAccount = z.infer<typeof updateCustomerLoyaltyAccountSchema>;
 
 // Google reviews schemas
 export const insertGoogleReviewsSchema = createInsertSchema(googleReviews).omit({
@@ -347,9 +361,6 @@ export const insertBusinessSchema = createInsertSchema(businesses).omit({
 export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
   createdAt: true,
   updatedAt: true,
-  loyaltyPoints: true,
-  totalDeliveries: true,
-  freeDeliveryCredits: true,
 });
 
 export const updateUserProfileSchema = createInsertSchema(userProfiles).omit({
@@ -357,6 +368,15 @@ export const updateUserProfileSchema = createInsertSchema(userProfiles).omit({
   createdAt: true,
   updatedAt: true,
 }).partial();
+
+// Customer loyalty account schemas
+export const insertCustomerLoyaltyAccountSchema = createInsertSchema(customerLoyaltyAccounts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateCustomerLoyaltyAccountSchema = insertCustomerLoyaltyAccountSchema.partial();
 
 // Delivery request schemas
 export const insertDeliveryRequestSchema = createInsertSchema(deliveryRequests).omit({

@@ -1638,9 +1638,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phone: validatedData.phone,
         role: 'admin' as const,
         tenantId: newTenant.id,
-        loyaltyPoints: 0,
-        totalDeliveries: 0,
-        freeDeliveryCredits: 0,
         marketingConsent: false,
         isOnDuty: false,
       });

@@ -1,11 +1,12 @@
 import { 
   type User, type InsertUser, type DeliveryRequest, type InsertDeliveryRequest,
   type UserProfile, type InsertUserProfile, type UpdateUserProfile,
+  type CustomerLoyaltyAccount, type InsertCustomerLoyaltyAccount, type UpdateCustomerLoyaltyAccount,
   type ClaimDelivery, type UpdateDeliveryStatus,
   type Business, type InsertBusiness,
   type Tenant, type InsertTenant,
   type PendingSignup, type InsertPendingSignup,
-  users, deliveryRequests, userProfiles, businesses, businessSettings, serviceZones, tenants, pendingSignups 
+  users, deliveryRequests, userProfiles, customerLoyaltyAccounts, businesses, businessSettings, serviceZones, tenants, pendingSignups 
 } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { db } from "./db.js";
@@ -31,10 +32,14 @@ export interface IStorage {
   getDrivers(): Promise<UserProfile[]>; // Get all users who can be drivers (drivers, dispatchers, admins)
   createUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
   updateUserProfile(id: string, updates: UpdateUserProfile): Promise<UserProfile>;
-  updateLoyaltyPoints(userId: string, points: number, wasFreeDelivery?: boolean): Promise<void>;
-  checkLoyaltyEligibility(userId: string): Promise<boolean>;
-  getUserLoyalty(userId: string): Promise<any>;
   getUserDeliveries(userId: string): Promise<DeliveryRequest[]>;
+  
+  // Customer loyalty account methods
+  getLoyaltyAccount(userId: string, tenantId: string): Promise<CustomerLoyaltyAccount | undefined>;
+  createOrUpdateLoyaltyAccount(account: InsertCustomerLoyaltyAccount): Promise<CustomerLoyaltyAccount>;
+  updateLoyaltyPoints(userId: string, tenantId: string, points: number, wasFreeDelivery?: boolean): Promise<void>;
+  checkLoyaltyEligibility(userId: string, tenantId: string): Promise<boolean>;
+  getUserLoyaltyAccounts(userId: string): Promise<CustomerLoyaltyAccount[]>;
   
   // Delivery request methods
   createDeliveryRequest(request: InsertDeliveryRequest): Promise<DeliveryRequest>;
@@ -80,6 +85,7 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private userProfiles: Map<string, UserProfile>;
+  private loyaltyAccounts: Map<string, CustomerLoyaltyAccount>; // key: userId-tenantId
   private deliveryRequests: Map<string, DeliveryRequest>;
   private businesses: Map<string, Business>;
   private businessSettings: Map<string, any>;
@@ -89,6 +95,7 @@ export class MemStorage implements IStorage {
   constructor() {
     this.users = new Map();
     this.userProfiles = new Map();
+    this.loyaltyAccounts = new Map();
     this.deliveryRequests = new Map();
     this.businesses = new Map();
     this.businessSettings = new Map();
@@ -199,9 +206,6 @@ export class MemStorage implements IStorage {
       defaultPickupAddress: insertProfile.defaultPickupAddress || null,
       defaultDeliveryAddress: insertProfile.defaultDeliveryAddress || null,
       preferredPaymentMethod: insertProfile.preferredPaymentMethod || null,
-      loyaltyPoints: 0,
-      totalDeliveries: 0,
-      freeDeliveryCredits: 0,
       marketingConsent: insertProfile.marketingConsent || false,
       role: insertProfile.role || "customer",
       isOnDuty: insertProfile.isOnDuty || null,
@@ -226,52 +230,80 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async updateLoyaltyPoints(userId: string, points: number, wasFreeDelivery: boolean = false): Promise<void> {
-    const profile = this.userProfiles.get(userId);
-    if (profile) {
-      if (wasFreeDelivery) {
-        // If this was a free delivery, don't change loyalty points, decrement free credits
-        // Keep current loyalty points - free deliveries don't reset progress
-        profile.freeDeliveryCredits = Math.max(0, (profile.freeDeliveryCredits || 0) - 1); // Use one free credit
-        profile.totalDeliveries = (profile.totalDeliveries || 0) + 1;
-      } else {
-        // Regular paid delivery
-        profile.loyaltyPoints = (profile.loyaltyPoints || 0) + points;
-        profile.totalDeliveries = (profile.totalDeliveries || 0) + 1;
-        
-        // If loyalty points reach 10, award 1 free credit and reset points to 0
-        if (profile.loyaltyPoints >= 10) {
-          profile.freeDeliveryCredits = (profile.freeDeliveryCredits || 0) + 1;
-          profile.loyaltyPoints = 0; // Reset points after earning free credit
-        }
-      }
-      
-      profile.updatedAt = new Date();
-      this.userProfiles.set(userId, profile);
-    }
+  // Customer loyalty account methods
+  async getLoyaltyAccount(userId: string, tenantId: string): Promise<CustomerLoyaltyAccount | undefined> {
+    const key = `${userId}-${tenantId}`;
+    return this.loyaltyAccounts.get(key);
   }
 
-  async checkLoyaltyEligibility(userId: string): Promise<boolean> {
-    const profile = this.userProfiles.get(userId);
-    return (profile?.freeDeliveryCredits || 0) > 0;
-  }
-
-  async getUserLoyalty(userId: string): Promise<any> {
-    const profile = this.userProfiles.get(userId);
-    if (!profile) {
-      return {
-        loyaltyPoints: 0,
-        freeDeliveryCredits: 0,
-        totalDeliveries: 0,
-        nextFreeAt: 10
+  async createOrUpdateLoyaltyAccount(account: InsertCustomerLoyaltyAccount): Promise<CustomerLoyaltyAccount> {
+    const key = `${account.userId}-${account.tenantId}`;
+    const existing = this.loyaltyAccounts.get(key);
+    
+    if (existing) {
+      // Update existing account
+      const updated: CustomerLoyaltyAccount = {
+        ...existing,
+        ...account,
+        updatedAt: new Date()
       };
+      this.loyaltyAccounts.set(key, updated);
+      return updated;
+    } else {
+      // Create new account
+      const newAccount: CustomerLoyaltyAccount = {
+        id: randomUUID(),
+        ...account,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      this.loyaltyAccounts.set(key, newAccount);
+      return newAccount;
     }
-    return {
-      loyaltyPoints: profile.loyaltyPoints || 0,
-      freeDeliveryCredits: profile.freeDeliveryCredits || 0,
-      totalDeliveries: profile.totalDeliveries || 0,
-      nextFreeAt: 10 - (profile.loyaltyPoints || 0)
-    };
+  }
+
+  async updateLoyaltyPoints(userId: string, tenantId: string, points: number, wasFreeDelivery: boolean = false): Promise<void> {
+    const key = `${userId}-${tenantId}`;
+    let account = this.loyaltyAccounts.get(key);
+    
+    if (!account) {
+      // Create new loyalty account if it doesn't exist
+      account = await this.createOrUpdateLoyaltyAccount({
+        userId,
+        tenantId,
+        loyaltyPoints: 0,
+        totalDeliveries: 0,
+        freeDeliveryCredits: 0
+      });
+    }
+
+    if (wasFreeDelivery) {
+      // Use a free delivery credit
+      account.freeDeliveryCredits = Math.max(0, account.freeDeliveryCredits - 1);
+      account.totalDeliveries = account.totalDeliveries + 1;
+    } else {
+      // Regular paid delivery
+      account.loyaltyPoints = account.loyaltyPoints + points;
+      account.totalDeliveries = account.totalDeliveries + 1;
+      
+      // If loyalty points reach 10, award 1 free credit and reset points to 0
+      if (account.loyaltyPoints >= 10) {
+        account.freeDeliveryCredits = account.freeDeliveryCredits + 1;
+        account.loyaltyPoints = 0; // Reset points after earning free credit
+      }
+    }
+    
+    account.updatedAt = new Date();
+    this.loyaltyAccounts.set(key, account);
+  }
+
+  async checkLoyaltyEligibility(userId: string, tenantId: string): Promise<boolean> {
+    const account = await this.getLoyaltyAccount(userId, tenantId);
+    return (account?.freeDeliveryCredits || 0) > 0;
+  }
+
+  async getUserLoyaltyAccounts(userId: string): Promise<CustomerLoyaltyAccount[]> {
+    return Array.from(this.loyaltyAccounts.values()).filter(account => account.userId === userId);
   }
 
   async getUserDeliveries(userId: string): Promise<DeliveryRequest[]> {
@@ -679,72 +711,105 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateLoyaltyPoints(userId: string, points: number, wasFreeDelivery: boolean = false): Promise<void> {
+  // Customer loyalty account methods
+  async getLoyaltyAccount(userId: string, tenantId: string): Promise<CustomerLoyaltyAccount | undefined> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    const result = await db
+      .select()
+      .from(customerLoyaltyAccounts)
+      .where(sql`${customerLoyaltyAccounts.userId} = ${userId} AND ${customerLoyaltyAccounts.tenantId} = ${tenantId}`)
+      .limit(1);
+    return result[0];
+  }
+
+  async createOrUpdateLoyaltyAccount(account: InsertCustomerLoyaltyAccount): Promise<CustomerLoyaltyAccount> {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
     
-    const profile = await this.getUserProfile(userId);
-    if (!profile) return;
+    // Use PostgreSQL UPSERT to handle create or update
+    const result = await db
+      .insert(customerLoyaltyAccounts)
+      .values(account)
+      .onConflictDoUpdate({
+        target: [customerLoyaltyAccounts.userId, customerLoyaltyAccounts.tenantId],
+        set: {
+          loyaltyPoints: account.loyaltyPoints,
+          totalDeliveries: account.totalDeliveries,
+          freeDeliveryCredits: account.freeDeliveryCredits,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
+    return result[0];
+  }
+
+  async updateLoyaltyPoints(userId: string, tenantId: string, points: number, wasFreeDelivery: boolean = false): Promise<void> {
+    if (!(await this.testConnection())) {
+      throw new Error("Database connection unavailable");
+    }
+    
+    let account = await this.getLoyaltyAccount(userId, tenantId);
+    
+    if (!account) {
+      // Create new loyalty account if it doesn't exist
+      account = await this.createOrUpdateLoyaltyAccount({
+        userId,
+        tenantId,
+        loyaltyPoints: 0,
+        totalDeliveries: 0,
+        freeDeliveryCredits: 0
+      });
+    }
 
     let newLoyaltyPoints: number;
     let newFreeCredits: number;
     let newTotalDeliveries: number;
 
     if (wasFreeDelivery) {
-      // If this was a free delivery, don't change loyalty points, decrement free credits
-      newLoyaltyPoints = profile.loyaltyPoints || 0; // Keep current loyalty points
-      newFreeCredits = Math.max(0, (profile.freeDeliveryCredits || 0) - 1); // Use one free credit
-      newTotalDeliveries = (profile.totalDeliveries || 0) + 1;
+      // Use a free delivery credit
+      newLoyaltyPoints = account.loyaltyPoints;
+      newFreeCredits = Math.max(0, account.freeDeliveryCredits - 1);
+      newTotalDeliveries = account.totalDeliveries + 1;
     } else {
       // Regular paid delivery
-      newLoyaltyPoints = (profile.loyaltyPoints || 0) + points;
-      newTotalDeliveries = (profile.totalDeliveries || 0) + 1;
+      newLoyaltyPoints = account.loyaltyPoints + points;
+      newTotalDeliveries = account.totalDeliveries + 1;
       
       // If loyalty points reach 10, award 1 free credit and reset points to 0
       if (newLoyaltyPoints >= 10) {
-        newFreeCredits = (profile.freeDeliveryCredits || 0) + 1;
+        newFreeCredits = account.freeDeliveryCredits + 1;
         newLoyaltyPoints = 0; // Reset points after earning free credit
       } else {
-        newFreeCredits = profile.freeDeliveryCredits || 0;
+        newFreeCredits = account.freeDeliveryCredits;
       }
     }
 
-    await db
-      .update(userProfiles)
-      .set({
-        loyaltyPoints: newLoyaltyPoints,
-        totalDeliveries: newTotalDeliveries,
-        freeDeliveryCredits: newFreeCredits,
-        updatedAt: new Date()
-      })
-      .where(eq(userProfiles.id, userId));
+    await this.createOrUpdateLoyaltyAccount({
+      userId,
+      tenantId,
+      loyaltyPoints: newLoyaltyPoints,
+      totalDeliveries: newTotalDeliveries,
+      freeDeliveryCredits: newFreeCredits
+    });
   }
 
-  async checkLoyaltyEligibility(userId: string): Promise<boolean> {
-    const profile = await this.getUserProfile(userId);
-    return (profile?.freeDeliveryCredits || 0) > 0;
+  async checkLoyaltyEligibility(userId: string, tenantId: string): Promise<boolean> {
+    const account = await this.getLoyaltyAccount(userId, tenantId);
+    return (account?.freeDeliveryCredits || 0) > 0;
   }
 
-  async getUserLoyalty(userId: string): Promise<any> {
+  async getUserLoyaltyAccounts(userId: string): Promise<CustomerLoyaltyAccount[]> {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
-    const profile = await this.getUserProfile(userId);
-    if (!profile) {
-      return {
-        loyaltyPoints: 0,
-        freeDeliveryCredits: 0,
-        totalDeliveries: 0,
-        nextFreeAt: 10
-      };
-    }
-    return {
-      loyaltyPoints: profile.loyaltyPoints || 0,
-      freeDeliveryCredits: profile.freeDeliveryCredits || 0,
-      totalDeliveries: profile.totalDeliveries || 0,
-      nextFreeAt: 10 - (profile.loyaltyPoints || 0)
-    };
+    const result = await db
+      .select()
+      .from(customerLoyaltyAccounts)
+      .where(eq(customerLoyaltyAccounts.userId, userId));
+    return result;
   }
 
   async getUserDeliveries(userId: string): Promise<DeliveryRequest[]> {
