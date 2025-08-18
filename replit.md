@@ -1,35 +1,7 @@
 # Sara's Quickie Delivery Website
 
 ## Overview
-This project is a multi-tenant SaaS delivery management platform that serves small delivery services across multiple markets. AllTownDelivery.com serves as the main marketing site where delivery services can sign up for accounts and customers can search for local services by area. Each tenant receives a custom subdomain (e.g., saras.alltowndelivery.com) with their own branding, business settings, and customer base. The platform includes advanced features like real-time delivery tracking, dispatch management, driver portals, customer loyalty programs, and comprehensive analytics. The system uses conditional rendering to serve either the marketing site (main domain) or tenant-specific delivery sites (subdomains) from a single codebase.
-
-## Recent Changes
-- **Simplified Supabase-Only Signup Flow (January 2025)**: Replaced complex custom email verification system with streamlined Supabase authentication. New `/api/signup/supabase` endpoint creates Supabase users with business data in metadata, eliminating the pending_signups table and custom token management. This solves the email typo lockout issue since users can only claim subdomains they have email access to. Frontend updated to use Supabase auth session verification on signup-complete page. The simplified flow: form submission → Supabase user creation → email verification → account creation from metadata.
-- **Enhanced Signup User Experience (January 2025)**: Created dedicated `/signup-pending` page to replace toast notifications with a more prominent "check your email" interface. Users now see a professional page with email verification status, 24-hour countdown timer, and clear next steps instead of a brief toast message. Fixed email redirect URL construction to properly handle both development and production domains. Business signup form now provides better user guidance through the verification process.
-- **Code Cleanup & Route Organization (January 2025)**: Removed unused page files (business-join.tsx, domain-redirect.tsx, square-settings.tsx) and cleaned up routing structure. Removed hard-coded test values from business signup form and replaced with helpful placeholder text. Enhanced development environment detection to handle all non-production domains properly. Added multiple route aliases (/join, /business-join-new, /business-signup, /user-signup) for better accessibility.
-- **Path Alias Resolution Fixed (January 2025)**: Resolved critical `@shared/schema` module resolution errors in Vercel by converting all alias imports to relative paths (`../shared/schema.js`). Vercel's serverless environment doesn't recognize TypeScript path aliases, requiring explicit relative imports with `.js` extensions for ES modules.
-- **ES Module Imports Fixed for Vercel (January 2025)**: Resolved critical `ERR_MODULE_NOT_FOUND` errors in Vercel serverless deployment by adding `.js` file extensions to all relative imports throughout server files. This is required for ES modules in Node.js serverless environments. Updated subdomain detection to include Vercel deployment URLs, optimized database connection pool for serverless functions, and enhanced error logging for production debugging.
-- **Production Deployment Issues Resolved (January 2025)**: Fixed critical Vercel deployment issues including subdomain detection logic not recognizing `alltowndelivery.com` as main marketing site, database connection failures in serverless environment, and routing conflicts. Updated `vercel.json` from legacy `routes` to modern `rewrites` format, optimized PostgreSQL connection pool for serverless functions, and enhanced error logging for production debugging. Marketing site now properly displays at root domain while tenant sites work on subdomains.
-- **Complete Vercel Deployment Configuration (January 2025)**: Architected full Vercel deployment solution to resolve SSL certificate and wildcard subdomain issues. Created serverless API functions structure with `api/index.ts` entry point, updated build pipeline with optimized `vercel.json` configuration, and established proper routing for multi-tenant architecture. Build test successful with all features working. Eliminates mixed Vercel DNS + Replit hosting complexity in favor of unified Vercel deployment with automatic SSL for `*.alltowndelivery.com`. Ready for production deployment.
-- **Deployment Crash Fix & Unified Signup Flow (January 2025)**: Resolved critical deployment crash caused by missing SUPABASE_SERVICE_ROLE_KEY environment variable. Implemented graceful error handling throughout Supabase service operations to prevent server crashes when secrets are unavailable. Created unified `/api/tenants/create-from-auth` endpoint that eliminates confusing dual verification (custom + Supabase) in favor of single Supabase authentication flow. Business data now stored in Supabase user metadata during signup, and admin user profiles are automatically created for business owners. Deployment now stable with fallback behavior when Supabase service key is missing.
-- **Multi-Tenant Security & Data Isolation Fixed (January 2025)**: Implemented comprehensive tenant security fixes: (1) Invalid subdomains now show proper "not found" page instead of serving content, (2) Business settings are truly tenant-specific and don't fall back to Sara's data, preventing data leakage, (3) New tenants automatically get admin user profiles and default business settings, (4) Cross-tenant access prevention ensures users can only access their own tenant data.
-- **Email Verification Redirect Fixed (January 2025)**: Resolved email confirmation redirecting to home page instead of welcome page. Issue was missing `https://www.alltowndelivery.com/signup-complete` in Supabase dashboard redirect URLs. Now properly shows welcome page with business setup confirmation and subdomain details.
-- **Production Authentication Configuration (January 2025)**: Successfully configured Supabase authentication for production domain alltowndelivery.com. Fixed recurring API parameter order errors in business signup flow. Updated Supabase Site URL and redirect URLs to handle authentication callbacks properly on production domain. ReSend email integration now working with proper domain configuration.
-- **Implemented Multi-Tenant Loyalty System & RLS Security (January 2025)**: Successfully migrated from single-tenant loyalty tracking to multi-tenant customer loyalty accounts system. Customers can now accumulate separate loyalty points with different delivery services (e.g., 5 points with Sara's + 3 points with Joe's Delivery). Created `customer_loyalty_accounts` table with proper tenant isolation, migrated existing data, and removed old loyalty columns from user_profiles. Implemented comprehensive Row Level Security (RLS) policies using hybrid approach (Option C) for secure tenant isolation while allowing cross-tenant customer browsing.
-- **Fixed Admin User Profile Creation (January 2025)**: Resolved critical issue where admin users were being created in deprecated `users` table instead of active `user_profiles` table used by Supabase auth system. Direct signup now correctly creates admin user profiles in `user_profiles` table with proper UUID generation, enabling proper integration with the current authentication system. This fixes the disconnect between business signup and user management.
-- **Simplified Custom Username System (January 2025)**: Streamlined business signup to require custom usernames only, eliminating auto-generation complexity. Users must now enter their preferred admin username during signup (3-20 characters, alphanumeric). This provides full user control while maintaining clean, predictable usernames. Validation ensures all required fields are present with proper error messaging for missing usernames.
-- **Strategic Marketing Pivot (January 2025)**: Redesigned platform marketing strategy based on user feedback. Main landing page now focuses on customers finding local delivery services rather than business signup. Created separate `/join` page for businesses with pricing tiers, feature details, and business-focused marketing. This better serves two distinct audiences: customers seeking delivery services and businesses wanting to join the platform.
-- **Customer-Focused Main Site (January 2025)**: Transformed main AllTownDelivery.com landing page to prioritize service discovery over business acquisition. Features prominent area search, sample local services (like Sara's Quickie Delivery), and clear "For Businesses" button directing to dedicated business signup flow. Removed pricing tiers from main page to avoid confusion.
-- **Production API Issues Resolved (January 2025)**: Fixed critical database connection and React hooks errors that were causing production failures. Development environment working perfectly with all APIs returning proper responses. Production deployment requires manual redeployment to apply fixes.
-- **Critical Security Fixes (January 2025)**: Resolved dangerous client-side exposure of DATABASE_URL and improper service key handling. Implemented proper separation of client-safe and server-only environment variables.
-- **Git Integration Success (January 2025)**: Resolved Git lock file issues that were preventing repository operations. Successfully established Git connectivity and pushed project to GitHub for Vercel deployment preparation.
-- **Multi-Tenant SaaS Architecture Implemented (January 2025)**: Successfully implemented conditional rendering approach to transform the platform into a multi-tenant SaaS. AllTownDelivery.com now serves as the main marketing site with tenant signup, area search, and platform features. Subdomains (e.g., saras.alltowndelivery.com) serve individual tenant delivery sites with custom branding.
-- **Business Type-Specific Defaults (January 2025)**: Enhanced tenant signup with business type selection that automatically configures default settings. Multi-Service Delivery businesses (like Sara's) get optimized settings for handling grocery, pharmacy, restaurant, and auto parts delivery with appropriate pricing, hours, and loyalty program configurations.
-- **Automatic Subdomain Generation (January 2025)**: Implemented smart subdomain auto-generation from business name with collision detection. Subdomains are automatically created (lowercase, special characters removed, spaces to hyphens) and cannot be edited by users for consistency.
-- **Development Limitation**: Subdomain routing currently works in development environment only. Production deployment would require DNS configuration and proper subdomain routing setup.
-- **Form Control Improvements**: Fixed controlled/uncontrolled input warnings in signup form by providing comprehensive default values. Added pre-filled test data for faster development testing.
-- **Payment Integration Status**: Removed problematic Square payment integration due to persistent Web Payments SDK issues (DOM timing, container readiness problems). Online payment functionality is temporarily disabled with a user-friendly message indicating "Online payment coming soon!" All payment methods now default to cash/card on delivery.
-- **Future Enhancement**: Stripe payment integration planned as a cleaner, more reliable alternative to Square.
+This project is a multi-tenant SaaS delivery management platform designed for small delivery services across various markets. AllTownDelivery.com serves as the primary marketing site where delivery businesses can sign up, and customers can find local services. Each registered tenant receives a custom subdomain (e.g., saras.alltowndelivery.com) with personalized branding, business settings, and customer base. The platform offers features such as real-time delivery tracking, dispatch management, driver portals, customer loyalty programs, and analytics. It utilizes conditional rendering to serve either the marketing site or tenant-specific sites from a single codebase, aiming to be a comprehensive solution for local delivery businesses.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -49,21 +21,21 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with Express.js framework
 - **Language**: TypeScript with ES modules
 - **API Style**: RESTful API endpoints
-- **Data Storage**: In-memory storage with an abstract interface, allowing seamless transition to database integration.
+- **Data Storage**: In-memory storage with an abstract interface for flexibility.
 - **Build Process**: esbuild for production bundling.
 - **Key Architectural Decisions**:
-    - **Monorepo Structure**: Client, server, and shared code in one repository.
+    - **Monorepo Structure**: Client, server, and shared code within a single repository.
     - **Shared Schema**: Single source of truth for data models using Drizzle ORM and Zod for type safety.
     - **Storage Abstraction**: Interface-based storage for flexibility.
     - **Type Safety**: End-to-end TypeScript with Zod validation.
     - **Build Optimization**: Separate optimization for client (Vite) and server (esbuild).
     - **Role-Based Flow**: Smart authentication redirects based on user roles.
-    - **Multi-Tenant Ready**: Tenant-aware architecture with support for subdomains, custom domains, and path-based routing.
+    - **Multi-Tenant Ready**: Tenant-aware architecture supporting subdomains, custom domains, and path-based routing.
     - **Performance-Focused**: Tenant caching and efficient database queries.
 
 ### Database Layer
 - **ORM**: Drizzle ORM configured for PostgreSQL with Supabase.
-- **Multi-Tenant Support**: Tenant-aware schema with automatic tenant isolation, with all data belonging to Sara's Quickie tenant by default.
+- **Multi-Tenant Support**: Tenant-aware schema with automatic tenant isolation, defaulting data to Sara's Quickie tenant.
 - **Schema Management**: Shared schema definitions between client and server with tenant context, including users, delivery requests, and business settings.
 - **Migration System**: Automatic table creation with SQL migrations and tenant setup.
 - **Smart Storage**: Automatic fallback from database to memory storage when connection fails.
@@ -72,12 +44,12 @@ Preferred communication style: Simple, everyday language.
 
 ## External Dependencies
 
-- **Database**: Supabase (PostgreSQL for data, Supabase Storage for file uploads like logos and business images).
+- **Database**: Supabase (PostgreSQL for data, Supabase Storage for file uploads).
 - **Frontend Core**: React, React DOM, React Hook Form.
 - **UI Libraries**: Radix UI primitives, Lucide icons.
 - **Validation**: Zod.
 - **HTTP Client**: Built-in fetch with TanStack Query wrapper.
-- **Development Tools**: Vite, esbuild, TypeScript compiler, tsx (for running TypeScript server).
+- **Development Tools**: Vite, esbuild, TypeScript compiler, tsx.
 - **Styling**: Tailwind CSS, PostCSS, Autoprefixer.
 - **Session Management**: connect-pg-simple (for PostgreSQL sessions).
 - **Date Utilities**: date-fns.
