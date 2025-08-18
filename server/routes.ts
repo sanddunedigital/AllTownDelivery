@@ -15,7 +15,7 @@ import {
   updateDriverStatusSchema,
   insertBusinessSchema,
   insertTenantSchema,
-  insertPendingSignupSchema,
+
   combinedBusinessSignupSchema
 } from "../shared/schema.js";
 import { z } from "zod";
@@ -23,7 +23,7 @@ import { ObjectStorageService } from "./objectStorage.js";
 import { googleMapsService } from "./googleMaps.js";
 import { GooglePlacesService } from "./googlePlaces.js";
 import { db } from "./db.js";
-import { googleReviews, deliveryRequests } from "../shared/schema.js";
+import { deliveryRequests } from "../shared/schema.js";
 import { eq, and } from "drizzle-orm";
 import { supabase as supabaseClient } from "./supabaseStorage.js";
 
@@ -1113,10 +1113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           scheduledDeliveries: dbSettings.enableScheduledDeliveries ?? false,
           multiplePaymentMethods: true
         },
-        googleReviews: {
-          placeId: dbSettings.googlePlaceId,
-          enabled: dbSettings.enableGoogleReviews ?? false
-        },
+        // Removed: Google Reviews feature
         squareSettings: {
           accessToken: dbSettings.squareAccessToken ? '***' : undefined,
           applicationId: dbSettings.squareApplicationId,
@@ -1174,8 +1171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         enableLoyaltyProgram: formData.features?.loyaltyProgram ?? true,
         enableRealTimeTracking: formData.features?.realTimeTracking ?? true,
         enableScheduledDeliveries: formData.features?.scheduledDeliveries ?? false,
-        googlePlaceId: formData.googleReviews?.placeId,
-        enableGoogleReviews: formData.googleReviews?.enabled ?? false,
+        // Removed: Google Reviews fields
         squareAccessToken: formData.squareSettings?.accessToken === '***' ? undefined : formData.squareSettings?.accessToken,
         squareApplicationId: formData.squareSettings?.applicationId,
         squareLocationId: formData.squareSettings?.locationId,
@@ -1227,10 +1223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           scheduledDeliveries: dbSettings.enableScheduledDeliveries ?? false,
           multiplePaymentMethods: true
         },
-        googleReviews: {
-          placeId: dbSettings.googlePlaceId,
-          enabled: dbSettings.enableGoogleReviews ?? false
-        },
+        // Removed: Google Reviews feature
         squareSettings: {
           accessToken: dbSettings.squareAccessToken ? '***' : undefined,
           applicationId: dbSettings.squareApplicationId,
@@ -2209,38 +2202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Google Reviews Routes
-  
-  // Get cached reviews for current tenant
-  app.get("/api/reviews", async (req, res) => {
-    try {
-      // Check if this is the main marketing site - return empty reviews
-      if ((req as any).isMainSite) {
-        return res.json({ reviews: [], rating: 0, user_ratings_total: 0, lastUpdated: null });
-      }
-
-      const tenantId = getCurrentTenantId(req);
-      
-      const reviewsData = await db.query.googleReviews.findFirst({
-        where: eq(googleReviews.tenantId, tenantId),
-        orderBy: (reviews, { desc }) => [desc(reviews.lastUpdated)]
-      });
-      
-      if (!reviewsData) {
-        return res.json({ reviews: [], rating: 0, user_ratings_total: 0, lastUpdated: null });
-      }
-      
-      res.json({
-        ...reviewsData.reviewData,
-        lastUpdated: reviewsData.lastUpdated,
-        placeId: reviewsData.placeId
-      });
-    } catch (error) {
-      console.error("Error fetching reviews:", error);
-      // Return empty reviews instead of 500 error to prevent React crashes
-      res.json({ reviews: [], rating: 0, user_ratings_total: 0, lastUpdated: null });
-    }
-  });
+  // Removed: Google Reviews functionality - table dropped
 
   // Search Google Places for Place ID (admin helper)
   app.post("/api/admin/google-places/search", async (req, res) => {
@@ -2260,117 +2222,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Fetch reviews automatically when enabling Google Reviews feature
-  async function fetchAndStoreReviews(tenantId: string, placeId: string) {
-    console.log(`Auto-fetching Google Reviews for tenant ${tenantId}, place ID: ${placeId}`);
-    
-    try {
-      const googlePlaces = new GooglePlacesService();
-      let actualPlaceId = placeId;
-      
-      // If the place ID looks like a hex ID from Google Maps, try to convert it
-      if (placeId.includes('0x')) {
-        console.log('Detected hex-based Place ID, attempting conversion...');
-        const convertedPlaceId = await googlePlaces.convertHexToPlaceId(placeId);
-        if (convertedPlaceId) {
-          actualPlaceId = convertedPlaceId;
-          console.log(`Converted hex ID to Place ID: ${actualPlaceId}`);
-          
-          // Update the business settings with the converted Place ID
-          try {
-            const existingSettings = await storage.getBusinessSettings(tenantId);
-            if (existingSettings && existingSettings.googleReviews) {
-              await storage.updateBusinessSettings(tenantId, {
-                ...existingSettings,
-                googleReviews: {
-                  ...existingSettings.googleReviews,
-                  placeId: convertedPlaceId
-                }
-              });
-              console.log('Updated business settings with converted Place ID');
-            }
-          } catch (error) {
-            console.error('Error updating business settings with converted Place ID:', error);
-          }
-        } else {
-          console.log('Failed to convert hex ID to Place ID');
-        }
-      }
-      
-      const reviewData = await googlePlaces.getPlaceReviews(actualPlaceId);
-      
-      if (!reviewData) {
-        console.error("Failed to fetch reviews from Google Places");
-        return null;
-      }
+  // Removed: Google Reviews auto-fetch functionality
 
-      // Check if we already have reviews for this tenant
-      const existingReviews = await db
-        .select()
-        .from(googleReviews)
-        .where(eq(googleReviews.tenantId, tenantId))
-        .limit(1);
-
-      if (existingReviews.length > 0) {
-        // Update existing reviews
-        await db
-          .update(googleReviews)
-          .set({
-            reviewData: reviewData,
-            lastUpdated: new Date(),
-            placeId: placeId
-          })
-          .where(eq(googleReviews.tenantId, tenantId));
-      } else {
-        // Insert new reviews
-        await db
-          .insert(googleReviews)
-          .values({
-            tenantId: tenantId,
-            placeId: placeId,
-            reviewData: reviewData,
-            lastUpdated: new Date()
-          });
-      }
-
-      console.log(`Successfully stored ${reviewData.reviews.length} reviews with ${reviewData.rating} average rating`);
-      return reviewData;
-    } catch (error) {
-      console.error("Error auto-fetching reviews:", error);
-      return null;
-    }
-  }
-
-  // Manual refresh reviews endpoint (admin helper)
-  app.post("/api/admin/reviews/refresh", async (req, res) => {
-    try {
-      const tenantId = getCurrentTenantId(req);
-      
-      // Get business settings to check for Google Place ID
-      const dbSettings = await storage.getBusinessSettings(tenantId);
-      
-      if (!dbSettings?.googlePlaceId || !dbSettings?.enableGoogleReviews) {
-        return res.status(400).json({ 
-          message: "Google Reviews not configured. Please set Place ID and enable in business settings." 
-        });
-      }
-
-      const reviewData = await fetchAndStoreReviews(tenantId, dbSettings.googlePlaceId);
-      
-      if (!reviewData) {
-        return res.status(500).json({ message: "Failed to fetch reviews from Google Places" });
-      }
-
-      res.json({ 
-        message: "Reviews updated successfully", 
-        reviewCount: reviewData.reviews.length,
-        rating: reviewData.rating 
-      });
-    } catch (error) {
-      console.error("Error refreshing reviews:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+  // Removed: Manual refresh reviews endpoint - Google Reviews functionality disabled
 
   app.post("/api/payments/:paymentId/refund", async (req, res) => {
     try {

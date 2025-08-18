@@ -3,15 +3,7 @@ import { pgTable, text, varchar, timestamp, integer, boolean, uuid, numeric, jso
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Pending signups table for email verification flow
-export const pendingSignups = pgTable("pending_signups", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: text("email").notNull().unique(),
-  signupData: jsonb("signup_data").notNull(), // Store all signup form data
-  verificationToken: text("verification_token").notNull().unique(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+// Removed: pendingSignups table - no longer needed with direct signup flow
 
 // Tenants table for multi-tenant SaaS support
 export const tenants = pgTable("tenants", {
@@ -214,27 +206,7 @@ export const businessSettings = pgTable("business_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Google Reviews cache table
-export const googleReviews = pgTable("google_reviews", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: uuid("tenant_id").default(sql`'00000000-0000-0000-0000-000000000001'::uuid`).notNull(),
-  placeId: text("place_id").notNull(),
-  reviewData: jsonb("review_data").$type<{
-    reviews: Array<{
-      author_name: string;
-      author_url?: string;
-      profile_photo_url?: string;
-      rating: number;
-      relative_time_description: string;
-      text: string;
-      time: number;
-    }>;
-    rating: number;
-    user_ratings_total: number;
-  }>().notNull(),
-  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+// Removed: googleReviews table - no longer needed
 
 // Service area zones for delivery pricing
 export const serviceZones = pgTable("service_zones", {
@@ -251,19 +223,7 @@ export const serviceZones = pgTable("service_zones", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Business users table (for business login system)
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: uuid("tenant_id").notNull(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  name: text("name"),
-  email: text("email"),
-  phone: text("phone"),
-  role: text("role", { enum: ["customer", "admin", "driver", "dispatcher"] }).default("customer"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+// Removed: users table - no longer needed with Supabase Auth
 
 // Business settings schemas
 export const insertBusinessSettingsSchema = createInsertSchema(businessSettings).omit({
@@ -323,18 +283,13 @@ export const insertTenantSchema = createInsertSchema(tenants).omit({
 
 export const updateTenantSchema = insertTenantSchema.partial();
 
-// Pending signup schemas
-export const insertPendingSignupSchema = createInsertSchema(pendingSignups).omit({
-  id: true,
-  createdAt: true,
-});
+// Removed: Pending signup schemas - no longer needed
 
 // Main Types
 export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type UpdateTenant = z.infer<typeof updateTenantSchema>;
-export type PendingSignup = typeof pendingSignups.$inferSelect;
-export type InsertPendingSignup = z.infer<typeof insertPendingSignupSchema>;
+// Removed: PendingSignup types - no longer needed
 export type BusinessSettings = typeof businessSettings.$inferSelect;
 export type DeliveryRequest = typeof deliveryRequests.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;
@@ -344,12 +299,7 @@ export type CustomerLoyaltyAccount = typeof customerLoyaltyAccounts.$inferSelect
 export type InsertCustomerLoyaltyAccount = z.infer<typeof insertCustomerLoyaltyAccountSchema>;
 export type UpdateCustomerLoyaltyAccount = z.infer<typeof updateCustomerLoyaltyAccountSchema>;
 
-// Google reviews schemas
-export const insertGoogleReviewsSchema = createInsertSchema(googleReviews).omit({
-  id: true,
-  createdAt: true,
-  lastUpdated: true,
-});
+// Removed: Google reviews schemas - no longer needed
 
 // Business schemas
 export const insertBusinessSchema = createInsertSchema(businesses).omit({
@@ -456,18 +406,13 @@ export const createInvoiceSchema = z.object({
   autoCharge: z.boolean().default(false),
 });
 
-// Legacy user schema (for compatibility)
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+// Removed: Legacy user schema - no longer needed
 
 // Additional type exports
 export type InsertBusiness = z.infer<typeof insertBusinessSchema>;
 export type Business = typeof businesses.$inferSelect;
 
-export type InsertGoogleReviews = z.infer<typeof insertGoogleReviewsSchema>;
-export type GoogleReviewsData = typeof googleReviews.$inferSelect;
+// Removed: Google reviews types - no longer needed
 
 export type InsertDeliveryRequest = z.infer<typeof insertDeliveryRequestSchema>;
 export type InsertDeliveryRequestGuest = z.infer<typeof insertDeliveryRequestGuestSchema>;
@@ -477,6 +422,4 @@ export type ClaimDelivery = z.infer<typeof claimDeliverySchema>;
 export type UpdateDeliveryStatus = z.infer<typeof updateDeliveryStatusSchema>;
 export type UpdateDriverStatus = z.infer<typeof updateDriverStatusSchema>;
 
-// Legacy types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+// Removed: Legacy user types - no longer needed

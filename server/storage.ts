@@ -1,31 +1,18 @@
 import { 
-  type User, type InsertUser, type DeliveryRequest, type InsertDeliveryRequest,
+  type DeliveryRequest, type InsertDeliveryRequest,
   type UserProfile, type InsertUserProfile, type UpdateUserProfile,
   type CustomerLoyaltyAccount, type InsertCustomerLoyaltyAccount, type UpdateCustomerLoyaltyAccount,
   type ClaimDelivery, type UpdateDeliveryStatus,
   type Business, type InsertBusiness,
   type Tenant, type InsertTenant,
-  type PendingSignup, type InsertPendingSignup,
-  users, deliveryRequests, userProfiles, customerLoyaltyAccounts, businesses, businessSettings, serviceZones, tenants, pendingSignups 
+  deliveryRequests, userProfiles, customerLoyaltyAccounts, businesses, businessSettings, serviceZones, tenants 
 } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { db } from "./db.js";
 import { eq, sql } from "drizzle-orm";
 
 export interface IStorage {
-  // Legacy user methods (for backward compatibility)
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(userData: { 
-    username: string; 
-    password: string; 
-    name?: string;
-    email?: string;
-    tenantId?: string;
-    role?: string;
-    phone?: string; 
-  }): Promise<{ id: string; username: string; tenantId: string }>;
-  authenticateUser(username: string, password: string): Promise<User | null>;
+  // Removed: Legacy user methods - no longer needed with Supabase Auth
   
   // User profile methods (for Supabase Auth integration)
   getUserProfile(id: string): Promise<UserProfile | undefined>;
@@ -73,34 +60,23 @@ export interface IStorage {
   getTenantBySubdomain(subdomain: string): Promise<Tenant | undefined>;
   createTenant(tenant: Partial<Tenant>): Promise<Tenant>;
   createBusinessSettings(settings: any): Promise<any>;
-  
-  // Pending signup methods
-  createPendingSignup(signup: InsertPendingSignup): Promise<PendingSignup>;
-  getPendingSignup(token: string): Promise<PendingSignup | undefined>;
-  deletePendingSignup(token: string): Promise<void>;
-  cleanupExpiredSignups(): Promise<void>;
-  checkSubdomainAvailable(subdomain: string, excludeEmail?: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
   private userProfiles: Map<string, UserProfile>;
   private loyaltyAccounts: Map<string, CustomerLoyaltyAccount>; // key: userId-tenantId
   private deliveryRequests: Map<string, DeliveryRequest>;
   private businesses: Map<string, Business>;
   private businessSettings: Map<string, any>;
   private tenants: Map<string, Tenant>;
-  private pendingSignups: Map<string, PendingSignup>;
 
   constructor() {
-    this.users = new Map();
     this.userProfiles = new Map();
     this.loyaltyAccounts = new Map();
     this.deliveryRequests = new Map();
     this.businesses = new Map();
     this.businessSettings = new Map();
     this.tenants = new Map();
-    this.pendingSignups = new Map();
     
     // Initialize default business settings for Sara's Quickie Delivery
     this.businessSettings.set('00000000-0000-0000-0000-000000000001', {
@@ -141,50 +117,7 @@ export class MemStorage implements IStorage {
     });
   }
 
-  // Legacy user methods
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(userData: { 
-    username: string; 
-    password: string; 
-    name?: string;
-    email?: string;
-    tenantId?: string;
-    role?: string;
-    phone?: string; 
-  }): Promise<{ id: string; username: string; tenantId: string }> {
-    const id = randomUUID();
-    const user: User = { 
-      id,
-      username: userData.username,
-      password: userData.password,
-      name: userData.name || null,
-      email: userData.email || null,
-      phone: userData.phone || null,
-      role: userData.role || "customer",
-      tenantId: userData.tenantId || "00000000-0000-0000-0000-000000000001",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    this.users.set(id, user);
-    return { id: user.id, username: user.username, tenantId: user.tenantId };
-  }
-
-  async authenticateUser(username: string, password: string): Promise<User | null> {
-    const user = await this.getUserByUsername(username);
-    if (user && user.password === password) {
-      return user;
-    }
-    return null;
-  }
+  // Removed: Legacy user methods - no longer needed with Supabase Auth
 
   // User profile methods
   async getUserProfile(id: string): Promise<UserProfile | undefined> {
@@ -536,53 +469,7 @@ export class MemStorage implements IStorage {
     return newSettings;
   }
 
-  // Pending signup methods (memory storage)
-  async createPendingSignup(insertSignup: InsertPendingSignup): Promise<PendingSignup> {
-    const id = randomUUID();
-    const signup: PendingSignup = {
-      id,
-      ...insertSignup,
-      createdAt: new Date(),
-    };
-    this.pendingSignups.set(insertSignup.verificationToken, signup);
-    return signup;
-  }
-
-  async getPendingSignup(token: string): Promise<PendingSignup | undefined> {
-    return this.pendingSignups.get(token);
-  }
-
-  async deletePendingSignup(token: string): Promise<void> {
-    this.pendingSignups.delete(token);
-  }
-
-  async cleanupExpiredSignups(): Promise<void> {
-    const now = new Date();
-    for (const [token, signup] of this.pendingSignups.entries()) {
-      if (signup.expiresAt < now) {
-        this.pendingSignups.delete(token);
-      }
-    }
-  }
-
-  async checkSubdomainAvailable(subdomain: string, excludeEmail?: string): Promise<boolean> {
-    // Check existing tenants
-    for (const tenant of this.tenants.values()) {
-      if (tenant.subdomain === subdomain && tenant.email !== excludeEmail) {
-        return false;
-      }
-    }
-    
-    // Check pending signups
-    for (const signup of this.pendingSignups.values()) {
-      const signupData = signup.signupData as any;
-      if (signupData.subdomain === subdomain && signup.email !== excludeEmail) {
-        return false;
-      }
-    }
-    
-    return true;
-  }
+  // Removed: Pending signup methods - no longer needed
 }
 
 export class DatabaseStorage implements IStorage {

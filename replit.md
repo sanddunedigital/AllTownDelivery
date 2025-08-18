@@ -36,12 +36,13 @@ Preferred communication style: Simple, everyday language.
 ### Database Layer
 - **ORM**: Drizzle ORM configured for PostgreSQL with Supabase.
 - **Multi-Tenant Support**: Tenant-aware schema with automatic tenant isolation, defaulting data to Sara's Quickie tenant.
-- **Schema Management**: Shared schema definitions between client and server with tenant context, including users, delivery requests, and business settings.
+- **Schema Management**: Shared schema definitions between client and server with tenant context, core tables: tenants, user_profiles, delivery_requests, business_settings, customer_loyalty_accounts.
 - **Migration System**: Automatic table creation with SQL migrations and tenant setup.
 - **Smart Storage**: Automatic fallback from database to memory storage when connection fails.
 - **Authentication Flow**: Role-based redirects (drivers to /driver portal, customers to home page).
 - **Loyalty Program**: Multi-tenant credit-based system where customers earn separate loyalty points with each delivery service through dedicated customer_loyalty_accounts table.
 - **Security**: Row Level Security (RLS) policies on all sensitive tables (tenants, user_profiles, customer_loyalty_accounts, delivery_requests) with hybrid approach allowing cross-tenant service discovery via business_settings.
+- **Recent Cleanup**: Successfully removed deprecated tables (google_reviews, pending_signups, users) and all associated code references for streamlined architecture.
 
 ## External Dependencies
 
