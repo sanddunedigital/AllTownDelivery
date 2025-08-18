@@ -42,7 +42,7 @@ Preferred communication style: Simple, everyday language.
 - **Authentication Flow**: Role-based redirects (drivers to /driver portal, customers to home page).
 - **Loyalty Program**: Multi-tenant credit-based system where customers earn separate loyalty points with each delivery service through dedicated customer_loyalty_accounts table.
 - **Security**: Row Level Security (RLS) policies on all sensitive tables (tenants, user_profiles, customer_loyalty_accounts, delivery_requests) with hybrid approach allowing cross-tenant service discovery via business_settings.
-- **Recent Cleanup**: Successfully removed deprecated tables (google_reviews, pending_signups, users) and all associated code references for streamlined architecture.
+- **Recent Cleanup**: Successfully removed deprecated tables (google_reviews, pending_signups, users) and all associated code references for streamlined architecture. Fixed recurring users table creation in migrate.ts to prevent automatic recreation on startup.
 
 ## External Dependencies
 
