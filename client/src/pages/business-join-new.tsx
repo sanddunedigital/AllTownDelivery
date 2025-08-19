@@ -56,8 +56,8 @@ export default function BusinessJoin() {
       serviceArea: 'Oskaloosa area',
       currentDeliveryVolume: '1-10 deliveries per day',
       description: 'Super cool delivery service',
-      adminPassword: 'Password1',
-      confirmPassword: 'Password1',
+      adminPassword: 'Password123',
+      confirmPassword: 'Password123',
     },
   });
 
@@ -67,13 +67,17 @@ export default function BusinessJoin() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Redirect directly to success page since account is created immediately
+      // Redirect to signup complete page with linking token
+      if (data.redirectUrl) {
+        setLocation(data.redirectUrl);
+        return;
+      }
+      
       const subdomain = data.subdomain;
-      const username = data.username;
       const businessName = form.getValues('businessName');
       const params = new URLSearchParams({
         subdomain: subdomain,
-        username: username,
+
         businessName: businessName,
         direct: 'true'
       });
@@ -429,30 +433,10 @@ export default function BusinessJoin() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Admin Access Setup</h3>
                   <p className="text-sm text-gray-600">
-                    Create your admin login credentials for managing your delivery service.
+                    Create your admin password. You'll use your email address to log in.
                   </p>
 
-                  <FormField
-                    control={form.control}
-                    name="adminUsername"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Admin Username</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            data-testid="input-admin-username"
-                            placeholder="Choose your admin username"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          This will be your login username for the admin dashboard
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
                   
                   <div className="grid md:grid-cols-2 gap-4">
                     <FormField

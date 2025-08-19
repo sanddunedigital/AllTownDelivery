@@ -1615,8 +1615,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '');
 
-      // Use the provided username (cleaned for safety)
-      const username = validatedData.adminUsername.toLowerCase().replace(/[^a-z0-9]/g, '');
+      // Generate username from business name for subdomain consistency
+      const username = subdomain;
       
 
 
@@ -1654,26 +1654,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tenantId: newTenant.id,
       });
 
-      // Create Supabase user for business authentication
-      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-        email: validatedData.email,
-        password: validatedData.adminPassword,
-        user_metadata: {
-          full_name: validatedData.ownerName,
-          phone: validatedData.phone,
-          business_role: 'admin',
-          tenant_id: newTenant.id,
-          business_name: validatedData.businessName
-        },
-        email_confirm: true // Auto-confirm for business accounts
-      });
+      // Generate temporary token for account linking
+      const linkingToken = crypto.randomUUID();
+      
+      // Store linking token and admin email in tenant for later account connection
+      // For now, we'll skip updating the tenant and proceed with the simplified flow
 
-      if (authError || !authUser.user) {
-        throw new Error(`Failed to create Supabase user: ${authError?.message}`);
-      }
-
-      // Use the actual Supabase user ID
-      const actualUserId = authUser.user.id;
+      // Use a temporary ID that will be replaced when user authenticates
+      const actualUserId = `temp-${crypto.randomUUID()}`;
 
 
 
@@ -1720,12 +1708,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createBusinessSettings(defaultBusinessSettings);
 
       res.status(200).json({ 
-        message: "Account created successfully! You can now access your business dashboard.",
+        message: "Business registered! Please check your email to complete setup.",
         subdomain: subdomain,
-        username: username,
         adminEmail: validatedData.email,
         tenantId: newTenant.id,
-        userId: actualUserId
+        linkingToken: linkingToken,
+        redirectUrl: `/signup-complete?token=${linkingToken}&email=${encodeURIComponent(validatedData.email)}`
       });
 
     } catch (error) {

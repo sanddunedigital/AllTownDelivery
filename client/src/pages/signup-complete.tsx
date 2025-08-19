@@ -55,6 +55,26 @@ export default function SignupComplete() {
         
         console.log('Signup complete page loaded. URL params:', window.location.search);
         
+        // Handle new simplified signup flow with linking token
+        const linkingToken = urlParams.get('token');
+        const adminEmail = urlParams.get('email');
+        
+        if (linkingToken && adminEmail) {
+          console.log('Using new simplified signup flow with linking token');
+          // Show success message and prompt for Supabase Auth signup
+          setTenantData({
+            linkingToken: linkingToken,
+            adminEmail: decodeURIComponent(adminEmail),
+            needsAuth: true
+          });
+          setVerificationState('success');
+          toast({
+            title: 'Business Registered Successfully!',
+            description: 'Now create your admin account to access your dashboard.',
+          });
+          return;
+        }
+        
         // If this is a direct signup (no email verification needed), show success immediately
         if (directSignup === 'true' && subdomain && username) {
           console.log('Using direct signup flow - no email verification needed');

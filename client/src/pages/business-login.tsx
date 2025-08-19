@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 const businessLoginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -23,6 +23,9 @@ export default function BusinessLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [loginError, setLoginError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [needsSignup, setNeedsSignup] = useState(false);
+  const { user } = useAuth();
 
   const form = useForm<BusinessLoginForm>({
     resolver: zodResolver(businessLoginSchema),
@@ -32,59 +35,108 @@ export default function BusinessLogin() {
     },
   });
 
-  const loginMutation = useMutation({
-    mutationFn: async (data: BusinessLoginForm) => {
-      const response = await apiRequest('/api/auth/business-login', 'POST', data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${data.user.name}!`,
+  // If user is already authenticated, redirect to admin
+  if (user) {
+    setLocation('/admin');
+    return null;
+  }
+
+  const handleSignIn = async (data: BusinessLoginForm) => {
+    setIsLoading(true);
+    setLoginError('');
+
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
       });
-      
-      // Redirect based on user role
-      if (data.user.role === 'admin') {
-        setLocation('/admin');
-      } else if (data.user.role === 'driver') {
-        setLocation('/driver');
-      } else if (data.user.role === 'dispatcher') {
-        setLocation('/dispatch');
-      } else {
-        setLocation('/');
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          setNeedsSignup(true);
+          setLoginError('No account found. Please sign up first or check your email/password.');
+        } else {
+          setLoginError(error.message);
+        }
+        return;
       }
-    },
-    onError: (error: Error) => {
-      setLoginError(error.message);
-    },
-  });
+
+      if (authData.user) {
+        toast({
+          title: "Login successful",
+          description: "Welcome back to your admin dashboard!",
+        });
+        setLocation('/admin');
+      }
+
+    } catch (error: any) {
+      setLoginError(error.message || 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUp = async (data: BusinessLoginForm) => {
+    setIsLoading(true);
+    setLoginError('');
+
+    try {
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) {
+        setLoginError(error.message);
+        return;
+      }
+
+      if (authData.user) {
+        toast({
+          title: "Account created!",
+          description: "Please check your email to verify your account.",
+        });
+        setNeedsSignup(false);
+      }
+
+    } catch (error: any) {
+      setLoginError(error.message || 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = (data: BusinessLoginForm) => {
-    setLoginError('');
-    loginMutation.mutate(data);
+    if (needsSignup) {
+      handleSignUp(data);
+    } else {
+      handleSignIn(data);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Business Login
+          {needsSignup ? 'Create Admin Account' : 'Business Login'}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Sign in to your business dashboard
+          {needsSignup 
+            ? 'Create your admin account to access your dashboard'
+            : 'Sign in to your delivery business admin dashboard'
+          }
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <Card>
           <CardHeader>
-            <CardTitle>Sign In</CardTitle>
+            <CardTitle>{needsSignup ? 'Create Account' : 'Sign In'}</CardTitle>
             <CardDescription>
-              Enter your business email and password
+              {needsSignup 
+                ? 'Enter your email and create a password'
+                : 'Enter your business email and password'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -139,10 +191,37 @@ export default function BusinessLogin() {
                 type="submit"
                 data-testid="button-login"
                 className="w-full"
-                disabled={loginMutation.isPending}
+                disabled={isLoading}
               >
-                {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
+                {isLoading 
+                  ? (needsSignup ? 'Creating Account...' : 'Signing in...') 
+                  : (needsSignup ? 'Create Account' : 'Sign In')
+                }
               </Button>
+              
+              <div className="flex flex-col gap-2">
+                {!needsSignup && (
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    className="w-full" 
+                    onClick={() => setNeedsSignup(true)}
+                  >
+                    Need to create an account? Sign Up
+                  </Button>
+                )}
+                
+                {needsSignup && (
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    className="w-full" 
+                    onClick={() => setNeedsSignup(false)}
+                  >
+                    Already have an account? Sign In
+                  </Button>
+                )}
+              </div>
             </form>
 
             <div className="mt-6">
