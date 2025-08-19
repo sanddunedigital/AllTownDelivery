@@ -26,6 +26,7 @@ import { db } from "./db.js";
 import { deliveryRequests } from "../shared/schema.js";
 import { eq, and } from "drizzle-orm";
 import { supabase as supabaseClient } from "./supabaseStorage.js";
+const supabase = supabaseClient;
 
 // Helper function to get business type defaults
 function getBusinessTypeDefaults(businessType: string) {
@@ -1653,22 +1654,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tenantId: newTenant.id,
       });
 
-      // ALSO create in users table for login compatibility (until we move to Supabase auth)
-      const adminUser = await storage.createUser({
-        username: username,
-        password: validatedData.adminPassword,
-        name: validatedData.ownerName,
+      // Create Supabase user for business authentication
+      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
         email: validatedData.email,
-        tenantId: newTenant.id,
-        role: 'admin',
-        phone: validatedData.phone
+        password: validatedData.adminPassword,
+        user_metadata: {
+          full_name: validatedData.ownerName,
+          phone: validatedData.phone,
+          business_role: 'admin',
+          tenant_id: newTenant.id,
+          business_name: validatedData.businessName
+        },
+        email_confirm: true // Auto-confirm for business accounts
       });
 
-      // Use the actual user ID from the users table
-      const actualUserId = adminUser.id;
+      if (authError || !authUser.user) {
+        throw new Error(`Failed to create Supabase user: ${authError?.message}`);
+      }
 
-      // Update the user profile with the correct ID
-      await storage.updateUserProfile(adminUserId, { id: actualUserId });
+      // Use the actual Supabase user ID
+      const actualUserId = authUser.user.id;
+
+
 
       // Create admin staff record in business_staff table
       const adminStaffRecord = await storage.createBusinessStaff({
@@ -1733,21 +1740,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Business login endpoint (username/password)
+  // Business login endpoint (Supabase Auth)
   app.post("/api/auth/business-login", async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { email, password } = req.body;
       
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
       }
 
-      // Authenticate business user
-      const user = await storage.authenticateUser(username, password);
+      // Authenticate with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      if (!user) {
-        return res.status(401).json({ message: "Invalid username or password" });
+      if (authError || !authData.user) {
+        return res.status(401).json({ message: "Invalid email or password" });
       }
+
+      const user = authData.user;
 
       // Check if user has business role by looking up business_staff record
       const staffMember = await storage.getBusinessStaffById(user.id);
@@ -1755,23 +1767,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Business account required." });
       }
 
-      // Create session (req.session will be available if express-session is configured)
-      const session = req as any;
-      if (session.session) {
-        session.session.userId = user.id;
-        session.session.userRole = staffMember.role;
-        session.session.tenantId = staffMember.tenantId;
-      }
-
       res.json({
         message: "Login successful",
         user: {
           id: user.id,
-          username: user.username,
-          name: user.name,
+          email: user.email,
+          name: user.user_metadata?.full_name || user.email,
           role: staffMember.role,
           tenantId: staffMember.tenantId
-        }
+        },
+        session: authData.session
       });
       
     } catch (error) {

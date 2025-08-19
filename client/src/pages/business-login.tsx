@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
 const businessLoginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -27,7 +27,7 @@ export default function BusinessLogin() {
   const form = useForm<BusinessLoginForm>({
     resolver: zodResolver(businessLoginSchema),
     defaultValues: {
-      username: '',
+      email: '',
       password: '',
     },
   });
@@ -84,7 +84,7 @@ export default function BusinessLogin() {
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
             <CardDescription>
-              Enter your business username and password
+              Enter your business email and password
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -101,18 +101,18 @@ export default function BusinessLogin() {
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="username"
-                    data-testid="input-username"
-                    type="text"
-                    autoComplete="username"
-                    {...form.register('username')}
+                    id="email"
+                    data-testid="input-email"
+                    type="email"
+                    autoComplete="email"
+                    {...form.register('email')}
                     className="mt-1"
                   />
-                  {form.formState.errors.username && (
+                  {form.formState.errors.email && (
                     <p className="mt-2 text-sm text-red-600">
-                      {form.formState.errors.username.message}
+                      {form.formState.errors.email.message}
                     </p>
                   )}
                 </div>
