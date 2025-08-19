@@ -3,7 +3,21 @@ import { sql } from "drizzle-orm";
 
 export async function runMigrations() {
   try {
-    // Removed: users table - using Supabase Auth instead
+    // Create users table for legacy authentication (temporary until Supabase Auth migration)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "users" (
+        "id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "username" text UNIQUE NOT NULL,
+        "password" text NOT NULL,
+        "name" text,
+        "email" text,
+        "phone" text,
+        "tenant_id" uuid DEFAULT '00000000-0000-0000-0000-000000000001'::uuid NOT NULL,
+        "role" text DEFAULT 'customer',
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+      );
+    `);
 
     // Create delivery_requests table
     await db.execute(sql`

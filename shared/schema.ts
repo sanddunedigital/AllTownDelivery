@@ -245,7 +245,19 @@ export const serviceZones = pgTable("service_zones", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Removed: users table - no longer needed with Supabase Auth
+// Legacy users table for username/password authentication (temporary until Supabase Auth migration)
+export const users = pgTable("users", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").unique().notNull(),
+  password: text("password").notNull(), // Temporary plain text for development
+  name: text("name"),
+  email: text("email"),
+  phone: text("phone"),
+  tenantId: uuid("tenant_id").default(sql`'00000000-0000-0000-0000-000000000001'::uuid`).notNull(),
+  role: text("role").default("customer"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 // Business settings schemas
 export const insertBusinessSettingsSchema = createInsertSchema(businessSettings).omit({
@@ -311,6 +323,7 @@ export const updateTenantSchema = insertTenantSchema.partial();
 export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type UpdateTenant = z.infer<typeof updateTenantSchema>;
+export type User = typeof users.$inferSelect;
 // Removed: PendingSignup types - no longer needed
 export type BusinessSettings = typeof businessSettings.$inferSelect;
 export type DeliveryRequest = typeof deliveryRequests.$inferSelect;

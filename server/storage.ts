@@ -7,7 +7,8 @@ import {
   type ClaimDelivery, type UpdateDeliveryStatus,
   type Business, type InsertBusiness,
   type Tenant, type InsertTenant,
-  deliveryRequests, userProfiles, customerLoyaltyAccounts, businessStaff, customerProfiles, businesses, businessSettings, serviceZones, tenants 
+  type User,
+  deliveryRequests, userProfiles, customerLoyaltyAccounts, businessStaff, customerProfiles, businesses, businessSettings, serviceZones, tenants, users
 } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { db } from "./db.js";
@@ -630,21 +631,31 @@ export class DatabaseStorage implements IStorage {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
-    const result = await db.insert(users).values(userData).returning();
-    const user = result[0];
-    return { id: user.id, username: user.username, tenantId: user.tenantId };
+    try {
+      const result = await db.insert(users).values(userData).returning();
+      const user = result[0];
+      return { id: user.id, username: user.username, tenantId: user.tenantId };
+    } catch (error) {
+      console.error("Error creating user in database:", error);
+      throw error;
+    }
   }
 
   async authenticateUser(username: string, password: string): Promise<User | null> {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
-    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
-    const user = result[0];
-    if (user && user.password === password) {
-      return user;
+    try {
+      const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+      const user = result[0];
+      if (user && user.password === password) {
+        return user;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error authenticating user:", error);
+      throw error;
     }
-    return null;
   }
 
   // User profile methods
@@ -1488,6 +1499,28 @@ class SmartStorage implements IStorage {
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
       return await this.memStorage.getUserLoyaltyAccounts(userId);
+    }
+  }
+
+  // Authentication methods (for legacy users table compatibility)
+  async authenticateUser(username: string, password: string): Promise<User | null> {
+    try {
+      return await this.dbStorage.authenticateUser(username, password);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      // Memory storage doesn't support user authentication - return null
+      console.warn("User authentication not supported in memory storage");
+      return null;
+    }
+  }
+
+  async createUser(userData: any): Promise<User> {
+    try {
+      return await this.dbStorage.createUser(userData);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      // Memory storage doesn't support user creation - throw error
+      throw new Error("User creation not supported in memory storage");
     }
   }
 

@@ -667,7 +667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // User Profile Routes
   
-  // Get user profile (create if needed)
+  // Get user profile (create if needed) with business staff role
   app.get("/api/users/:id/profile", async (req, res) => {
     try {
       const { id } = req.params;
@@ -677,21 +677,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create default profile
         const defaultProfile = {
           id,
-          name: "New User",
+          fullName: "New User",
           email: "",
           phone: "",
-          address: "",
-          isDriver: false,
-          isOnDuty: false,
-          role: "customer" as const,
-          loyaltyPoints: 0,
-          totalDeliveries: 0,
-          freeDeliveryCredits: 0
+          tenantId: getCurrentTenantId(req),
         };
         profile = await storage.createUserProfile(defaultProfile);
       }
       
-      res.json(profile);
+      // Check if user has business staff role
+      const staffMember = await storage.getBusinessStaffById(id);
+      
+      // Merge profile with business staff information
+      const profileWithRole = {
+        ...profile,
+        role: staffMember?.role || 'customer',
+        isOnDuty: staffMember?.isOnDuty || false,
+        inviteStatus: staffMember?.inviteStatus || null,
+        permissions: staffMember?.permissions || null,
+        userType: staffMember ? 'business_staff' : 'customer'
+      };
+      
+      res.json(profileWithRole);
     } catch (error) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -1646,6 +1653,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tenantId: newTenant.id,
       });
 
+      // ALSO create in users table for login compatibility (until we move to Supabase auth)
+      const adminUser = await storage.createUser({
+        username: username,
+        password: validatedData.adminPassword,
+        name: validatedData.ownerName,
+        email: validatedData.email,
+        tenantId: newTenant.id,
+        role: 'admin',
+        phone: validatedData.phone
+      });
+
+      // Use the actual user ID from the users table
+      const actualUserId = adminUser.id;
+
+      // Update the user profile with the correct ID
+      await storage.updateUserProfile(adminUserId, { id: actualUserId });
+
       // Create admin staff record in business_staff table
       const adminStaffRecord = await storage.createBusinessStaff({
         tenantId: newTenant.id,
@@ -1658,7 +1682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           canViewReports: true,
           canManagePayments: true
         }
-      }, adminUserId);
+      }, actualUserId);
 
       // Create default business settings
       const defaultBusinessSettings = {
@@ -1693,7 +1717,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subdomain: subdomain,
         username: username,
         adminEmail: validatedData.email,
-        tenantId: newTenant.id
+        tenantId: newTenant.id,
+        userId: actualUserId
       });
 
     } catch (error) {
