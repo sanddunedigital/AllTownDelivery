@@ -26,7 +26,7 @@ export interface IStorage {
   getBusinessStaff(tenantId: string): Promise<BusinessStaff[]>;
   getBusinessStaffByRole(tenantId: string, role: string): Promise<BusinessStaff[]>;
   getDrivers(tenantId: string): Promise<BusinessStaff[]>; // Get drivers for specific tenant
-  createBusinessStaff(staff: InsertBusinessStaff): Promise<BusinessStaff>;
+  createBusinessStaff(staff: InsertBusinessStaff, id?: string): Promise<BusinessStaff>;
   updateBusinessStaff(id: string, updates: UpdateBusinessStaff): Promise<BusinessStaff>;
   getBusinessStaffById(id: string): Promise<BusinessStaff | undefined>;
   
@@ -159,9 +159,11 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createBusinessStaff(insertStaff: InsertBusinessStaff): Promise<BusinessStaff> {
+  async createBusinessStaff(insertStaff: InsertBusinessStaff, id?: string): Promise<BusinessStaff> {
+    const staffId = id || randomUUID();
     const staff: BusinessStaff = {
       ...insertStaff,
+      id: staffId,
       isOnDuty: insertStaff.isOnDuty || false,
       permissions: insertStaff.permissions || {},
       inviteToken: insertStaff.inviteToken || null,
@@ -172,7 +174,7 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    this.businessStaff.set(staff.id, staff);
+    this.businessStaff.set(staffId, staff);
     return staff;
   }
 
@@ -688,11 +690,12 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async createBusinessStaff(insertStaff: InsertBusinessStaff): Promise<BusinessStaff> {
+  async createBusinessStaff(insertStaff: InsertBusinessStaff, id?: string): Promise<BusinessStaff> {
     if (!(await this.testConnection())) {
       throw new Error("Database connection unavailable");
     }
-    const result = await db.insert(businessStaff).values(insertStaff).returning();
+    const staffData = id ? { ...insertStaff, id } : insertStaff;
+    const result = await db.insert(businessStaff).values(staffData).returning();
     return result[0];
   }
 
@@ -1356,6 +1359,135 @@ class SmartStorage implements IStorage {
     } catch (error) {
       console.warn("Database unavailable, using memory storage");
       return await this.memStorage.getUserDeliveries(userId);
+    }
+  }
+
+  // Business staff methods (for invite-based business authentication)
+  async getBusinessStaff(tenantId: string): Promise<BusinessStaff[]> {
+    try {
+      return await this.dbStorage.getBusinessStaff(tenantId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getBusinessStaff(tenantId);
+    }
+  }
+
+  async getBusinessStaffByRole(tenantId: string, role: string): Promise<BusinessStaff[]> {
+    try {
+      return await this.dbStorage.getBusinessStaffByRole(tenantId, role);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getBusinessStaffByRole(tenantId, role);
+    }
+  }
+
+  async getDrivers(tenantId: string): Promise<BusinessStaff[]> {
+    try {
+      return await this.dbStorage.getDrivers(tenantId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getDrivers(tenantId);
+    }
+  }
+
+  async createBusinessStaff(staff: InsertBusinessStaff, id?: string): Promise<BusinessStaff> {
+    try {
+      return await this.dbStorage.createBusinessStaff(staff, id);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.createBusinessStaff(staff, id);
+    }
+  }
+
+  async updateBusinessStaff(id: string, updates: UpdateBusinessStaff): Promise<BusinessStaff> {
+    try {
+      return await this.dbStorage.updateBusinessStaff(id, updates);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.updateBusinessStaff(id, updates);
+    }
+  }
+
+  async getBusinessStaffById(id: string): Promise<BusinessStaff | undefined> {
+    try {
+      return await this.dbStorage.getBusinessStaffById(id);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getBusinessStaffById(id);
+    }
+  }
+
+  // Customer profile methods (for delivery customers)
+  async getCustomerProfile(id: string): Promise<CustomerProfile | undefined> {
+    try {
+      return await this.dbStorage.getCustomerProfile(id);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getCustomerProfile(id);
+    }
+  }
+
+  async createCustomerProfile(profile: InsertCustomerProfile): Promise<CustomerProfile> {
+    try {
+      return await this.dbStorage.createCustomerProfile(profile);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.createCustomerProfile(profile);
+    }
+  }
+
+  async updateCustomerProfile(id: string, updates: UpdateCustomerProfile): Promise<CustomerProfile> {
+    try {
+      return await this.dbStorage.updateCustomerProfile(id, updates);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.updateCustomerProfile(id, updates);
+    }
+  }
+
+  // Customer loyalty account methods
+  async getLoyaltyAccount(userId: string, tenantId: string): Promise<CustomerLoyaltyAccount | undefined> {
+    try {
+      return await this.dbStorage.getLoyaltyAccount(userId, tenantId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getLoyaltyAccount(userId, tenantId);
+    }
+  }
+
+  async createOrUpdateLoyaltyAccount(account: InsertCustomerLoyaltyAccount): Promise<CustomerLoyaltyAccount> {
+    try {
+      return await this.dbStorage.createOrUpdateLoyaltyAccount(account);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.createOrUpdateLoyaltyAccount(account);
+    }
+  }
+
+  async updateLoyaltyPoints(userId: string, tenantId: string, points: number, wasFreeDelivery?: boolean): Promise<void> {
+    try {
+      await this.dbStorage.updateLoyaltyPoints(userId, tenantId, points, wasFreeDelivery);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      await this.memStorage.updateLoyaltyPoints(userId, tenantId, points, wasFreeDelivery);
+    }
+  }
+
+  async checkLoyaltyEligibility(userId: string, tenantId: string): Promise<boolean> {
+    try {
+      return await this.dbStorage.checkLoyaltyEligibility(userId, tenantId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.checkLoyaltyEligibility(userId, tenantId);
+    }
+  }
+
+  async getUserLoyaltyAccounts(userId: string): Promise<CustomerLoyaltyAccount[]> {
+    try {
+      return await this.dbStorage.getUserLoyaltyAccounts(userId);
+    } catch (error) {
+      console.warn("Database unavailable, using memory storage");
+      return await this.memStorage.getUserLoyaltyAccounts(userId);
     }
   }
 

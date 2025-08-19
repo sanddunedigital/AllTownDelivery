@@ -1006,8 +1006,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const profile = await storage.updateUserProfile(driverId, updates);
-      res.json(profile);
+      // Update driver status in business_staff table
+      const staffMember = await storage.getBusinessStaffById(driverId);
+      if (!staffMember) {
+        return res.status(404).json({ message: "Driver not found" });
+      }
+      
+      const updatedStaff = await storage.updateBusinessStaff(driverId, {
+        isOnDuty: updates.isOnDuty
+      });
+      
+      res.json({ 
+        id: updatedStaff.id, 
+        isOnDuty: updatedStaff.isOnDuty,
+        role: updatedStaff.role 
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid status data", errors: error.errors });
@@ -1635,7 +1648,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create admin staff record in business_staff table
       const adminStaffRecord = await storage.createBusinessStaff({
-        id: adminUserId, // Same ID as user profile
         tenantId: newTenant.id,
         role: 'admin' as const,
         inviteStatus: 'accepted' as const, // Pre-accepted since they created the business
@@ -1646,7 +1658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           canViewReports: true,
           canManagePayments: true
         }
-      });
+      }, adminUserId);
 
       // Create default business settings
       const defaultBusinessSettings = {
@@ -1712,16 +1724,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
-      // Check if user has business role (admin, driver, dispatcher)
-      if (!['admin', 'driver', 'dispatcher'].includes(user.role)) {
+      // Check if user has business role by looking up business_staff record
+      const staffMember = await storage.getBusinessStaffById(user.id);
+      if (!staffMember || !['admin', 'driver', 'dispatcher'].includes(staffMember.role)) {
         return res.status(403).json({ message: "Access denied. Business account required." });
       }
 
       // Create session (req.session will be available if express-session is configured)
-      if (req.session) {
-        req.session.userId = user.id;
-        req.session.userRole = user.role;
-        req.session.tenantId = user.tenantId;
+      const session = req as any;
+      if (session.session) {
+        session.session.userId = user.id;
+        session.session.userRole = staffMember.role;
+        session.session.tenantId = staffMember.tenantId;
       }
 
       res.json({
@@ -1730,8 +1744,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: user.id,
           username: user.username,
           name: user.name,
-          role: user.role,
-          tenantId: user.tenantId
+          role: staffMember.role,
+          tenantId: staffMember.tenantId
         }
       });
       
